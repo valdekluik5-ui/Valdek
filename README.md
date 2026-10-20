@@ -2,4 +2,5 @@
 
 Projects built with Claude.
 
-- `quiet-moon/` — Quiet Moon app (publish directory for its Netlify site)
+- `quiet-moon/` — Quiet Moon app. Netlify publish directory: `quiet-moon`
+- `teleprompter/` — Suffler teleprompter app. Netlify publish directory: `teleprompter`
