@@ -1,88 +1,151 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Suffler"><meta name="theme-color" content="#13111b"><style>body{margin:0}[hidden]{display:none!important}</style></head><body><title>Suffler</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Suffler"><meta name="theme-color" content="#130a1b"><style>body{margin:0}[hidden]{display:none!important}</style></head><body><title>Suffler</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Old+Standard+TT:ital@0;1&family=Cormorant+SC:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap">
 <style>
-/* Layout: two screens only — paste text, then camera with text on top. Single dark look by choice. */
+/* Layout: scripts library → script editor → camera with text on top → take. Night look from Quiet Moon, single dark theme by choice. */
 :root{
-  --bg:#13111b; --panel:#1c1928; --line:#332e48; --fg:#efebf6; --muted:#9d96b2;
-  --amber:#f3b860; --amber-ink:#2a1d07; --rec:#ff5b70;
-  --f:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --bg:#130a1b; --panel:#241532; --panel2:#331f45; --line:#523666; --mist:#8e6fb0; --fg:#f8ecf3; --muted:#c7aabd;
+  --rose:#f3a6c4; --blush:#ffd9e8; --gold:#f0c97a; --ink:#130a1b; --rec:#ff8a6b;
+  --f:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif; --serif:"Cormorant Garamond",Georgia,serif; --disp:"Old Standard TT",Georgia,serif; --sc:"Cormorant SC",Georgia,serif;
   color-scheme:dark;
 }
 html,body{height:100%}
-body{background:var(--bg);color:var(--fg);font-family:var(--f);font-size:16px}
+body{background:var(--bg);color:var(--fg);font-family:var(--f);font-size:16px;font-variant-numeric:lining-nums}
 *{box-sizing:border-box}
-button,textarea{font:inherit;color:inherit}
+button,textarea,input{font:inherit;color:inherit}
 button{cursor:pointer}
-:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 .app{position:relative;height:100%;max-width:520px;margin:0 auto;overflow:hidden;background:var(--bg)}
 @media (min-width:600px){.app{height:min(100%,900px);border-left:1px solid var(--line);border-right:1px solid var(--line)}}
-
-/* screen 1: text */
-#write{position:absolute;inset:0;display:flex;flex-direction:column;padding:max(18px,calc(env(safe-area-inset-top,0px) + 8px)) max(16px,env(safe-area-inset-right,0px)) max(72px,calc(env(safe-area-inset-bottom,0px) + 60px)) max(16px,env(safe-area-inset-left,0px));gap:12px}
-.head{display:flex;align-items:center;gap:10px}
-.head h1{margin:0;font-size:24px;font-weight:800}
-.ver{font-size:12px;color:var(--muted);font-weight:600;margin-right:auto;margin-left:-4px}
+.page{position:absolute;inset:0;display:flex;flex-direction:column;padding:max(18px,calc(env(safe-area-inset-top,0px) + 8px)) max(16px,env(safe-area-inset-right,0px)) max(24px,calc(env(safe-area-inset-bottom,0px) + 12px)) max(16px,env(safe-area-inset-left,0px))}
 .chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700}
-textarea#text{flex:1;width:100%;min-height:0;resize:none;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;font-size:18px;line-height:1.55}
-textarea#text:focus{outline:none;border-color:var(--amber)}
-.info{color:var(--muted);font-size:13.5px;display:flex;gap:14px}
-.go{border:0;border-radius:16px;background:var(--amber);color:var(--amber-ink);font-weight:800;font-size:18px;padding:16px;display:flex;align-items:center;justify-content:center;gap:10px}
-.go svg{width:22px;height:22px}
-.go:disabled{opacity:.4;cursor:not-allowed}
+.sc{font-family:var(--sc);font-weight:700;letter-spacing:.2em;color:var(--gold)}
+.iconbtn{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:14px;border:1px solid var(--line);background:var(--panel);padding:0}
+.iconbtn svg{width:22px;height:22px}
 
-/* screen 2: camera */
+/* screen 1: scripts library */
+#home{overflow-y:auto;gap:0}
+.sky{position:absolute;top:0;left:0;width:100%;height:240px;pointer-events:none}
+.hello{position:relative;display:flex;flex-direction:column;gap:6px;padding:28px 8px 0}
+.hello .top{display:flex;align-items:center;gap:10px}
+.hello .top .sc{font-size:13px}
+.ver{font-size:12px;color:var(--muted);font-weight:600;margin-right:auto}
+.hello h1{margin:0;font-family:var(--disp);font-weight:400;font-size:34px;line-height:1.15}
+.hello p{margin:0;font-family:var(--serif);font-style:italic;font-size:20px;color:var(--muted)}
+.acts{position:relative;display:flex;gap:12px;padding:24px 8px 0}
+.new{flex:1;min-height:56px;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--rose);color:var(--ink);border:0;border-radius:18px;font-weight:800;font-size:16px}
+.new svg{width:20px;height:20px}
+.quick{width:56px;height:56px;border-radius:18px}
+.listhead{display:flex;justify-content:space-between;align-items:baseline;padding:28px 8px 10px}
+.listhead h2{margin:0;font-size:15px;font-weight:600;letter-spacing:.14em}
+.listhead span{font-size:13px;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:12px;padding:0 8px 8px}
+.card{display:flex;flex-direction:column;gap:8px;padding:16px 18px;background:var(--panel);border:1px solid var(--line);border-radius:20px;text-align:left;width:100%}
+.card:active{background:var(--panel2)}
+.card .t{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.card .t b{font-family:var(--serif);font-weight:600;font-size:21px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{flex:none;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px;border:1px solid var(--mist)}
+.badge.ready{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.card .p{font-size:14px;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .m{font-size:12px;color:var(--muted)}
+.empty{font-family:var(--serif);font-style:italic;font-size:19px;color:var(--muted);text-align:center;padding:30px 10px}
+
+/* screen 2: script editor */
+#write{gap:12px}
+.bar{display:flex;align-items:center;gap:10px}
+.bar .mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#title{width:100%;background:none;border:0;border-bottom:1px solid transparent;padding:2px 0;font-family:var(--serif);font-weight:600;font-size:22px;color:var(--fg)}
+#title:focus{outline:none;border-bottom-color:var(--gold)}
+#title::placeholder{color:var(--mist)}
+.info{color:var(--muted);font-size:12.5px;display:flex;gap:10px}
+.pill{border:0;border-radius:999px;background:var(--rose);color:var(--ink);font-weight:800;font-size:15px;padding:0 18px;height:44px;display:flex;align-items:center;gap:8px}
+.pill svg{width:18px;height:18px}
+.pill:disabled{opacity:.4;cursor:not-allowed}
+textarea#text{flex:1;width:100%;min-height:0;resize:none;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px;font-family:var(--serif);font-size:21px;font-weight:500;line-height:1.5}
+textarea#text:focus{outline:none;border-color:var(--gold)}
+textarea#text::placeholder{color:var(--mist);font-style:italic}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.link{background:none;border:0;padding:8px 4px;font-size:14px;font-weight:700;color:var(--muted)}
+.link.warn{color:var(--rec)}
+
+/* screen 3: camera */
 #shoot{position:absolute;inset:0;background:#000}
 #cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #cam.mirror{transform:scaleX(-1)}
-.nocam{position:absolute;inset:0;background:radial-gradient(120% 70% at 50% 80%,#3b3155,#1d1830 45%,#0d0b15);display:flex;align-items:flex-end;justify-content:center;padding-bottom:150px;color:#cfc8e4;font-size:13px;text-align:center}
-.textbox{position:absolute;left:0;right:0;top:0;height:var(--th,42%);overflow:hidden;background:rgba(10,8,18,.55);-webkit-mask:linear-gradient(#000 75%,transparent);mask:linear-gradient(#000 75%,transparent);padding-top:max(6px,env(safe-area-inset-top,0px))}
-.textbox::before{content:'';position:absolute;left:50%;top:max(4px,env(safe-area-inset-top,0px));transform:translateX(-50%);width:34px;height:3px;border-radius:2px;background:var(--amber);opacity:.7}
+.nocam{position:absolute;inset:0;background:radial-gradient(120% 70% at 50% 80%,#3a2350,#1c1026 45%,#0b0610);display:flex;align-items:flex-end;justify-content:center;padding:0 24px 150px;color:var(--muted);font-size:13px;text-align:center}
+.textbox{position:absolute;left:0;right:0;top:0;height:var(--th,42%);overflow:hidden;background:rgba(19,10,27,.58);-webkit-mask:linear-gradient(#000 75%,transparent);mask:linear-gradient(#000 75%,transparent);padding-top:max(6px,env(safe-area-inset-top,0px))}
+.textbox::before{content:'';position:absolute;left:50%;top:max(4px,env(safe-area-inset-top,0px));transform:translateX(-50%);width:34px;height:3px;border-radius:2px;background:var(--gold);opacity:.7}
 .words{max-width:min(100%,30em);margin:0 auto;padding:0 18px 70%;font-size:var(--ts,32px);line-height:1.3;font-weight:800;color:#fff;will-change:transform;transform:translateZ(0);backface-visibility:hidden}
 .words span{transition:color .5s ease}
 .words span.done{color:rgba(255,255,255,.35)}
-.words span.next{color:var(--amber)}
+.words span.next{color:var(--gold)}
 .timerwrap{position:absolute;left:0;right:0;bottom:max(158px,calc(env(safe-area-inset-bottom,0px) + 146px));z-index:3;display:flex;justify-content:center;pointer-events:none}
-.glass{background:rgba(14,12,22,.6);border:1px solid rgba(255,255,255,.15);color:#fff;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.glass{background:rgba(19,10,27,.6);border:1px solid rgba(255,217,232,.18);color:#fff;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .round{width:42px;height:42px;border-radius:50%;display:grid;place-items:center}
 .round svg{width:20px;height:20px}
 .timer{font-variant-numeric:tabular-nums;font-size:14px;font-weight:700;padding:8px 12px;border-radius:999px;display:flex;align-items:center;gap:7px}
 .timer i{width:9px;height:9px;border-radius:50%;background:#777}
-.meter{width:42px;height:6px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden;display:none}.meter u{display:block;height:100%;width:0;background:#6fd3a0;transition:width .08s}.timer.on .meter{display:block}
+.meter{width:42px;height:6px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden;display:none}.meter u{display:block;height:100%;width:0;background:var(--gold);transition:width .08s}.timer.on .meter{display:block}
 .timer.on i{background:var(--rec);animation:b 1s infinite}
 @keyframes b{50%{opacity:.25}}
 .status{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--th,42%) + 6px);z-index:3;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
 .heard{position:absolute;left:16px;right:16px;bottom:max(202px,calc(env(safe-area-inset-bottom,0px) + 190px));z-index:3;text-align:center;font-size:14px;color:rgba(255,255,255,.85);text-shadow:0 1px 6px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bottom{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;justify-content:space-evenly;padding:16px 16px max(64px,calc(env(safe-area-inset-bottom,0px) + 52px));background:linear-gradient(transparent,rgba(0,0,0,.6))}
-.rec{width:78px;height:78px;border-radius:50%;border:4px solid #fff;background:none;display:grid;place-items:center;padding:0}
+.bottom{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;justify-content:space-evenly;padding:16px 16px max(64px,calc(env(safe-area-inset-bottom,0px) + 52px));background:linear-gradient(transparent,rgba(19,10,27,.7))}
+.rec{width:78px;height:78px;border-radius:50%;border:4px solid var(--blush);background:none;display:grid;place-items:center;padding:0}
 .rec i{width:60px;height:60px;border-radius:50%;background:var(--rec);transition:all .2s}
 .rec.on i{width:28px;height:28px;border-radius:7px}
 .mode{height:42px;min-width:84px;border-radius:999px;font-size:13px;font-weight:800;padding:0 14px}
-.count{position:absolute;inset:0;z-index:5;display:grid;place-items:center;font-size:130px;font-weight:800;color:#fff;text-shadow:0 6px 40px rgba(0,0,0,.6);pointer-events:none}
-.panel{position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--panel);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:18px 20px max(24px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.count{position:absolute;inset:0;z-index:5;display:grid;place-items:center;font-family:var(--disp);font-size:130px;color:var(--blush);text-shadow:0 6px 40px rgba(0,0,0,.6);pointer-events:none}
+.panel{position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--panel);border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:18px 20px max(24px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
 .row{display:flex;align-items:center;gap:12px;font-size:14.5px;font-weight:700}
 .row span{flex:1}
-.row input{width:50%;accent-color:var(--amber)}
-.btn{border:1px solid var(--line);background:#2a2640;border-radius:14px;padding:12px;font-weight:800}
-.btn.main{background:var(--amber);color:var(--amber-ink);border-color:var(--amber)}
-.done video{width:100%;max-height:34vh;border-radius:14px;background:#000}
+.row input{width:50%;accent-color:var(--rose)}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:16px;padding:12px;font-weight:800}
+.btn.main{background:var(--rose);color:var(--ink);border-color:var(--rose)}
+.btn:disabled{opacity:.5}
+.done video{width:100%;max-height:34vh;border-radius:16px;background:#000}
 .done{max-height:92%;overflow-y:auto}
+.rhead{display:flex;align-items:center;gap:10px}
+.rhead b{flex:1;font-family:var(--serif);font-weight:600;font-size:22px}
+.rhead .iconbtn{width:40px;height:40px;background:var(--panel2)}
 .edit{display:flex;flex-direction:column;gap:8px}.edit .row{font-size:13.5px}.edit .row input{width:46%}.edit output{font-size:12px;color:var(--muted);min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
 .hint{color:var(--muted);font-size:13px;margin:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
 <div class="app">
-  <!-- 1. paste text -->
-  <section id="write">
-    <div class="head"><h1 data-t="title">Text</h1><span class="ver">v15</span><button class="chip" id="lang">EN</button></div>
-    <textarea id="text" data-tp="ph" aria-label="Text"></textarea>
-    <div class="info" id="info"></div>
-    <button class="go" id="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg><span data-t="start">Open camera</span></button>
+  <!-- 1. scripts library -->
+  <section id="home" class="page">
+    <svg class="sky" aria-hidden="true" viewBox="0 0 390 240" preserveAspectRatio="xMidYMin slice">
+      <circle cx="40" cy="60" r="1.2" fill="#f0c97a"/><circle cx="120" cy="30" r="1" fill="#ffd9e8"/><circle cx="210" cy="80" r="1.4" fill="#f0c97a"/><circle cx="300" cy="110" r="1" fill="#ffd9e8"/><circle cx="350" cy="150" r="1.2" fill="#f0c97a"/><circle cx="80" cy="150" r=".9" fill="#ffd9e8"/><circle cx="260" cy="170" r="1" fill="#f0c97a"/>
+      <path d="M330 98a26 26 0 1 1-20-34 20 20 0 1 0 20 34z" fill="#f0c97a" opacity=".9"/>
+    </svg>
+    <div class="hello">
+      <div class="top"><span class="sc">SUFFLER</span><span class="ver">v16</span><button class="chip" id="lang">EN</button></div>
+      <h1 id="greet"></h1>
+      <p data-t="ask"></p>
+    </div>
+    <div class="acts">
+      <button class="new" id="new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span data-t="newScript"></span></button>
+      <button class="iconbtn quick" id="quick" data-ta="quick"><svg viewBox="0 0 24 24" fill="none" stroke="#f3a6c4" stroke-width="2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3" fill="#f3a6c4"/></svg></button>
+    </div>
+    <div class="listhead"><h2 class="sc" data-t="yours"></h2><span id="count2"></span></div>
+    <div class="list" id="list"></div>
   </section>
 
-  <!-- 2. camera + text -->
+  <!-- 2. script editor -->
+  <section id="write" class="page" hidden>
+    <div class="bar">
+      <button class="iconbtn" id="toHome" data-ta="scripts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="mid"><input id="title" data-tp="untitled" autocomplete="off" aria-label="Title"><div class="info" id="info"></div></div>
+      <button class="pill" id="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg><span data-t="record"></span></button>
+    </div>
+    <textarea id="text" data-tp="ph" aria-label="Text"></textarea>
+    <div class="foot"><button class="link warn" id="del" data-t="del"></button><span class="info" id="takes"></span></div>
+  </section>
+
+  <!-- 3. camera + text -->
   <section id="shoot" hidden>
     <video id="cam" playsinline muted hidden></video>
     <div class="nocam" id="nocam"><span data-t="nocam"></span></div>
@@ -92,7 +155,7 @@ textarea#text:focus{outline:none;border-color:var(--amber)}
     <div class="heard" id="heard" hidden></div>
     <div class="bottom">
       <button class="round glass" id="close" data-ta="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
-      <button class="round glass" id="flip" data-ta="flip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M9.5 12.5a3 3 0 0 1 5-1.5M14.5 14.5a3 3 0 0 1-5 1.2"/></svg></button>
+      <button class="round glass" id="flip" data-ta="flip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9a8 8 0 0 1 14-3l2 2M20 15a8 8 0 0 1-14 3l-2-2"/><path d="M20 4v4h-4M4 20v-4h4"/></svg></button>
       <button class="rec" id="rec" data-ta="rec"><i></i></button>
       <button class="mode glass" id="mode"></button>
       <button class="round glass" id="settings" data-ta="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
@@ -109,8 +172,11 @@ textarea#text:focus{outline:none;border-color:var(--amber)}
     </div>
 
     <div class="panel done" id="result" hidden>
+      <div class="rhead"><button class="iconbtn" id="resBack" data-ta="toScript"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b id="takeTitle"></b></div>
       <video id="play" controls playsinline></video>
       <div class="edit" id="edit">
+        <label class="row"><span data-t="eStart">Cut start</span><input type="range" id="eStart" min="0" max="0" step="0.1" value="0"><output id="oStart">0.0 s</output></label>
+        <label class="row"><span data-t="eEnd">Cut end</span><input type="range" id="eEnd" min="0" max="0" step="0.1" value="0"><output id="oEnd">0.0 s</output></label>
         <label class="row"><span data-t="eVol">Volume</span><input type="range" id="eVol" min="-12" max="15" step="1" value="0"><output id="oVol">0 dB</output></label>
       </div>
       <p class="hint" id="resultHint"></p>
@@ -141,29 +207,74 @@ const T={
   save:'Зберегти відео',again:'Записати ще раз',savedHint:'Збережено в папку «Завантаження».',noVideo:'Камери немає, тому нічого не записано. Це була репетиція.',
   sample:'Привіт! Сьогодні я покажу вам три прості звички, які змінили мій ранок.\n\nПерша — склянка води одразу після пробудження. Звучить банально, але вона будить мене швидше за каву.\n\nДруга — п’ять хвилин без телефону. Я сиджу біля вікна і думаю, що для мене важливо сьогодні.\n\nА третя — записати одну річ, яку я зроблю до обіду. Тільки одну.\n\nНапишіть у коментарях, яка звичка вам подобається найбільше, і підписуйтесь!'}
 };
+Object.assign(T.en,{ph:'Write or paste what you will say…',morning:'Good morning',day:'Good afternoon',evening:'Good evening',ask:'What will you say to the camera today?',newScript:'New script',quick:'Record the latest script',yours:'YOUR SCRIPTS',nScripts:n=>n===1?'1 script':n+' scripts',
+  empty:'No scripts yet. Start a new one above.',ready:'Ready',draft:'Draft',takes:n=>n===1?'1 take':n+' takes',untitled:'Untitled script',scripts:'Back to scripts',record:'Record',del:'Delete script',delAsk:'Delete this script?',take:'Take',practice:'Practice run',toScript:'Back to script',sampleTitle:'Morning habits'});
+Object.assign(T.uk,{ph:'Напиши або встав те, що скажеш…',morning:'Доброго ранку',day:'Добрий день',evening:'Добрий вечір',ask:'Що скажеш камері сьогодні?',newScript:'Новий сценарій',quick:'Записати останній сценарій',yours:'ТВОЇ СЦЕНАРІЇ',nScripts:n=>n+' '+plural(n,'сценарій','сценарії','сценаріїв'),
+  empty:'Сценаріїв ще немає. Почни новий вище.',ready:'Готово',draft:'Чернетка',takes:n=>n+' '+plural(n,'дубль','дублі','дублів'),untitled:'Без назви',scripts:'До сценаріїв',record:'Запис',del:'Видалити сценарій',delAsk:'Видалити цей сценарій?',take:'Дубль',practice:'Репетиція',toScript:'До сценарію',sampleTitle:'Ранкові звички'});
+function plural(n,one,few,many){const a=n%10,b=n%100;return a===1&&b!==11?one:a>=2&&a<=4&&(b<12||b>14)?few:many}
 const t=k=>T[S.ui][k];
 function applyLang(){
   document.querySelectorAll('[data-t]').forEach(e=>e.textContent=t(e.dataset.t));
   document.querySelectorAll('[data-tp]').forEach(e=>e.placeholder=t(e.dataset.tp));
   document.querySelectorAll('[data-ta]').forEach(e=>e.setAttribute('aria-label',t(e.dataset.ta)));
   $('#lang').textContent=S.ui==='uk'?'UA':'EN';$('#mode').textContent=t(S.mode);
-  document.documentElement.lang=S.ui;info();
+  document.documentElement.lang=S.ui;renderHome();renderWrite();
 }
 $('#lang').onclick=()=>{
-  const wasSample=$('#text').value===t('sample');
-  S.ui=S.ui==='uk'?'en':'uk';save();
-  if(wasSample){$('#text').value=t('sample');store.set('sf.text',null)}
+  const old=S.ui;S.ui=S.ui==='uk'?'en':'uk';save();
+  /* an untouched sample follows the language */
+  scripts.forEach(s=>{if(s.text===T[old].sample){s.text=T[S.ui].sample;if(s.title===T[old].sampleTitle)s.title=T[S.ui].sampleTitle}});saveScripts();
   applyLang();
 };
 
-/* ---------- screen 1 ---------- */
+/* ---------- scripts ---------- */
 const norm=s=>s.toLowerCase().replace(/[’'ʼ`´]/g,'').replace(/[ьъ]/g,'').replace(/[іїийы]/g,'и').replace(/[еєэё]/g,'е').replace(/ґ/g,'г').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 function tokenize(text){const out=[];const re=/\S+/g;let m,last=0;while((m=re.exec(text))){const brk=(text.slice(last,m.index).match(/\n/g)||[]).length;out.push({raw:m[0],n:norm(m[0]).replace(/\s+/g,''),brk});last=m.index+m[0].length}return out}
-function info(){const n=tokenize($('#text').value).filter(w=>w.n).length;const sec=Math.round(n/S.speed*60);$('#info').innerHTML=n?`<span>${n} ${t('words')}</span><span>${t('min')} ${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}</span>`:'';$('#go').disabled=!n}
-const savedText=store.get('sf.text',null);
-$('#text').value=savedText!=null?savedText:T[S.ui].sample;
-$('#text').oninput=()=>{store.set('sf.text',$('#text').value);info()};
-$('#go').onclick=openCamera;
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+let scripts=store.get('sf.scripts',null);
+if(!Array.isArray(scripts)){ /* first run on v16: keep the text from v15 as the first script */
+  const old=store.get('sf.text',null);
+  scripts=[{id:uid(),title:old?'':T[S.ui].sampleTitle,text:old!=null&&old.trim()?old:T[S.ui].sample,takes:0,updated:Date.now()}];
+}
+let curId=store.get('sf.cur',null);
+const saveScripts=()=>{store.set('sf.scripts',scripts);store.set('sf.cur',curId)};
+const cur=()=>scripts.find(s=>s.id===curId)||scripts[0];
+const stats=text=>{const n=tokenize(text).filter(w=>w.n).length,sec=Math.round(n/S.speed*60);return{n,time:Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}};
+const titleOf=s=>s.title.trim()||(s.text.trim().split('\n')[0].split(/\s+/).slice(0,6).join(' '))||t('untitled');
+
+let back='write';
+function screen(id){['home','write','shoot'].forEach(x=>$('#'+x).hidden=x!==id)}
+function greeting(){const h=new Date().getHours();return t(h>=5&&h<12?'morning':h>=12&&h<18?'day':'evening')}
+function renderHome(){
+  $('#greet').textContent=greeting();
+  const list=[...scripts].sort((a,b)=>b.updated-a.updated);
+  $('#count2').textContent=list.length?t('nScripts')(list.length):'';
+  $('#list').innerHTML=list.length?list.map(s=>{const st=stats(s.text),first=s.text.trim().replace(/\s+/g,' ');
+    return `<button class="card" data-id="${s.id}"><span class="t"><b>${esc(titleOf(s))}</b><span class="badge${s.takes?' ready':''}">${t(s.takes?'ready':'draft')}</span></span>`+
+      (first&&s.title.trim()?`<span class="p">${esc(first.slice(0,160))}</span>`:'')+
+      `<span class="m">${st.n} ${t('words')} · ${t('min')} ${st.time}${s.takes?' · '+t('takes')(s.takes):''}</span></button>`}).join(''):`<p class="empty">${t('empty')}</p>`;
+  $('#quick').disabled=!scripts.some(s=>stats(s.text).n);
+}
+$('#list').onclick=e=>{const c=e.target.closest('.card');if(!c)return;curId=c.dataset.id;saveScripts();openWrite()};
+$('#new').onclick=()=>{const s={id:uid(),title:'',text:'',takes:0,updated:Date.now()};scripts.push(s);curId=s.id;saveScripts();openWrite();$('#text').focus()};
+$('#quick').onclick=()=>{const s=[...scripts].sort((a,b)=>b.updated-a.updated).find(s=>stats(s.text).n);if(!s)return;curId=s.id;saveScripts();back='home';openCamera()};
+function openWrite(){screen('write');renderWrite()}
+function renderWrite(){
+  const s=cur();if(!s)return;
+  if($('#title').value!==s.title)$('#title').value=s.title;
+  if($('#text').value!==s.text)$('#text').value=s.text;
+  info();
+}
+function info(){const s=cur(),st=stats(s.text);$('#info').innerHTML=st.n?`<span>${st.n} ${t('words')}</span><span>${t('min')} ${st.time}</span>`:'';$('#takes').textContent=s.takes?t('takes')(s.takes):'';$('#go').disabled=!st.n}
+const touch=()=>{cur().updated=Date.now();saveScripts();info()};
+$('#title').oninput=()=>{cur().title=$('#title').value;touch()};
+$('#text').oninput=()=>{cur().text=$('#text').value;touch()};
+/* an empty script left behind is not worth keeping */
+function dropEmpty(){const s=cur();if(s&&!s.text.trim()&&!s.title.trim()&&!s.takes){scripts=scripts.filter(x=>x!==s);curId=null;saveScripts()}}
+$('#toHome').onclick=()=>{dropEmpty();screen('home');renderHome()};
+$('#del').onclick=()=>{const s=cur();if((s.text.trim()||s.takes)&&!confirm(t('delAsk')))return;scripts=scripts.filter(x=>x!==s);curId=null;saveScripts();screen('home');renderHome()};
+$('#go').onclick=()=>{back='write';openCamera()};
+$('#resBack').onclick=()=>$('#close').click();
 
 /* ---------- voice matching ---------- */
 function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=Array.from({length:n+1},(_,i)=>i);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
@@ -214,11 +325,11 @@ function status(msg){const s=$('#status');s.textContent=msg||'';s.hidden=!msg}
 function goFull(on){try{const d=document,el=d.documentElement;const isFull=d.fullscreenElement||d.webkitFullscreenElement;const app=matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches||navigator.standalone;if(on&&!isFull&&!app){(el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el,{navigationUI:'hide'})?.catch?.(()=>{})}else if(!on&&isFull){(d.exitFullscreen||d.webkitExitFullscreen||function(){}).call(d)?.catch?.(()=>{})}}catch(e){}}
 async function openCamera(){
   goFull(true);
-  W=tokenize($('#text').value);
+  W=tokenize(cur().text);
   words.innerHTML=W.map((w,i)=>(w.brk?'<br>'.repeat(Math.min(2,w.brk)):'')+`<span>${esc(w.raw)}</span>`).join(' ');
   spans=[...words.querySelectorAll('span')];
   resetPos();
-  $('#write').hidden=true;$('#shoot').hidden=false;$('#panel').hidden=true;$('#result').hidden=true;status('');
+  screen('shoot');$('#panel').hidden=true;$('#result').hidden=true;status('');
   look();requestAnimationFrame(computeLines);await startCam();
   lastT=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
 }
@@ -238,7 +349,7 @@ async function startCam(){
     stream=null;$('#cam').hidden=true;$('#nocam').hidden=false}
 }
 function stopCam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
-$('#close').onclick=()=>{goFull(false);stopRun(false);stopCam();cancelAnimationFrame(raf);$('#shoot').hidden=true;$('#write').hidden=false};
+$('#close').onclick=()=>{goFull(false);stopRun(false);stopCam();cancelAnimationFrame(raf);$('#play').pause();screen(back);renderWrite();renderHome()};
 $('#flip').onclick=()=>{if(running)return;S.facing=S.facing==='user'?'environment':'user';save();startCam()};
 $('#mode').onclick=()=>{S.mode=S.mode==='voice'?'auto':'voice';save();look();if(running){stopVoice();useAuto=S.mode==='auto';fpos=shown;syncVoice();if(!useAuto)startVoice()}};
 $('#settings').onclick=()=>{$('#panel').hidden=!$('#panel').hidden};
@@ -421,8 +532,8 @@ function stopRun(showResult){
     if(videoUrl)URL.revokeObjectURL(videoUrl);videoUrl=null;
     const v=$('#play');
     stopCam(); /* while the mic is open, iPhone plays sound quietly like a phone call */
-    if(chunks.length){const b=new Blob(chunks,{type:rec.mimeType||'video/webm'});videoBlob=b;videoUrl=URL.createObjectURL(b);v.src=videoUrl;v.hidden=false;$('#save').hidden=false;$('#edit').hidden=false;$('#resultHint').textContent='';setupEditor()}
-    else{v.hidden=true;$('#save').hidden=true;$('#edit').hidden=true;$('#resultHint').textContent=t('noVideo')}
+    if(chunks.length){const sc=cur();sc.takes=(sc.takes||0)+1;sc.updated=Date.now();saveScripts();$('#takeTitle').textContent=t('take')+' '+sc.takes;const b=new Blob(chunks,{type:rec.mimeType||'video/webm'});videoBlob=b;videoUrl=URL.createObjectURL(b);v.src=videoUrl;v.hidden=false;$('#save').hidden=false;$('#edit').hidden=false;$('#resultHint').textContent='';setupEditor()}
+    else{$('#takeTitle').textContent=t('practice');v.hidden=true;$('#save').hidden=true;$('#edit').hidden=true;$('#resultHint').textContent=t('noVideo')}
     $('#result').hidden=false;
   };
   if(rec&&rec.state!=='inactive'){rec.onstop=finish;rec.stop()}else finish();
@@ -430,11 +541,23 @@ function stopRun(showResult){
 $('#again').onclick=()=>{$('#result').hidden=true;$('#play').pause();resetPos();startCam()};
 /* ---------- editor: hear changes while playing, apply them when saving ---------- */
 let videoBlob=null,ed=null;
-const E=()=>({vol:+$('#eVol').value,noise:0,clarity:0,start:0,end:0});
-function edLabels(){const e=E();$('#oVol').textContent=(e.vol>0?'+':'')+e.vol+' dB'}
+const E=()=>({vol:+$('#eVol').value,noise:0,clarity:0,start:+$('#eStart').value,end:+$('#eEnd').value});
+const secs=x=>x.toFixed(1)+' s';
+function edLabels(){const e=E();$('#oVol').textContent=(e.vol>0?'+':'')+e.vol+' dB';$('#oStart').textContent=secs(e.start);$('#oEnd').textContent=secs(e.end)}
+/* clip length; Chrome's webm reports Infinity until it has been read once, so fall back to the recorded time */
+const clipLen=()=>{const d=$('#play').duration;return isFinite(d)&&d>0?d:elapsed};
+function trimMax(){const m=Math.max(0,Math.floor(clipLen()*10)/10-1);['eStart','eEnd'].forEach(id=>{const el=$('#'+id);el.max=m;if(+el.value>m)el.value=m});keepGap();edLabels()}
+/* keep at least one second between the two cuts */
+function keepGap(moved){const s=$('#eStart'),e=$('#eEnd'),room=clipLen()-1;if(+s.value+ +e.value>room){if(moved==='eEnd')s.value=Math.max(0,room-e.value);else e.value=Math.max(0,room-s.value)}}
+['eStart','eEnd'].forEach(id=>$('#'+id).oninput=()=>{keepGap(id);edLabels();const v=$('#play'),e=E();v.currentTime=id==='eStart'?e.start:Math.max(e.start,clipLen()-e.end-1.5)});
+$('#play').addEventListener('loadedmetadata',trimMax);
+$('#play').addEventListener('durationchange',trimMax);
+$('#play').addEventListener('play',()=>{const v=$('#play'),e=E();if(v.currentTime<e.start||v.currentTime>=clipLen()-e.end-.05)v.currentTime=e.start});
+$('#play').addEventListener('timeupdate',()=>{const v=$('#play'),e=E();if(!renderingNow&&e.end>0&&v.currentTime>=clipLen()-e.end){v.pause();v.currentTime=clipLen()-e.end}});
+let renderingNow=false;
 function setupEditor(){
   const v=$('#play');
-  $('#eVol').value=0;edLabels();
+  $('#eVol').value=0;$('#eStart').value=0;$('#eEnd').value=0;trimMax();
   ensureAC();
   if(gateReady)gateReady.then(ok=>{gateOK=ok;applyEd()});
   try{
@@ -452,7 +575,7 @@ function applyEd(){
 }
 $('#eVol').oninput=()=>{edLabels();applyEd()};
 function downloadBlob(b){const ext=(b.type||'').includes('mp4')?'mp4':'webm';const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='video-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.'+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
-const isDefault=e=>e.vol===0;
+const isDefault=e=>e.vol===0&&!e.start&&!e.end;
 /* saving with changes plays the clip once through the sound chain and records it again (takes as long as the clip) */
 async function renderEdited(){
   const v=$('#play'),e=E();
@@ -462,14 +585,14 @@ async function renderEdited(){
   const out=new MediaStream([cv.captureStream(30).getVideoTracks()[0],dst.stream.getAudioTracks()[0]]);
   const m=mime();const r=new MediaRecorder(out,Object.assign({videoBitsPerSecond:8000000,audioBitsPerSecond:160000},m?{mimeType:m}:{}));
   const parts=[];r.ondataavailable=x=>{if(x.data.size)parts.push(x.data)};
-  const endAt=(isFinite(v.duration)?v.duration:elapsed)-e.end;
+  const endAt=clipLen()-e.end;renderingNow=true;
   v.pause();v.currentTime=e.start;await new Promise(res=>{v.onseeked=()=>{v.onseeked=null;res()};setTimeout(res,800)});
   const hint=$('#resultHint');
   return await new Promise((res,rej)=>{
     let raf=0;const draw=()=>{cx.drawImage(v,0,0,cv.width,cv.height);hint.textContent=t('rendering')+' '+Math.min(99,Math.round((v.currentTime-e.start)/(endAt-e.start)*100))+'%';
       if(v.currentTime>=endAt||v.ended){v.pause();r.stop();return}raf=requestAnimationFrame(draw)};
-    r.onstop=()=>{cancelAnimationFrame(raf);try{ed.ch.out.disconnect(dst)}catch(x){}ed.mon.gain.value=1;res(new Blob(parts,{type:r.mimeType||'video/mp4'}))};
-    r.onerror=ev=>{ed.mon.gain.value=1;rej(ev)};
+    r.onstop=()=>{renderingNow=false;cancelAnimationFrame(raf);try{ed.ch.out.disconnect(dst)}catch(x){}ed.mon.gain.value=1;res(new Blob(parts,{type:r.mimeType||'video/mp4'}))};
+    r.onerror=ev=>{renderingNow=false;ed.mon.gain.value=1;rej(ev)};
     r.start(250);v.play().then(()=>{raf=requestAnimationFrame(draw)},rej);
   });
 }
