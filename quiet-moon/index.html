@@ -2644,8 +2644,8 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
 
 <script>
 /* ===== Calm sounds, chosen in Quiet Moon Lab (Sounds tab) =====
-   Touch: "Starlight" (volume 84%, pitch -12, softness 88%, length 40%, space 20%, melody off, vibration on)
-   Open:  "Moon spell" (volume 100%, pitch -9, softness 34%, length 200%, space 11%), only for home cards and games
+   Touch: "Wand tap" (volume 62%, pitch -12, softness 100%, length 40%, space 20%, vibration off)
+   Open:  "Moon spell" (volume 68%, pitch -11, softness 73%, length 200%, space 11%), only for home cards and games
    Same engine as the Lab: warm low-pass, a soft dark room and a magic shimmer (bright hall + fading echo).
    Made with Web Audio (no files); starts after the first touch, follows the iPhone silent switch. */
 (function(){
@@ -2668,25 +2668,24 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
     if(ctx.state==='suspended') ctx.resume().catch(()=>{});
     return ctx;
   };
-  function tone(t0,f,{wave='sine',att=.03,rel=1,vol=.05,cut=1400,detune=0,magic=false,trem=0}){
+  function tone(t0,f,{wave='sine',att=.03,rel=1,vol=.05,cut=1400,detune=0,magic=false,trem=0,glide=0}){
     const g=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=cut; lp.Q.value=.3;
     g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+att); g.gain.exponentialRampToValueAtTime(.0001,t0+att+rel);
-    const o=ctx.createOscillator(); o.type=wave; o.frequency.setValueAtTime(f,t0); if(detune) o.detune.value=-detune; o.connect(lp); o.start(t0); o.stop(t0+att+rel+.1);
+    const o=ctx.createOscillator(); o.type=wave; o.frequency.setValueAtTime(f,t0); if(glide) o.frequency.exponentialRampToValueAtTime(f*glide,t0+att+rel*.6); if(detune) o.detune.value=-detune; o.connect(lp); o.start(t0); o.stop(t0+att+rel+.1);
     if(trem){ const l=ctx.createOscillator(), lg=ctx.createGain(), tg=ctx.createGain(); l.frequency.value=trem; lg.gain.value=.35; tg.gain.value=1; l.connect(lg); lg.connect(tg.gain); l.start(t0); l.stop(t0+att+rel+.1); lp.connect(tg); tg.connect(g); } else lp.connect(g);
     g.connect(dry); g.connect(wet); if(magic) g.connect(sparkle);
   }
   const room=space=>{ wet.gain.setValueAtTime(space*.9,ctx.currentTime); dry.gain.setValueAtTime(1-space*.45,ctx.currentTime); };
-  // Touch, "Starlight": f = 587.3 Hz at -12 steps, v = 84/40, cut = 1700-1250*0.88, length 40%
-  const touch=()=>{ if(!ensure()) return; room(.2); const t=ctx.currentTime+.01, f=587.3*ST(-12), v=84/40, cut=1700-1250*.88, len=.4;
-    [0,7,12,16].forEach((s,i)=>tone(t+i*.05,f*ST(s),{att:.35,rel:1.8*len,vol:.012*v,cut:cut*3,trem:5.5,magic:true})); };
-  // Open, "Moon spell": f = 146.8 Hz at -9 steps, v = 100/40, length 200%
-  const open=()=>{ if(!ensure()) return; room(.11); const t=ctx.currentTime+.01, f=146.8*ST(-9), v=100/40, len=2;
+  // Touch, "Wand tap": f = 880 Hz at -12 steps, v = 62/40, cut = 1700-1250*1.0, length 40%: a soft note that floats upward
+  const touch=()=>{ if(!ensure()) return; room(.2); const t=ctx.currentTime+.01, f=880*ST(-12), v=62/40, cut=1700-1250*1, len=.4;
+    tone(t,f,{att:.01,rel:.4*len,vol:.02*v,cut:cut*3,glide:1.5,magic:true}); };
+  // Open, "Moon spell": f = 146.8 Hz at -11 steps, v = 68/40, length 200%
+  const open=()=>{ if(!ensure()) return; room(.11); const t=ctx.currentTime+.01, f=146.8*ST(-11), v=68/40, len=2;
     [0,7,12].forEach(s=>tone(t,f*ST(s),{wave:'triangle',att:.4,rel:1.6*len,vol:.022*v,cut:600,detune:4}));
     [24,28,31,36].forEach((s,i)=>tone(t+.25+i*.14,f*ST(s),{att:.006,rel:.8,vol:.009*v,cut:6000,magic:true})); };
-  const buzz=()=>{ try{ navigator.vibrate&&navigator.vibrate(8); }catch(e){} };
   // Open sound only for the four cards on the home screen and the games in the Магія tab; every other tap is the touch sound.
   const OPENERS='.v-now .grid2 .big[data-go], .v-play .grid2 .big[data-go]';
-  addEventListener('pointerdown',()=>{ ensure(); buzz(); },{capture:true,passive:true});
+  addEventListener('pointerdown',()=>{ ensure(); },{capture:true,passive:true});
   addEventListener('click',e=>{ const isOpen=!!(e.target.closest&&e.target.closest(OPENERS)); setTimeout(()=>{ isOpen?open():touch(); },0); },true);
 })();
 </script>
