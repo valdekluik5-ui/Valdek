@@ -323,16 +323,18 @@ html{background:#1a1024}
 main{padding-top:env(safe-area-inset-top,0px)!important;padding-bottom:12px!important}
 .v-now .note-link.stage{margin-inline:-16px;width:calc(100% + 32px)}
 .v-now .bearstage{max-height:clamp(96px,17vh,168px)}
-/* home layout tuned with the Quiet Moon Tuner for her iPhone 15/16 (804px visible); sizes scale down on shorter screens */
+/* home layout tuned with the Quiet Moon Tuner on her iPhone (430x932, app area 881px tall); exact there, scales down on shorter screens */
 html body nav{padding-bottom:0!important}
-html body .v-now .hero-row{grid-template-columns:clamp(110px,19.4vh,156px) 1fr!important;margin-bottom:0!important}
-html body .v-now .hero-row .sig-wrap,html body .v-now .hero-row .sigil{width:clamp(110px,19.4vh,156px)!important}
+html body .v-now .hero-row{grid-template-columns:clamp(110px,min(21.57vh,44.2vw),190px) 1fr!important;margin-bottom:min(4.09vh,36px)!important}
+html body .v-now .hero-row .sig-wrap,html body .v-now .hero-row .sigil{width:clamp(110px,min(21.57vh,44.2vw),190px)!important}
 html body .v-now h1{font-size:26px!important}
-html body .v-now .grid2{gap:8px!important}
-html body .v-now .grid2 .big .dot{width:clamp(38px,6.2vh,50px)!important;height:clamp(38px,6.2vh,50px)!important}
+html body .v-now .grid2{gap:clamp(8px,2.84vh,25px)!important}
+html body .v-now .grid2 .big .dot{width:clamp(38px,5.56vh,49px)!important;height:clamp(38px,5.56vh,49px)!important}
 html body .v-now .grid2 .big strong{font-size:clamp(16px,2.86vh,23px)!important}
-html body .v-now .note-link.stage{margin-top:-18px!important;padding-top:5px!important}
-html body .v-now .bearstage{transform:scale(1.04);transform-origin:50% 100%;max-height:none!important}
+html body .v-now .note-link.stage{margin-top:calc(min(4.43vh,39px) - 18px)!important;padding-top:14px!important}
+html body .v-now .bearstage{transform:scale(1.11);transform-origin:50% 100%;translate:0 max(-9.08vh,-80px);max-height:none!important}
+/* the bears are lifted with translate, so their old layout space only adds empty scroll: lock the home page on tall screens */
+@media (min-height:860px){main:has(> .v-now){overflow:hidden}}
 .mlogo{overflow:visible}
 .mlogo .ml-halo{transform-origin:120px 120px;animation:mlHalo 5s ease-in-out infinite}
 @keyframes mlHalo{0%,100%{transform:scale(.94);opacity:.75}50%{transform:scale(1.06);opacity:1}}
