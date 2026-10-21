@@ -2616,7 +2616,7 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
       if(e.clientX>q.left-p&&e.clientX<q.right+p&&e.clientY>q.top-p&&e.clientY<q.bottom+p){ window.__bsEvKiss&&window.__bsEvKiss(w); e.preventDefault(); e.stopPropagation(); return; } } },true);
   document.addEventListener('click',e=>{ if(EVON==='ev_superbear'){ e.preventDefault(); e.stopPropagation(); } },true);
   window.__evStart=evStart; window.__evEnd=()=>{ if(EVON) evEnd(); };
-  window.__evMaybe=()=>{ if(EVON||current!=='now'||RM||window.__evOff) return; if(Math.random()<.05){ const k=last==='ev_hide'?'ev_superbear':last==='ev_superbear'?'ev_hide':(Math.random()<.5?'ev_hide':'ev_superbear'); evStart(k); } };
+  window.__evMaybe=()=>{ if(EVON||current!=='now'||RM||window.__evOff) return; const r=Math.random(); /* each new bear story: 25% hide-and-seek, 15% super bear */ if(r<.25) evStart('ev_hide'); else if(r<.40) evStart('ev_superbear'); };
 })();
 </script>
 
