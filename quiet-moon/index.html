@@ -1637,8 +1637,10 @@ function bearShow(){
      thunder; then the clouds part and the sun shines from the top, they celebrate, climb back up, hug, he blows her (the viewer) a kiss,
      they wave, kiss and hug. The weather is painted over the whole screen from window.__wx (see the weather script). ===== */
   const stormEp=()=>{
-    const XT=lx(STAND+8)-7, XB=lx(HS(G)+8)-7, YT=HS(SH), YB=HS(G), HX=79, SX=91, UA=[165,10], R={he:TRK(),she:TRK()}, ph={};
-    const both=(n,d,fh,fs)=>{ ph[n]=R.he.T; R.he.add(d,fh); R.she.add(d,fs); };
+    const GS=92, XT=lx(STAND+8)-7, XB=lx(HS(GS)+8)-7, YT=HS(SH), YB=HS(GS), HX=79, SX=91, UA=[165,10], R={he:TRK(),she:TRK()}, ph={};
+    // under the line they stand on the baseline of the writing (GS), just below the line, not down by the menu
+    const gs=o=>o.y==null&&o.ground==null?{...o,ground:GS}:o;
+    const both=(n,d,fh,fs)=>{ ph[n]=R.he.T; R.he.add(d,(u,t)=>gs(fh(u,t))); R.she.add(d,(u,t)=>gs(fs(u,t))); };
     const span=(a,b,m)=>Math.max(m,abs(b-a)/30);
     const climb=(u,t,down)=>{ const y=down?lerp(YT,YB,stepY(u)):lerp(YB,YT,stepY(u)); return {dir:1,...CL(t*6),y,x:lx(y+8)-7,head:down?8:-6}; };
     const hold=(o,a=UA)=>({...o,arms:[a,(o.arms||[[10,15],[10,15]])[1]]});
@@ -1672,8 +1674,8 @@ function bearShow(){
     both('clear',9,(u,t)=>u<.3?{x:HX+1,dir:1,face:.4,lean:4,head:8,arms:[[58,96],[50,96]],eyes:'closed'}:u<.65?{x:HX,dir:1,face:.6,head:-16,arms:[[20,20],[10,15]],eyes:'open'}:{x:HX,dir:1,head:2,arms:[[40,40],[30,30]],eyes:'heart'},
       (u,t)=>u<.3?{x:SX-1,dir:-1,face:.4,lean:4,head:8,arms:[[58,96],[50,96]],eyes:'closed'}:u<.65?{x:SX,dir:-1,face:.6,head:-18,arms:[[20,20],[10,15]],eyes:'open'}:{x:SX,dir:-1,head:2,lift:abs(sin(t*6))*2,arms:[[150,30],[140,30]],eyes:'heart'});
     // 10. sunshine party: jumps, arms up, a twirl each
-    both('party',3.6,(u,t)=>({x:HX,dir:1,lift:abs(sin(t*PI*1.4))*9,spin:t>1.2&&t<2.2?ease(t-1.2)*2*PI:0,arms:[[165+12*sin(t*10),20],[160,20]],eyes:'heart'}),
-      (u,t)=>({x:SX,dir:-1,lift:abs(sin(t*PI*1.4+.6))*9,spin:t>2.3&&t<3.3?-ease(t-2.3)*2*PI:0,arms:[[165+12*sin(t*10+1),20],[160,20]],eyes:'heart'}));
+    both('party',3.6,(u,t)=>({x:HX,dir:1,lift:abs(sin(t*PI*1.4))*5,spin:t>1.2&&t<2.2?ease(t-1.2)*2*PI:0,arms:[[165+12*sin(t*10),20],[160,20]],eyes:'heart'}),
+      (u,t)=>({x:SX,dir:-1,lift:abs(sin(t*PI*1.4+.6))*5,spin:t>2.3&&t<3.3?-ease(t-2.3)*2*PI:0,arms:[[165+12*sin(t*10+1),20],[160,20]],eyes:'heart'}));
     // 11. back up the ladder: he goes first and gives her his paw at the top, then she skips home past him
     const dL=span(HX,XB,1.3);
     both('goL',dL,(u,t)=>({x:lerp(HX,XB,u),dir:-1,...W(t*8,16)}),(u,t)=>({x:lerp(SX,XB+12,u),dir:-1,...W(t*8+PI,16)}));
@@ -1704,14 +1706,14 @@ function bearShow(){
         sun:ease(cl((t-ph.clear-2.5)/7))*end, msg:Math.max(0,t-ph.clear-5), flash:flashAt(t), strike:strikes.filter(s=>t>=s).length,
         line:{x0:62,x1:318,y:SH}, umb:null, warm:null, ts:performance.now()};
       if(t>uOn&&t<uOff){ const h=E.hand(he); if(h){ const s=t<uOn+.5?easeBack(cl((t-uOn)/.5)):t>uOff-.6?1-ease(cl((t-(uOff-.6))/.6)):1; o.umb={x:h.x,y:h.y,s:1.25*Math.max(.001,s),r:umbR(t)+2*sin(clk*3)}; } }
-      const wa=cl((t-ph.hug)/1.5)*cl((ph.clear+2-t)/1.5); if(wa>0) o.warm={x:(E.p[0].x+E.p[1].x)/2,y:G-15,a:wa};
+      const wa=cl((t-ph.hug)/1.5)*cl((ph.clear+2-t)/1.5); if(wa>0) o.warm={x:(E.p[0].x+E.p[1].x)/2,y:GS-15,a:wa};
       window.__wx=o; };
     return [sg(T,(t)=>[R.he.at(t),R.she.at(t)],{fx:(t,u,E)=>{ wx(t,E); kissFx(E,'he');
         if(t>uOn) E.once('uo',()=>{ const h=E.hand(he); if(h) E.spark(h.x,h.y-24,14,26); });
         if(t>uOff-.5) E.once('uf',()=>{ const h=E.hand(he); if(h) E.spark(h.x,h.y-20,12,22); });
-        if(t>ph.hug+1&&t<ph.clear) E.every('h',1500,()=>E.spawn((E.p[0].x+E.p[1].x)/2,G-30));
+        if(t>ph.hug+1&&t<ph.clear) E.every('h',1500,()=>E.spawn((E.p[0].x+E.p[1].x)/2,GS-30));
         if(t>ph.party&&t<ph.goL) E.every('s',90,()=>E.p.forEach(q=>E.spark(q.x+(rnd()-.5)*18,q.y-12+(rnd()-.5)*20,1,14)));
-        if(t>ph.party+.3) E.once('pj',()=>{ for(let n=0;n<8;n++) E.spawn((E.p[0].x+E.p[1].x)/2+(rnd()-.5)*20,G-30); });
+        if(t>ph.party+.3) E.once('pj',()=>{ for(let n=0;n<8;n++) E.spawn((E.p[0].x+E.p[1].x)/2+(rnd()-.5)*20,GS-30); });
         if(t>ph.kiss1+.2) E.once('k1',()=>{ kissB.he=clk; evKiss=clk; });
         if(t>ph.kiss2+1) E.once('k2',()=>E.spawn(C,E.sy-4,true));
         if(t>ph.hug2) E.every('h2',650,()=>E.spawn(C+(rnd()-.5)*8,E.sy)); }}),
@@ -1853,6 +1855,7 @@ function bearShow(){
       sg(.5,(t)=>[{x:c1-12,dir:1,ground:SH},{x:c1+12,dir:-1,ground:SH}]),
       {...sitDown(c1),setC:c1}]; };
   const EVQ=window.__story; window.__story=undefined; const MM=!!(EVQ&&EVQ.startsWith('mm_')), EV1=!!(EVQ&&(EVQ.startsWith('ev_')||MM)), ONE=!!(EVQ&&!EV1&&EVQ!=='rand'&&(EVQ==='intro'||EPS[EVQ])), oneQ=()=>EVQ==='intro'?INTRO.slice():EPS[EVQ].map((x,j)=>({...x,first:j===0,ep:true}));
+  frG.innerHTML=''; bkG.innerHTML='';
   const queue=ONE?oneQ():EVQ==='rand'?[sg(1.4,(t,u)=>[Hh(t,{o:ease(u)}),Sh(t,{o:ease(u)})])]:EV1?EPS[EVQ].map((x,j)=>({...x,first:j===0,ep:true})):(rnd()<.25?INTRO.slice():[]); let cur=null, cs=0, prevEnd=null, segN=0, st={}, lastEp=null, fired=new Set(), lastT={}, behind=false, prevNow=null, shS='', bkS='', frS='';
   const refill=()=>{ if(EV1){ queue.push({...home(60),fx:null}); return; } if(ONE){ oneQ().forEach(x=>queue.push(x)); return; } const n=Object.keys(EPS).filter(k=>!k.startsWith('ev_')&&!k.startsWith('mm_')); for(let i=n.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [n[i],n[j]]=[n[j],n[i]]; }
     if(n[0]===lastEp) n.push(n.shift()); lastEp=n[n.length-1]; let pc=C;
@@ -3159,16 +3162,19 @@ requestAnimationFrame(frame);
     let s=seed; const R=()=>(s=(s*16807)%2147483647)/2147483647;
     const lit=storm?'96,100,124':'246,244,252', mid=storm?'52,54,72':'204,202,222', low=storm?'20,20,32':'150,148,172';
     const P=[]; for(let i=0;i<110;i++){ const px=w*(.06+.88*R()), e=1-Math.pow(abs(px/w-.5)*2,2.2); P.push({px,py:h*(.08+.5*R()*(.35+.65*e)),r:h*(.08+.13*R())*(.55+.55*e)}); }
-    if('filter' in x) x.filter=`blur(${Math.max(1,h*.012).toFixed(1)}px)`;
     // one soft body first so the puffs never show gaps, then the puffs, upper ones first so the lumpy underside sits in front
     const bd=x.createLinearGradient(0,0,0,h*.55); bd.addColorStop(0,`rgba(${mid},1)`); bd.addColorStop(.75,`rgba(${low},.9)`); bd.addColorStop(1,`rgba(${low},0)`);
     x.fillStyle=bd; x.beginPath(); x.ellipse(w/2,0,w*.47,h*.5,0,0,2*PI); x.fill();
     P.sort((a,b)=>a.py-b.py).forEach(p=>{ const gr=x.createRadialGradient(p.px-p.r*.15,p.py-p.r*.38,p.r*.05,p.px,p.py,p.r);
-      gr.addColorStop(0,`rgba(${lit},.95)`); gr.addColorStop(.45,`rgba(${mid},.9)`); gr.addColorStop(.78,`rgba(${low},.45)`); gr.addColorStop(1,`rgba(${low},0)`);
+      gr.addColorStop(0,`rgba(${lit},.92)`); gr.addColorStop(.5,`rgba(${mid},.8)`); gr.addColorStop(1,`rgba(${low},0)`);
       x.fillStyle=gr; x.beginPath(); x.arc(p.px,p.py,p.r,0,2*PI); x.fill(); });
     // wisps and texture, only on the cloud itself
-    x.filter='none'; x.globalCompositeOperation='source-atop';
+    x.globalCompositeOperation='source-atop';
     for(let i=0;i<260;i++){ const px=R()*w, py=R()*h, r=h*(.01+.05*R()), l=R()<.5; x.fillStyle=l?`rgba(${lit},${(.05+.08*R()).toFixed(3)})`:`rgba(${low},${(.06+.1*R()).toFixed(3)})`; x.beginPath(); x.ellipse(px,py,r*2.2,r,0,0,2*PI); x.fill(); }
+    // soft edges everywhere (iPhone Safari ignores canvas blur filters): shrink and stretch back up twice
+    x.globalCompositeOperation='source-over'; [4,2.5].forEach(f=>{ const t=document.createElement('canvas'); t.width=Math.max(1,Math.round(c.width/f)); t.height=Math.max(1,Math.round(c.height/f)); const tx=t.getContext('2d'); tx.imageSmoothingQuality='high'; tx.drawImage(c,0,0,t.width,t.height); x.clearRect(0,0,c.width,c.height); x.imageSmoothingQuality='high'; x.drawImage(t,0,0,c.width,c.height); });
+    { const m=x.createLinearGradient(0,0,c.width,0); m.addColorStop(0,'rgba(0,0,0,0)'); m.addColorStop(.14,'#000'); m.addColorStop(.86,'#000'); m.addColorStop(1,'rgba(0,0,0,0)'); x.globalCompositeOperation='destination-in'; x.fillStyle=m; x.fillRect(0,0,c.width,c.height); } // no straight edges
+    x.globalCompositeOperation='source-atop';
     const sh=x.createLinearGradient(0,0,0,h); sh.addColorStop(0,'rgba(0,0,0,0)'); sh.addColorStop(1,storm?'rgba(8,8,18,.55)':'rgba(90,88,120,.35)'); x.fillStyle=sh; x.fillRect(0,0,w,h);
     return c; }
   function build(){ const n=W>700?11:8, ch=Math.max(W*.62,H*.3); clouds=[];
@@ -3305,7 +3311,7 @@ requestAnimationFrame(frame);
     document.body.appendChild(el); msgEl=el; msgT=0; }
   // twinkling stars around the message
   const stars=[]; function star(x,y,r,a){ g.beginPath(); g.moveTo(x,y-r); g.quadraticCurveTo(x,y,x+r,y); g.quadraticCurveTo(x,y,x,y+r); g.quadraticCurveTo(x,y,x-r,y); g.quadraticCurveTo(x,y,x,y-r); g.fillStyle=`rgba(255,240,200,${a.toFixed(3)})`; g.fill(); }
-  function msgFrame(dt){ if(!msgEl) return; const w=window.__wx; msgT=w&&w.msg?w.msg:msgT+dt*3; // follows the story's clock const q=msgEl.getBoundingClientRect();
+  function msgFrame(dt){ if(!msgEl) return; const w=window.__wx; msgT=w&&w.msg?w.msg:msgT+dt*3; /* follows the story's clock */ const q=msgEl.getBoundingClientRect();
     if(stars.length<16) for(let i=0;i<16;i++) stars.push({u:rnd(),v:rnd(),p:rnd()*6,s:2+rnd()*4,d:rnd()*3});
     const fade=cl((9.5-msgT)/1.5); g.save(); g.globalCompositeOperation='lighter';
     stars.forEach(o=>{ const a=cl((msgT-1.5-o.d)/.8)*fade*Math.max(0,sin(tm*2.4+o.p)); if(a>.01) star(q.left-16+o.u*(q.width+32),q.top-12+o.v*(q.height+24),o.s*(.6+.4*a),.9*a); });
