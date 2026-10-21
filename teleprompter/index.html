@@ -79,13 +79,6 @@ textarea#text::placeholder{color:var(--mist);font-style:italic}
 .helper .hb{display:flex;gap:8px}
 .helper .hb button{flex:1;border-radius:14px;padding:10px;font-weight:800;font-size:14px;border:1px solid var(--line);background:var(--panel2)}
 .helper .hb .use{background:var(--gold);color:var(--ink);border-color:var(--gold)}
-.kbox{display:flex;flex-direction:column;gap:8px}
-.kbox .hint{white-space:pre-line}
-.klink{color:var(--gold);font-weight:700;font-size:14px}
-.kbox textarea{width:100%;resize:none;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:15px}
-.kbox textarea:focus{outline:none;border-color:var(--gold)}
-.hmore{display:flex;justify-content:space-between;margin:-4px -4px -6px}
-.hmore .link{font-size:13px;padding:6px 4px}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
 .chips::-webkit-scrollbar{display:none}
 .chips button{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 14px;font-size:13.5px;font-weight:700;color:var(--blush)}
@@ -173,7 +166,7 @@ textarea#text::placeholder{color:var(--mist);font-style:italic}
       <path d="M330 98a26 26 0 1 1-20-34 20 20 0 1 0 20 34z" fill="#f0c97a" opacity=".9"/>
     </svg>
     <div class="hello">
-      <div class="top"><span class="sc">SUFFLER</span><span class="ver">v18</span><button class="chip" id="lang">EN</button></div>
+      <div class="top"><span class="sc">SUFFLER</span><span class="ver">v17</span><button class="chip" id="lang">EN</button></div>
       <h1 id="greet"></h1>
       <p data-t="ask"></p>
     </div>
@@ -196,17 +189,7 @@ textarea#text::placeholder{color:var(--mist);font-style:italic}
     <div class="helper" id="helper" hidden aria-live="polite">
       <div class="hh"><svg viewBox="0 0 24 24" fill="none" stroke="#f0c97a" stroke-width="1.8" stroke-linecap="round"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/></svg><span class="sc">MOON HELPER</span><small id="hFor"></small><button id="hClose" data-ta="close">×</button></div>
       <p class="say" id="hSay"></p>
-      <div class="kbox" id="hKey" hidden>
-        <p class="hint" data-t="keyHow"></p>
-        <a class="klink" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" data-t="keyLink"></a>
-        <form class="askrow" id="keyForm"><input id="keyIn" data-tp="keyPh" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Gemini key"><button data-ta="ok"><svg viewBox="0 0 24 24" fill="none" stroke="#130a1b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></button></form>
-      </div>
-      <div class="kbox" id="hGpt" hidden>
-        <textarea id="gptIn" rows="3" data-tp="gptPh"></textarea>
-        <div class="hb"><button id="gptPaste" data-t="paste"></button><button class="use" id="gptUse" data-t="use"></button></div>
-      </div>
       <div class="hb" id="hBtns"><button class="use" id="hUse" data-t="use"></button><button id="hAgain" data-t="another"></button></div>
-      <div class="hmore" id="hMore"><button class="link" id="hGptBtn" data-t="gptBtn"></button><button class="link" id="hKeyBtn" data-t="keyBtn"></button></div>
     </div>
     <div class="chips" id="chips">
       <button data-task="hook" data-t="cHook"></button><button data-task="shorter" data-t="cShorter"></button><button data-task="warmer" data-t="cWarmer"></button><button data-task="translate" id="cTrans"></button><button data-task="fix" data-t="cFix"></button>
@@ -322,11 +305,11 @@ const T={
 };
 Object.assign(T.en,{ph:'Write or paste what you will say…',morning:'Good morning',day:'Good afternoon',evening:'Good evening',ask:'What will you say to the camera today?',newScript:'New script',quick:'Record the latest script',yours:'YOUR SCRIPTS',nScripts:n=>n===1?'1 script':n+' scripts',
   empty:'No scripts yet. Start a new one above.',ready:'Ready',draft:'Draft',takes:n=>n===1?'1 take':n+' takes',untitled:'Untitled script',scripts:'Back to scripts',record:'Record',del:'Delete script',delAsk:'Delete this script?',take:'Take',practice:'Practice run',toScript:'Back to script',sampleTitle:'Morning habits',
-  use:'Use this',another:'Try another',close:'Close',cHook:'Stronger hook',cShorter:'Make it shorter',cWarmer:'Warmer tone',cTrans:'In Ukrainian',cFix:'Fix mistakes',askPh:'Ask: write a script about…',send:'Send',undo:'Undo',thinking:'The moon is thinking…',forHook:'for the first line',forAll:'for the whole script',forNew:'a new script',aiNet:'No internet connection, or Gemini could not be reached.',aiFail:'Moon helper could not answer. Try again in a moment.',aiBusy:'Gemini’s free limit is used up for now. Try again later, or ask ChatGPT instead.',aiBadKey:'This Gemini key does not work. Copy it again and paste it here.',keyTitle:'Connect Moon helper to Gemini. It is free.',keyHow:'1. Open Google AI Studio and sign in with Google.\n2. Tap “Create API key” and copy it.\n3. Paste it below. The key stays only on this phone.',keyLink:'Open Google AI Studio ↗',keyPh:'Paste your Gemini key',gptBtn:'Ask ChatGPT instead',keyBtn:'Gemini key',gptSay:'Your request is copied and ChatGPT is opening. If the question is not there, paste it. Then copy ChatGPT’s answer and paste it here.',gptPh:'Paste ChatGPT’s answer',paste:'Paste',aiRefused:'Moon helper cannot help with this one.',
+  use:'Use this',another:'Try another',close:'Close',cHook:'Stronger hook',cShorter:'Make it shorter',cWarmer:'Warmer tone',cTrans:'In Ukrainian',cFix:'Fix mistakes',askPh:'Ask: write a script about…',send:'Send',undo:'Undo',thinking:'The moon is thinking…',forHook:'for the first line',forAll:'for the whole script',forNew:'a new script',aiOff:'Moon helper works once the app is on Netlify.',aiFail:'Moon helper could not answer. Try again in a moment.',aiBusy:'Too many requests. Wait a minute and try again.',aiRefused:'Moon helper cannot help with this one.',
   tTrim:'Trim',tCaps:'Captions',tLook:'Filter',tMusic:'Music',tTidy:'Pauses',tSound:'Sound',capsOn:'Show captions',capsHint:'Made from your script, timed to your voice.',capsNone:'No word timing for this take, so no captions.',lNone:'Natural',lWarm:'Warm',lSoft:'Soft',lMono:'Black & white',lMoon:'Moon',mNone:'No music',mPad:'Moon pad',mSong:'Your song…',mVol:'Music volume',tidyOn:'Remove pauses',tidyHint:(n,s)=>`Found ${n} ${n===1?'pause':'pauses'}, ${s} s in total.`,tidyNone:'No long pauses found.',sOrig:'Original',s916:'9:16 vertical',notePauses:(n,s)=>`Moon helper found ${n} ${n===1?'pause':'pauses'} (${s} s) you can remove.`,noteCaps:'Captions are ready.'});
 Object.assign(T.uk,{ph:'Напиши або встав те, що скажеш…',morning:'Доброго ранку',day:'Добрий день',evening:'Добрий вечір',ask:'Що скажеш камері сьогодні?',newScript:'Новий сценарій',quick:'Записати останній сценарій',yours:'ТВОЇ СЦЕНАРІЇ',nScripts:n=>n+' '+plural(n,'сценарій','сценарії','сценаріїв'),
   empty:'Сценаріїв ще немає. Почни новий вище.',ready:'Готово',draft:'Чернетка',takes:n=>n+' '+plural(n,'дубль','дублі','дублів'),untitled:'Без назви',scripts:'До сценаріїв',record:'Запис',del:'Видалити сценарій',delAsk:'Видалити цей сценарій?',take:'Дубль',practice:'Репетиція',toScript:'До сценарію',sampleTitle:'Ранкові звички',
-  use:'Взяти',another:'Інший варіант',close:'Закрити',cHook:'Сильніший початок',cShorter:'Коротше',cWarmer:'Тепліше',cTrans:'Англійською',cFix:'Виправити помилки',askPh:'Попроси: напиши сценарій про…',send:'Надіслати',undo:'Повернути',thinking:'Місяць думає…',forHook:'для першого речення',forAll:'для всього сценарію',forNew:'новий сценарій',aiNet:'Немає інтернету або Gemini недоступний.',aiFail:'Помічник не зміг відповісти. Спробуй ще раз.',aiBusy:'Безкоштовний ліміт Gemini поки вичерпано. Спробуй пізніше або запитай ChatGPT.',aiBadKey:'Цей ключ Gemini не працює. Скопіюй його ще раз і встав сюди.',keyTitle:'Підключи помічника до Gemini. Це безкоштовно.',keyHow:'1. Відкрий Google AI Studio і увійди через Google.\n2. Натисни «Create API key» і скопіюй ключ.\n3. Встав його нижче. Ключ зберігається лише на цьому телефоні.',keyLink:'Відкрити Google AI Studio ↗',keyPh:'Встав ключ Gemini',gptBtn:'Запитати ChatGPT',keyBtn:'Ключ Gemini',gptSay:'Запит скопійовано, ChatGPT відкривається. Якщо питання немає, встав його. Потім скопіюй відповідь ChatGPT і встав сюди.',gptPh:'Встав відповідь ChatGPT',paste:'Вставити',aiRefused:'З цим помічник допомогти не може.',
+  use:'Взяти',another:'Інший варіант',close:'Закрити',cHook:'Сильніший початок',cShorter:'Коротше',cWarmer:'Тепліше',cTrans:'Англійською',cFix:'Виправити помилки',askPh:'Попроси: напиши сценарій про…',send:'Надіслати',undo:'Повернути',thinking:'Місяць думає…',forHook:'для першого речення',forAll:'для всього сценарію',forNew:'новий сценарій',aiOff:'Помічник запрацює, коли застосунок буде на Netlify.',aiFail:'Помічник не зміг відповісти. Спробуй ще раз.',aiBusy:'Забагато запитів. Зачекай хвилину.',aiRefused:'З цим помічник допомогти не може.',
   tTrim:'Обрізка',tCaps:'Субтитри',tLook:'Фільтр',tMusic:'Музика',tTidy:'Паузи',tSound:'Звук',capsOn:'Показати субтитри',capsHint:'Зі сценарію, у темпі твого голосу.',capsNone:'Для цього дубля немає таймінгу слів, тож субтитрів немає.',lNone:'Природний',lWarm:'Теплий',lSoft:'Ніжний',lMono:'Чорно-білий',lMoon:'Місяць',mNone:'Без музики',mPad:'Місячний фон',mSong:'Твоя пісня…',mVol:'Гучність музики',tidyOn:'Прибрати паузи',tidyHint:(n,s)=>`Знайдено ${n} ${plural(n,'паузу','паузи','пауз')}, разом ${s} с.`,tidyNone:'Довгих пауз немає.',sOrig:'Оригінал',s916:'9:16 вертикально',notePauses:(n,s)=>`Помічник знайшов ${n} ${plural(n,'паузу','паузи','пауз')} (${s} с), які можна прибрати.`,noteCaps:'Субтитри готові.'});
 function plural(n,one,few,many){const a=n%10,b=n%100;return a===1&&b!==11?one:a>=2&&a<=4&&(b<12||b>14)?few:many}
 const t=k=>T[S.ui][k];
@@ -393,98 +376,42 @@ $('#del').onclick=()=>{const s=cur();if((s.text.trim()||s.takes)&&!confirm(t('de
 $('#go').onclick=()=>{back='write';openCamera()};
 $('#resBack').onclick=()=>$('#close').click();
 
-/* ---------- Moon helper: Gemini straight from the phone (her own free key), ChatGPT by copy and paste ---------- */
-const MOON_SYSTEM=`You help a video creator write short scripts she reads aloud to the camera from a teleprompter (Reels, TikTok, YouTube Shorts).
-Write the way people talk: short sentences, warm and natural, no hashtags, no emojis, no stage directions, no headings, no quotation marks around the result.
-Keep her meaning and her voice. Separate paragraphs with a blank line.
-Reply with only the requested text, nothing before or after it.`;
-function moonPrompt(task,text,idea,avoid){
-  const L=S.ui==='uk'?'Ukrainian':'English',other=S.ui==='uk'?'English':'Ukrainian',script=`<script>\n${text}\n<\/script>`;
-  const again=avoid?`\n\nGive something clearly different from this earlier suggestion:\n<earlier>\n${avoid}\n</earlier>`:'';
-  return({
-    hook:`${script}\n\nWrite one new opening sentence for this script that makes viewers stop scrolling in the first two seconds. It replaces the current first sentence. Write it in ${L}. Reply with that one sentence only.`,
-    shorter:`${script}\n\nMake this script about 30% shorter. Keep the opening, the main points and the closing call to action. Write it in ${L}.`,
-    warmer:`${script}\n\nRewrite this script in a warmer, more personal tone, like talking to a close friend. Keep the length about the same. Write it in ${L}.`,
-    translate:`${script}\n\nTranslate this script into natural spoken ${other}. Keep the paragraphs.`,
-    fix:`${script}\n\nFix spelling, grammar and awkward phrases in this script. Change as little as possible. Keep it in its language.`,
-    write:`Write a script of about 120 to 180 words in ${L} for a short vertical video about: ${idea}\n\nStart with a strong first sentence, give two or three concrete points, end with a short friendly call to action.`+(text.trim()?`\n\nHere is her current script, to match her style:\n${script}`:'')
-  })[task]+again;
-}
-/* newest Flash model first; the fixed name is a fallback if the alias is not offered */
-const GEMINI_MODELS=['gemini-flash-latest','gemini-2.5-flash'];
-async function gemini(user){
-  const key=store.get('sf.gkey','');if(!key)throw new Error('nokey');
-  for(const m of GEMINI_MODELS){
-    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':key},
-      body:JSON.stringify({systemInstruction:{parts:[{text:MOON_SYSTEM}]},contents:[{role:'user',parts:[{text:user}]}]})});
-    const j=await r.json().catch(()=>({}));
-    if(r.ok){
-      if(j.promptFeedback&&j.promptFeedback.blockReason)throw new Error('refused');
-      const c=j.candidates&&j.candidates[0],parts=c&&c.content&&c.content.parts||[];
-      const txt=parts.filter(p=>!p.thought).map(p=>p.text||'').join('').trim();
-      if(!txt)throw new Error(c&&c.finishReason==='SAFETY'?'refused':'empty');
-      return txt;
-    }
-    if(r.status===404)continue;
-    if(r.status===429)throw new Error('busy');
-    if(r.status===403||(r.status===400&&/api.?key/i.test(JSON.stringify(j))))throw new Error('badkey');
-    throw new Error((j.error&&j.error.message)||String(r.status));
-  }
-  throw new Error('no model');
-}
-const clean=s=>s.trim().replace(/^["“«]([\s\S]*)["”»]$/,'$1').trim();
+/* ---------- Moon helper (AI, runs in the Netlify function) ---------- */
 let H={},undoText=null;
 async function moon(task,idea=''){
   const s=cur();if(!s||H.busy)return;
   const avoid=H.out&&H.task===task&&H.idea===idea&&H.sid===s.id?H.out:'';
-  H={task,idea,sid:s.id,avoid,out:'',err:'',mode:'ai'};
-  if(!store.get('sf.gkey','')){H.mode='key';showHelper();return}
-  H.busy=true;showHelper();
-  try{H.out=clean(await gemini(moonPrompt(task,s.text,idea,avoid)))}
-  catch(e){const m=e instanceof TypeError?'net':e.message;
-    if(m==='badkey'){H.mode='key';H.err=t('aiBadKey')}
-    else H.err=m==='busy'?t('aiBusy'):m==='refused'?t('aiRefused'):m==='net'?t('aiNet'):t('aiFail')+' ('+m+')'}
+  H={task,idea,sid:s.id,busy:true,out:'',err:''};showHelper();
+  try{
+    const r=await fetch('/api/moon',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({task,idea,avoid,text:s.text,lang:S.ui})});
+    const j=await r.json().catch(()=>null);
+    if(!j)throw new Error('off');                       /* no function here: opened as a file or on another host */
+    if(!r.ok)throw new Error(r.status===429?'busy':r.status===422?'refused':j.error||r.status);
+    H.out=j.text;
+  }catch(e){const m=e instanceof TypeError?'off':e.message;H.err=m==='off'?t('aiOff'):m==='busy'?t('aiBusy'):m==='refused'?t('aiRefused'):t('aiFail')+' ('+m+')'}
   H.busy=false;showHelper();
 }
 function showHelper(){
   $('#helper').hidden=false;
   $('#hFor').textContent=t(H.task==='hook'?'forHook':H.task==='write'?'forNew':'forAll');
-  const say=$('#hSay'),m=H.mode;
-  say.textContent=H.busy?t('thinking'):m==='key'?(H.err||t('keyTitle')):m==='gpt'?t('gptSay'):H.err||H.out;
-  say.classList.toggle('wait',!!(H.busy||H.err||m!=='ai'));say.scrollTop=0;
-  $('#hKey').hidden=m!=='key';$('#hGpt').hidden=m!=='gpt';
-  $('#hBtns').hidden=!!(H.busy||H.err||m!=='ai'||!H.out);
-  $('#hMore').hidden=!!H.busy;$('#hGptBtn').hidden=m==='gpt';$('#hKeyBtn').hidden=m==='key';
-  if(m==='key')$('#keyIn').value=store.get('sf.gkey','');
+  const say=$('#hSay');say.textContent=H.busy?t('thinking'):H.err||H.out;say.classList.toggle('wait',!!(H.busy||H.err));say.scrollTop=0;
+  $('#hBtns').hidden=!!(H.busy||H.err);
   document.querySelectorAll('#chips button,#askGo').forEach(b=>b.disabled=!!H.busy);
 }
 /* the new opening replaces the first sentence (or first line) of the script */
 function replaceFirst(text,line){const lead=text.match(/^\s*/)[0].length,body=text.slice(lead);const m=body.match(/[.!?…]+["»”')]*(?=\s|$)|\n/);const end=m?m.index+(m[0]==='\n'?0:m[0].length):body.length;return line.trim()+body.slice(end)}
-function useAnswer(out){
-  const s=scripts.find(x=>x.id===H.sid);if(!s||!out)return;
-  undoText={id:s.id,text:s.text,title:s.title};
-  s.text=H.task==='hook'?replaceFirst(s.text,out):out;
-  if(H.task==='write'){$('#ask').value='';if(!s.title.trim())s.title=H.idea.slice(0,60)}
-  s.updated=Date.now();saveScripts();H={};$('#helper').hidden=true;
-  if(s.id===cur().id){renderWrite();$('#undo').hidden=false}
-}
 $('#chips').onclick=e=>{const b=e.target.closest('button');if(b)moon(b.dataset.task)};
 $('#askForm').onsubmit=e=>{e.preventDefault();const idea=$('#ask').value.trim();if(!idea)return;$('#ask').blur();moon('write',idea)};
 $('#hClose').onclick=()=>{$('#helper').hidden=true};
 $('#hAgain').onclick=()=>moon(H.task,H.idea);
-$('#hUse').onclick=()=>useAnswer(H.out);
-$('#keyForm').onsubmit=e=>{e.preventDefault();store.set('sf.gkey',$('#keyIn').value.trim());$('#keyIn').blur();if(store.get('sf.gkey','')&&H.task)moon(H.task,H.idea);else showHelper()};
-$('#hKeyBtn').onclick=()=>{H.mode='key';H.err='';showHelper()};
-/* ChatGPT: copy the full request, open ChatGPT with it filled in, then she pastes the answer back */
-$('#hGptBtn').onclick=()=>{
-  const s=scripts.find(x=>x.id===H.sid)||cur();if(!s||!H.task)return;
-  const full=MOON_SYSTEM+'\n\n'+moonPrompt(H.task,s.text,H.idea,H.avoid);
-  try{navigator.clipboard.writeText(full).catch(()=>{})}catch(x){}
-  window.open('https://chatgpt.com/?q='+encodeURIComponent(full),'_blank');
-  H.mode='gpt';H.err='';$('#gptIn').value='';showHelper();
+$('#hUse').onclick=()=>{
+  const s=scripts.find(x=>x.id===H.sid);if(!s||!H.out)return;
+  undoText={id:s.id,text:s.text,title:s.title};
+  s.text=H.task==='hook'?replaceFirst(s.text,H.out):H.out;
+  if(H.task==='write'){$('#ask').value='';if(!s.title.trim())s.title=H.idea.slice(0,60)}
+  s.updated=Date.now();saveScripts();H={};$('#helper').hidden=true;
+  if(s.id===cur().id){renderWrite();$('#undo').hidden=false}
 };
-$('#gptPaste').onclick=async()=>{try{$('#gptIn').value=await navigator.clipboard.readText()}catch(x){$('#gptIn').focus()}};
-$('#gptUse').onclick=()=>useAnswer(clean($('#gptIn').value));
 $('#undo').onclick=()=>{const s=undoText&&scripts.find(x=>x.id===undoText.id);if(s){s.text=undoText.text;s.title=undoText.title;s.updated=Date.now();saveScripts();renderWrite()}undoText=null;$('#undo').hidden=true};
 
 /* ---------- voice matching ---------- */
