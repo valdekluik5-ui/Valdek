@@ -1511,83 +1511,117 @@ function bearShow(){
   const TRK=()=>{ const a=[]; let T=0; const o={add(d,fn){ a.push({t0:T,d,fn}); T+=d; return o; }, get T(){ return T; }, at(t){ for(const x of a) if(t<x.t0+x.d) return x.fn(cl((t-x.t0)/x.d),t-x.t0); const l=a[a.length-1]; return l.fn(1,l.d+(t-l.t0-l.d)); }}; return o; };
   const HSC=1.55; // bears are a bit bigger while they play around the screen
   const numBubble=(x,y,n,o)=>o<=0?'':`<g opacity="${o.toFixed(2)}"><circle cx="${f1(x)}" cy="${f1(y)}" r="7" fill="#fff4f9" stroke="#f0c97a" stroke-width=".6"/><path d="M${f1(x-2)} ${f1(y+6.4)} l2 4 l2 -4z" fill="#fff4f9"/><text x="${f1(x)}" y="${f1(y+3)}" text-anchor="middle" font-size="8" font-family="Nunito,sans-serif" font-weight="700" fill="#b04a7c">${n}</text></g>`;
-  // opt.rounds: how many games (roles swap each round); opt.end: 'stage' (hop home and sit) or 'away' (hop off the bottom)
-  const hsGame=(opt={})=>{ const HSC=opt.sc||1.55;
+  // opt.rounds: how many games (roles swap each round); opt.end: 'stage' (walk home and sit) or 'away' (run off the bottom); opt.sc: bear size, kept the same the whole time
+  // The seeker plays in front of the cards and the hider behind them (see window.__hsLayer); the bears walk, run, tiptoe and only jump to climb.
+  const hsGame=(opt={})=>{ const HSC=opt.sc||1;
     const spots=(window.__evSpots||[]).map(r=>({...r})).filter(r=>r.w>30&&r.h>30);
     if(spots.length<3) return [home(2)];
     const rounds=opt.rounds||2, ht=46*S*HSC, vbC=evVB(), midX=vbC.x0+vbC.w/2;
-    const outer=r=>(r.x+r.w/2<midX?'L':'R');
-    const spotPos=(r,kind)=>kind==='ears'?{x:r.x+r.w*(.28+.44*rnd()),g:r.y+ht*.86,dir:rnd()<.5?1:-1,kind,r}
-      :kind==='L'?{x:r.x+11,g:r.y+Math.min(r.h-2,ht+10),dir:-1,peek:-1,kind,r}:kind==='R'?{x:r.x+r.w-11,g:r.y+Math.min(r.h-2,ht+10),dir:1,peek:1,kind,r}
-      :{x:r.x+r.w*(.22+.56*rnd()),g:r.y,dir:rnd()<.5?1:-1,kind:'top',r};
-    const hideAt=r=>spotPos(r,rnd()<.6?'ears':outer(r)), lookAt=r=>spotPos(r,rnd()<.55?'top':outer(r));
+    const sgn=v=>v<0?-1:1;
+    // places: hider ears over a card top or tucked behind a side; seeker on top, at a side edge, or in front low down
+    const spotPos=(r,kind)=>kind==='ears'?{x:r.x+r.w*(.3+.4*rnd()),g:r.y+ht*.86,dir:rnd()<.5?1:-1,kind,r}
+      :kind==='L'?{x:r.x+12,g:r.y+Math.min(r.h-2,ht+10),dir:-1,peek:-1,kind,r}:kind==='R'?{x:r.x+r.w-12,g:r.y+Math.min(r.h-2,ht+10),dir:1,peek:1,kind,r}
+      :kind==='edgeL'?{x:r.x-2,g:r.y+r.h-2,dir:1,kind,r}:kind==='edgeR'?{x:r.x+r.w+2,g:r.y+r.h-2,dir:-1,kind,r}
+      :{x:r.x+r.w*(.25+.5*rnd()),g:r.y,dir:rnd()<.5?1:-1,kind:'top',r};
+    const side=r=>(r.x+r.w/2<midX?'L':'R');
+    const hideAt=r=>spotPos(r,rnd()<.55?'ears':side(r));
+    const lookAt=r=>{ const q=rnd(); return spotPos(r,q<.4?'top':q<.7?(side(r)==='L'?'edgeR':'edgeL'):(side(r)==='L'?'edgeL':'edgeR')); };
     const P=(p,o={})=>({x:p.x,dir:p.dir||1,ground:p.g,sc:HSC,...o});
-    const hop=(a,b,u,t,o={})=>{ const c=u<.18?sin(u/.18*PI)*.8:0, e=ease(cl((u-.18)/.82)), up=Math.max(0,a.g-b.g), h=16+up*.32+abs(b.x-a.x)*.08, air=u>.18&&u<.95;
+    // gaits
+    const GAIT={walk:{v:46,f:7.5,a:22,lean:4},run:{v:115,f:13,a:34,lean:14},tiptoe:{v:26,f:6.5,a:13,lean:9}};
+    const gait=(style,ph)=>{ const G0=GAIT[style], w=W(ph,G0.a);
+      if(style==='run') return {...w,lean:G0.lean,arms:[[-60*sin(ph),75],[60*sin(ph),75]],eyes:'open'};
+      if(style==='tiptoe') return {...w,lean:G0.lean,lift:w.lift+1.2,arms:[[118,120],[60,95]],head:4+w.head,eyes:'squint'}; // paw at the mouth: shh
+      return {...w,lean:G0.lean,eyes:'open'}; };
+    const hop=(a,b,u,o={})=>{ const c=u<.2?sin(u/.2*PI)*.8:0, e=ease(cl((u-.2)/.8)), up=Math.max(0,a.g-b.g), h=12+up*.32+abs(b.x-a.x)*.06, air=u>.2&&u<.94;
       const d=b.x>a.x+1?1:b.x<a.x-1?-1:(a.dir||1);
       return {x:lerp(a.x,b.x,e),dir:d,ground:lerp(a.g,b.g,e),lift:air?h*sin(e*PI):0,sc:HSC,legs:air?[[45,85],[35,85]]:[[30*c,60*c],[24*c,56*c]],arms:air?[[150,20],[140,20]]:[[20,20],[10,15]],lean:air?10:6*c,eyes:'open',...o}; };
-    const hopD=(a,b)=>.85+Math.min(1,Math.hypot(b.x-a.x,b.g-a.g)/260)*.7;
-    const T={he:TRK(),she:TRK()}, pos={he:{x:C-12,g:SH,dir:1,sit:1},she:{x:C+12,g:SH,dir:-1,sit:1}}, bubbles=[], bursts=[], hearts=[];
-    const stand=w=>{ const p=pos[w]; if(!p.sit) return; T[w].add(.7,(u)=>{ const e=ease(u); return {x:p.x,dir:p.dir,legs:sitLegs(1-e),y:lerp(SIT,STAND,e),sc:lerp(1,HSC,e),eyes:'open'}; }); p.sit=0; };
-    const hopTo=(w,b,o)=>{ const a={...pos[w]}; T[w].add(hopD(a,b),(u,t)=>hop(a,b,u,t,o)); pos[w]={...b}; };
-    const hold=(w,d,fn)=>{ const p={...pos[w]}; T[w].add(Math.max(.05,d),(u,t)=>fn?fn(p,u,t):(p.sit?{x:p.x,dir:p.dir,y:SIT,legs:sitLegs(1)}:P(p))); };
-    const sync=()=>{ const t=Math.max(T.he.T,T.she.T); ['he','she'].forEach(w=>{ if(T[w].T<t) hold(w,t-T[w].T,(p,u,tt)=>p.sit?{x:p.x,dir:p.dir,y:SIT,legs:sitLegs(1),head:2*sin(tt*2)}:P(p,{head:3*sin(tt*2)})); }); return t; };
-    const look=(p,u,t)=>P(p,{dir:u<.33?1:u<.66?-1:1,head:6+8*sin(t*2),lean:8,arms:[[100,90],[10,15]],eyes:'open'});
-    const peekLook=(p,u,t)=>P(p,{dir:p.dir,lean:34*sin(u*PI),head:10,eyes:'open'});
+    const T={he:TRK(),she:TRK()}, pos={he:{x:C-12,g:SH,dir:1,sit:1},she:{x:C+12,g:SH,dir:-1,sit:1}}, bubbles=[], bursts=[], hearts=[], layers=[];
+    const sitPose=(p,o={})=>({x:p.x,dir:p.dir,y:SIT,legs:sitLegs(1),sc:HSC,...o});
+    const stand=w=>{ const p=pos[w]; if(!p.sit) return; T[w].add(.6,(u)=>{ const e=ease(u); return {x:p.x,dir:p.dir,legs:sitLegs(1-e),y:lerp(SIT,STAND,e),sc:HSC,eyes:'open'}; }); p.sit=0; };
+    // move: walk/run/tiptoe along the same level, jump only to climb up or down
+    const moveTo=(w,b,style='walk',o={})=>{ let a={...pos[w]}; const dy=b.g-a.g;
+      const run=(from,to,st)=>{ const dx=to.x-from.x, G0=GAIT[st], d=Math.max(.35,abs(dx)/G0.v), dir=abs(dx)>1?sgn(dx):(from.dir||1);
+        T[w].add(d,(u,t)=>{ const e=ease(u)*.35+u*.65; return P({x:lerp(from.x,to.x,e),g:lerp(from.g,to.g,u)},{dir,...gait(st,t*G0.f),...o}); }); };
+      if(abs(dy)<=10){ if(abs(b.x-a.x)>3) run(a,b,style); }
+      else { const lx=b.x-sgn(b.x-a.x||1)*Math.min(18,abs(b.x-a.x)); const mid={x:lx,g:a.g,dir:sgn(lx-a.x||1)};
+        if(abs(lx-a.x)>6) run(a,mid,style==='tiptoe'?'tiptoe':'run'); a={...mid}; T[w].add(.9+Math.min(.5,abs(dy)/300),(u)=>hop(a,b,u,o)); }
+      pos[w]={...b}; };
+    const hold=(w,d,fn)=>{ const p={...pos[w]}; T[w].add(Math.max(.05,d),(u,t)=>fn?fn(p,u,t):(p.sit?sitPose(p):P(p))); };
+    const sync=()=>{ const t=Math.max(T.he.T,T.she.T); ['he','she'].forEach(w=>{ if(T[w].T<t) hold(w,t-T[w].T,(p,u,tt)=>p.sit?sitPose(p,{head:2*sin(tt*2)}):P(p,{head:3*sin(tt*2)})); }); return t; };
+    // seeker moves
+    const scan=(p,u,t)=>P(p,{dir:u<.3?p.dir:u<.65?-p.dir:p.dir,head:4+6*sin(t*1.6),lean:6,arms:[[150,110],[12,15]],eyes:'open'}); // paw over the eyes, looking around
+    const peerDown=(p,u,t)=>P(p,{dir:p.dir,lean:10+22*sin(u*PI),head:10+10*sin(u*PI),arms:[[40,40],[30,40]],eyes:'open'}); // on a card top, looking down behind it
+    const peekAround=(p,u,t)=>{ const k=sin(cl(u*1.4)*PI); return P(p,{dir:p.dir,lean:30*k,head:8+6*k,lift:1.5*k,arms:[[70,60],[20,20]],eyes:'open'}); }; // at a card edge, leaning round it
+    const crouchLook=(p,u,t)=>{ const k=sin(u*PI); return P(p,{dir:p.dir,legs:[[40*k,80*k],[36*k,76*k]],lean:16*k,head:14*k,arms:[[40,40],[30,30]],eyes:'open'}); };
+    const scratch=(p,u,t)=>P(p,{dir:p.dir,head:-6+4*sin(t*2),arms:[[160,120+20*sin(t*14)],[10,15]],lean:-2,eyes:u<.5?'open':'squint'}); // scratches the head
     const shrug=(p,u,t)=>P(p,{arms:[[60,120+20*sin(u*PI)],[50,120+20*sin(u*PI)]],head:-6+10*sin(t*3),lift:abs(sin(u*PI))*1.5,eyes:'open'});
+    const skid=(p,u,t)=>P(p,{dir:p.dir,lean:-14*(1-u),legs:[[-20*(1-u),20*(1-u)],[10*(1-u),30*(1-u)]],arms:[[90*(1-u),20],[80*(1-u),20]],eyes:'open'});
+    // hider: peeks out now and then, ducks when the seeker is near
     const hidden=(p,u,t,pk)=>P(p,{dir:p.dir,lean:p.peek?6+32*pk:0,lift:p.kind==='ears'?15*pk:0,head:p.kind==='ears'?-4:4,eyes:pk>.3?'open':'squint',arms:[[30+10*sin(t*9)*pk,40],[20,20]]});
-    const peekWave=(t)=>{ const s=sin(t*1.05+.7); return s>.78?Math.min(1,(s-.78)*8):0; };
+    const peekWave=(t)=>{ const s=sin(t*.9+.7); return s>.75?Math.min(1,(s-.75)*7):0; };
+    const giggle=(p,u,t)=>P(p,{dir:p.dir,lean:p.peek?8:0,lift:p.kind==='ears'?2+laugh(t,1):laugh(t,.8),arms:[[118,130],[30,40]],eyes:'closed'}); // paw over the mouth
+    const searchAt=(w,s,style)=>{ const p=lookAt(s); moveTo(w,p,style);
+      if(style==='run') T[w].add(.45,(u,t)=>skid(p,u,t));
+      if(p.kind==='top'){ T[w].add(1.6+rnd()*.8,(u,t)=>peerDown(p,u,t)); if(rnd()<.6) T[w].add(1.4,(u,t)=>scan(p,u,t)); }
+      else { if(rnd()<.5) T[w].add(1.3,(u,t)=>crouchLook(p,u,t)); T[w].add(1.6+rnd()*.6,(u,t)=>peekAround(p,u,t)); }
+      T[w].add(1,(u,t)=>rnd()<.5?shrug(p,u,t):scratch(p,u,t)); };
     let lastHide=null;
     for(let r=0;r<rounds;r++){
       const seeker=r%2===0?(rnd()<.5?'he':'she'):(T.__last==='he'?'she':'he'), hider=seeker==='he'?'she':'he'; T.__last=seeker;
-      sync();
-      // seeker counts with paws over the eyes
-      const cd=6+rnd()*2.5, sp={...pos[seeker]};
-      T[seeker].add(cd,(u,t)=>sp.sit?{x:sp.x,dir:sp.dir,y:SIT,legs:sitLegs(1),arms:[[150,140],[142,140]],head:8+2*sin(t*3),lean:6,eyes:'closed'}:P(sp,{arms:[[150,140],[142,140]],head:8+2*sin(t*3),lean:6,eyes:'closed'}));
+      const t0=sync(); layers.push({t:t0,front:[seeker]});
+      // seeker counts to ten with paws over the eyes
+      const cd=7+rnd()*2, sp={...pos[seeker]};
+      T[seeker].add(cd,(u,t)=>sp.sit?sitPose(sp,{arms:[[150,140],[142,140]],head:8+2*sin(t*3),lean:6,eyes:'closed'}):P(sp,{arms:[[150,140],[142,140]],head:8+2*sin(t*3),lean:6,eyes:'closed'}));
       bubbles.push({who:seeker,t0:T[seeker].T-cd,d:cd});
-      // hider giggles, sneaks off, may try a place or two first
+      // hider tiptoes away, tries a place or two, settles
       stand(hider); const pool=spots.filter(s=>s!==lastHide).sort(()=>rnd()-.5);
-      const tries=1+(rnd()<.6?1:0)+(rnd()<.3?1:0);
-      for(let i=0;i<tries;i++){ const p=hideAt(pool[i%pool.length]); hopTo(hider,p,{eyes:'squint'}); if(i<tries-1) hold(hider,.9+rnd()*.8,(q,u,t)=>hidden(q,u,t,sin(u*PI))); }
+      const tries=1+(rnd()<.7?1:0);
+      for(let i=0;i<tries;i++){ const p=hideAt(pool[i%pool.length]); moveTo(hider,p,i===0&&rnd()<.5?'run':'tiptoe'); if(i<tries-1) hold(hider,1+rnd()*.8,(q,u,t)=>hidden(q,u,t,sin(u*PI))); }
       let hideSpot=pool[(tries-1)%pool.length];
-      // seeker searches 3-4 wrong places
-      stand(seeker); const wrong=spots.filter(s=>s!==hideSpot).sort(()=>rnd()-.5).slice(0,3+(rnd()<.5?1:0));
+      // seeker looks in 4-6 wrong places, walking or running between them
+      stand(seeker); { const sp0={...pos[seeker]}; T[seeker].add(1.2,(u,t)=>scan(sp0,u,t)); }
+      const wrong=spots.filter(s=>s!==hideSpot).sort(()=>rnd()-.5).slice(0,Math.min(spots.length-1,4+(rnd()<.6?1:0)+(rnd()<.3?1:0)));
       const tSearch0=T[seeker].T;
-      wrong.forEach(s=>{ const p=lookAt(s); hopTo(seeker,p); if(p.peek) T[seeker].add(1.5+rnd()*.6,(u,t)=>peekLook(p,u,t)); else T[seeker].add(1.6+rnd()*.8,(u,t)=>look(p,u,t)); T[seeker].add(1,(u,t)=>shrug(p,u,t)); });
+      wrong.forEach((s,i)=>searchAt(seeker,s,rnd()<.45?'run':'walk'));
       const tSearch1=T[seeker].T;
-      // half the time the hider sneaks to a new place while the seeker is busy elsewhere
-      const tReady=T[hider].T;
-      if(rnd()<.55&&tSearch1-Math.max(tReady,tSearch0)>5){ const tMove=Math.max(tReady,tSearch0)+(tSearch1-Math.max(tReady,tSearch0))*.45;
-        const hp={...pos[hider]}; T[hider].add(tMove-T[hider].T,(u,t)=>hidden(hp,u,t,peekWave(t)));
-        const ns=spots.filter(s=>s!==hideSpot&&!wrong.slice(-1).includes(s)).sort(()=>rnd()-.5)[0]||hideSpot; const np=hideAt(ns); hopTo(hider,np,{eyes:'squint'}); hideSpot=ns; }
-      // seeker finally checks the right card: lands on top of it
+      // while the seeker is busy far away, the hider sneaks to a new place (sometimes twice)
+      const tReady=T[hider].T; let span=tSearch1-Math.max(tReady,tSearch0);
+      const moves=span>9?(rnd()<.7?1:0)+(rnd()<.35?1:0):0;
+      for(let m=0;m<moves;m++){ const tMove=Math.max(T[hider].T,tSearch0)+(tSearch1-Math.max(T[hider].T,tSearch0))*(m===0?.35:.7);
+        const hp={...pos[hider]}; if(tMove>T[hider].T) T[hider].add(tMove-T[hider].T,(u,t)=>hidden(hp,u,t,peekWave(t)));
+        const ns=spots.filter(s=>s!==hideSpot).sort(()=>rnd()-.5)[0]||hideSpot; moveTo(hider,hideAt(ns),'tiptoe'); hideSpot=ns; }
+      // the seeker finally comes to the right card and peers behind it
       const hp2={...pos[hider]}, top={x:Math.max(hideSpot.x+16,Math.min(hideSpot.x+hideSpot.w-36,hp2.x-12)),g:hideSpot.y,dir:1};
-      hopTo(seeker,top); T[seeker].add(1.5,(u,t)=>P(top,{dir:u<.5?-1:1,head:u<.6?14:-2,lean:u<.6?10:0,eyes:'open'}));
+      moveTo(seeker,top,'walk'); T[seeker].add(1.8,(u,t)=>peerDown(top,u,t));
       const F=Math.max(T[seeker].T,T[hider].T+.5);
-      if(T[seeker].T<F) T[seeker].add(F-T[seeker].T,(u,t)=>look(top,u,t));
-      T[hider].add(F-T[hider].T,(u,t)=>hidden(hp2,u,t,peekWave(t)));
-      // boo! fright, laughing, hug, hearts
-      const pop={x:top.x+22,g:hideSpot.y,dir:-1}; const sf=seeker==='he'?1:-1;
-      hopTo(hider,pop,{eyes:'heart',arms:[[165,10],[160,10]]});
+      if(T[seeker].T<F) T[seeker].add(F-T[seeker].T,(u,t)=>scan(top,u,t));
+      T[hider].add(F-T[hider].T-1.2,(u,t)=>hidden(hp2,u,t,peekWave(t))); T[hider].add(1.2,(u,t)=>giggle(hp2,u,t));
+      // boo! the hider pops out in front, both laugh and hug
+      const pop={x:top.x+22,g:hideSpot.y,dir:-1};
+      layers.push({t:T[hider].T,front:[seeker,hider]});
+      T[hider].add(1,(u)=>hop(hp2,pop,u,{eyes:'heart',arms:[[165,10],[160,10]]})); pos[hider]={...pop};
       T[seeker].add(T[hider].T-T[seeker].T,(u,t)=>P(top,{dir:1,lean:-16*sin(u*PI),lift:sin(u*PI)*5,arms:[[150,40],[140,40]],eyes:u>.4?'heart':'open'}));
       bursts.push({t:T[hider].T,x:pop.x-10,y:hideSpot.y-30});
       T[seeker].add(1.4,(u,t)=>P(top,{dir:1,lean:-4+laugh(t),eyes:'closed'})); T[hider].add(1.4,(u,t)=>P(pop,{dir:-1,lean:-4-laugh(t),eyes:'closed'}));
-      const hugL={x:top.x+5,g:top.g,dir:1}, hugR={x:pop.x-5,g:pop.g,dir:-1}, L=pos[seeker], Rr=pos[hider];
-      const left=seeker, right=hider;
-      T[left].add(2.4,(u)=>{ const e=ease(cl(u*3)); return P({x:lerp(top.x,hugL.x,e),g:top.g},{dir:1,lean:6,arms:[[95,70],[85,72]],head:6,eyes:'closed'}); });
-      T[right].add(2.4,(u,t)=>{ const e=ease(cl(u*3)), j=sin(cl((u-.3)/.5)*PI); return P({x:lerp(pop.x,hugR.x,e),g:pop.g},{dir:-1,lean:6,lift:5*j,legs:[[-10*j+10*j*sin(t*11),46*j],[-10*j-10*j*sin(t*11),56*j]],arms:[[125,70],[115,70]],eyes:'closed'}); });
-      hearts.push({t0:T[left].T-2,t1:T[left].T,x:(hugL.x+hugR.x)/2,y:top.g-40});
-      pos[left]={...hugL}; pos[right]={...hugR}; lastHide=hideSpot;
+      const hugL={x:top.x+5,g:top.g,dir:1}, hugR={x:pop.x-5,g:pop.g,dir:-1};
+      T[seeker].add(2.4,(u)=>{ const e=ease(cl(u*3)); return P({x:lerp(top.x,hugL.x,e),g:top.g},{dir:1,lean:6,arms:[[95,70],[85,72]],head:6,eyes:'closed'}); });
+      T[hider].add(2.4,(u,t)=>{ const e=ease(cl(u*3)), j=sin(cl((u-.3)/.5)*PI); return P({x:lerp(pop.x,hugR.x,e),g:pop.g},{dir:-1,lean:6,lift:5*j,legs:[[-10*j+10*j*sin(t*11),46*j],[-10*j-10*j*sin(t*11),56*j]],arms:[[125,70],[115,70]],eyes:'closed'}); });
+      hearts.push({t0:T[seeker].T-2,t1:T[seeker].T,x:(hugL.x+hugR.x)/2,y:top.g-40});
+      pos[seeker]={...hugL}; pos[hider]={...hugR}; lastHide=hideSpot;
     }
     sync();
-    if(opt.end==='away'){ ['he','she'].forEach((w,i)=>{ const a={...pos[w]}, b={x:a.x+(i?30:-30),g:vbC.y0+vbC.h+60,dir:i?1:-1}; T[w].add(hopD(a,b)+.4,(u,t)=>({...hop(a,b,u,t,{eyes:'heart'}),o:1-cl((u-.6)/.4)})); }); }
-    else { const hb={x:C-12,g:SH,dir:1}, sb={x:C+12,g:SH,dir:-1}; hopTo('he',hb,{eyes:'heart'}); hopTo('she',sb,{eyes:'heart'}); sync();
-      ['he','she'].forEach((w,i)=>T[w].add(1,(u)=>{ const e=ease(u); return {x:i?C+12:C-12,dir:i?-1:1,legs:sitLegs(e),y:lerp(STAND,SIT,e),sc:lerp(HSC,1,e)}; })); }
+    if(opt.end==='away'){ ['he','she'].forEach((w,i)=>{ const a={...pos[w]}, b={x:a.x+(i?40:-40),g:vbC.y0+vbC.h+60,dir:i?1:-1}; T[w].add(1.4,(u)=>({...hop(a,b,u,{eyes:'heart'}),o:1-cl((u-.6)/.4)})); }); }
+    else { const hb={x:C-12,g:SH,dir:1}, sb={x:C+12,g:SH,dir:-1}; moveTo('he',hb,'walk',{eyes:'heart'}); moveTo('she',sb,'walk',{eyes:'heart'}); sync();
+      ['he','she'].forEach((w,i)=>T[w].add(1,(u)=>{ const e=ease(u); return {x:i?C+12:C-12,dir:i?-1:1,legs:sitLegs(e),y:lerp(STAND,SIT,e),sc:HSC}; })); }
     const TT=sync();
+    let lay=null; const layerAt=t=>{ let f=layers[0].front; for(const l of layers) if(t>=l.t) f=l.front; return f; };
     return [sg(TT,(t)=>[kissOf(T.he.at(t),'he'),kissOf(T.she.at(t),'she')],{fx:(t,u,E)=>{ kissFx(E,'he'); kissFx(E,'she');
+        const f=layerAt(t); if(f!==lay){ lay=f; if(window.__hsLayer) window.__hsLayer(f); }
         bubbles.forEach(b=>{ if(t>b.t0&&t<b.t0+b.d){ const q=E.p[b.who==='he'?0:1], sc=q.sc||1; E.front(numBubble(q.x,q.y-50*S*sc,Math.min(10,1+Math.floor((t-b.t0)/b.d*10)),cl((t-b.t0)*3)*cl((b.t0+b.d-t)*3))); } });
         bursts.forEach((b,i)=>{ if(t>b.t) E.once('bu'+i,()=>{ for(let n=0;n<10;n++) E.spawn(b.x+(rnd()-.5)*20,b.y); E.spark(b.x,b.y,14,30); }); });
         hearts.forEach(h=>{ if(t>h.t0&&t<h.t1) E.every('h',300,()=>E.spawn(h.x+(rnd()-.5)*8,h.y)); }); }}),
-      sg(1.2,(t)=>opt.end==='away'?[{x:C-12,dir:1,y:SIT,o:0,legs:sitLegs(1)},{x:C+12,dir:-1,y:SIT,o:0,legs:sitLegs(1)}]:[Hh(t,{eyes:'heart'}),Sh(t,{eyes:'heart'})],{fx:(t,u,E)=>E.once('end',()=>{ if(window.__onEvEnd) window.__onEvEnd(); })})];
+      sg(1.2,(t)=>opt.end==='away'?[{x:C-12,dir:1,y:SIT,o:0,legs:sitLegs(1),sc:HSC},{x:C+12,dir:-1,y:SIT,o:0,legs:sitLegs(1),sc:HSC}]:[Hh(t,{eyes:'heart',sc:HSC}),Sh(t,{eyes:'heart',sc:HSC})],{fx:(t,u,E)=>E.once('end',()=>{ if(window.__hsLayer) window.__hsLayer(null); if(window.__onEvEnd) window.__onEvEnd(); })})];
   };
   Object.defineProperty(EPS,'ev_hide',{get:()=>hsGame(window.__hsOpt||{}),enumerable:true,configurable:true});
   const nose=()=>{ const n=handOfEl(she.ns,0,0); return n?{x:n.x,y:n.y}:{x:C-1,y:32.5}; };
@@ -1652,7 +1686,7 @@ function bearShow(){
     let ps=50*r.sd*(1-r.fc)+p.spin*180/PI; ps=((ps+180)%360+360)%360-180;
     const m=ps<0?-1:1, ap=abs(ps); yawSet(r,ap);
     const k=Math.max(.35,Math.min(1,abs(sin(rad(ap)))/.766));
-    const br=sin(CLK.el*2.1+r.ph); if(r.nb==null||CLK.el<r.nb-8) r.nb=CLK.el+1.5+rnd()*3; if(CLK.el>r.nb+.15) r.nb=CLK.el+(rnd()<.18?.12:2.2+rnd()*3.8); const eyes=p.eyes==='open'&&CLK.el>r.nb&&CLK.el<r.nb+.15?'closed':p.eyes;
+    const br=sin(CLK.el*2.1+r.ph); if(r.nb==null||CLK.el<r.nb-8) r.nb=CLK.el+1.5+rnd()*3; if(CLK.el>r.nb+.15) r.nb=CLK.el+(rnd()<.18?.12:2.2+rnd()*3.8); const eyes=p.eyes==='open'&&CLK.el>r.nb&&CLK.el<r.nb+.15?'closed':p.eyes; r.root.__q={x:p.x,y:p.y,ps,lean:p.lean,head:p.head,arms:p.arms.map(a=>a.slice()),legs:p.legs.map(a=>a.slice()),eyes,o:p.o,sc:p.sc||1,rot:p.rot||0};
     { const z=p.sc||1; r.root.setAttribute('transform',`translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})${p.rot?` rotate(${p.rot.toFixed(1)})`:''} scale(${(m*S*z).toFixed(3)} ${(S*z).toFixed(3)})`); } r.root.setAttribute('opacity',p.o);
     r.torso.setAttribute('transform',`rotate(${p.lean.toFixed(1)}) scale(${((1+.01*br)*(1+p._sq*.6)).toFixed(3)} ${((1+.018*br)*(1-p._sq)).toFixed(3)})`); { const ew=p._ear+2.5*sin(CLK.el*1.3+r.ph*3); if(r.erAr) r.erAr.setAttribute('transform',`rotate(${(ew*.8).toFixed(1)} 0 5)`); if(r.erBr) r.erBr.setAttribute('transform',`rotate(${ew.toFixed(1)} 0 5)`); } r.head.setAttribute('transform',`rotate(${p.head.toFixed(1)})`);
     for(let j=0;j<2;j++){ const a1=proj(p.legs[j][0],k), a2=proj(p.legs[j][0]-p.legs[j][1],k), b1=proj(p.arms[j][0],k), b2=proj(p.arms[j][0]+p.arms[j][1],k);
@@ -2309,6 +2343,7 @@ go('now');
 .hs-box.out{animation:mmOut .6s ease forwards}
 .hs-box svg.bearstage{position:absolute;inset:0;width:100%;height:100%;max-height:none;contain:none;overflow:visible}
 .hs-on .mm-grid{position:relative;z-index:2}
+.hs-box.hs-front{z-index:3}
 .hs-chip{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);font:italic 1.2rem var(--quote);color:var(--blush);background:rgba(19,10,27,.75);border:1px solid rgba(240,201,122,.35);border-radius:999px;padding:4px 14px;z-index:3}
 .hs-skip{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));width:38px;height:38px;border-radius:50%;background:rgba(19,10,27,.8);border:1px solid var(--line);color:var(--gold);font-size:1rem;pointer-events:auto;z-index:3}
 @media (prefers-reduced-motion: reduce){.mm-front .a{animation:none!important;opacity:1}}
@@ -2545,15 +2580,16 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
     const svg=box.querySelector('svg'); svg.querySelectorAll(':scope > path, #bsTitle, .bs-sub').forEach(n=>n.remove()); const ld=svg.querySelector('#bsLad'); if(ld) ld.style.display='none';
     window.__evVB={x0,y0,w:W/s,h:H/s};
     window.__evSpots=[...grid.querySelectorAll('.mm-card')].map(el=>{ const q=el.getBoundingClientRect(); return {x:x0+q.left/s,y:y0+q.top/s,w:q.width/s,h:q.height/s}; });
-    window.__hsOpt={rounds:1,end:'away',sc:1.3};
+    window.__hsOpt={rounds:1,end:'away',sc:1};
     let over=false; const onTap=e=>{ for(const [w,id] of [['he','bsHe'],['she','bsShe']]){ const el=document.getElementById(id); if(!el) continue; const q=el.getBoundingClientRect(), p=8;
         if(e.clientX>q.left-p&&e.clientX<q.right+p&&e.clientY>q.top-p&&e.clientY<q.bottom+p){ window.__bsEvKiss&&window.__bsEvKiss(w); e.preventDefault(); e.stopPropagation(); return; } } };
     document.addEventListener('pointerdown',onTap,true);
-    const finish=()=>{ if(over) return; over=true; document.removeEventListener('pointerdown',onTap,true); box.classList.add('out'); setTimeout(()=>{ box.remove(); document.body.classList.remove('hs-on'); delete window.__hsOpt; done(); },RM?0:600); };
+    const finish=()=>{ if(over) return; over=true; if(window.__hsLayer) window.__hsLayer(null); fbox.remove(); document.removeEventListener('pointerdown',onTap,true); box.classList.add('out'); setTimeout(()=>{ box.remove(); document.body.classList.remove('hs-on'); delete window.__hsOpt; done(); },RM?0:600); };
     box.querySelector('.hs-skip').onclick=e=>{ e.stopPropagation(); finish(); };
     window.__onEvEnd=()=>setTimeout(finish,20);
     window.__story='ev_hide'; bearShow(); delete window.__story;
-    later(()=>finish(),120000);
+    const fbox=document.createElement('div'); fbox.className='hs-box hs-front'; view.appendChild(fbox); window.__hsMakeLayers(svg,fbox,'');
+    later(()=>finish(),180000);
   }catch(e){ console.warn(e); document.body.classList.remove('hs-on'); done(); } }
   let memLvl=null, memMax=null;
   const getLvl=()=>memLvl??(+store.get('mmLvl',1)||1), setLvl=l=>{ memLvl=l; store.set('mmLvl',l); };
@@ -2615,6 +2651,18 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
 <script>
 /* ===== random events on the home screen: Super Bear and Hide & seek (5% chance at each new story) ===== */
 (function(){
+  // Hide & seek layers: a second, see-through copy of the bear stage on top of the screen. The seeker plays there (in front of
+  // cards and buttons); the hider stays on the original stage behind them. __hsLayer(['he']) / (['he','she']) / (null = put back).
+  window.__hsMakeLayers=(svg,host,z)=>{ const NS='http://www.w3.org/2000/svg', fs=document.createElementNS(NS,'svg');
+    fs.setAttribute('viewBox',svg.getAttribute('viewBox')); fs.setAttribute('class',svg.getAttribute('class')||''); fs.setAttribute('aria-hidden','true');
+    fs.style.cssText=svg.style.cssText; if(z!=='') fs.style.zIndex=z; fs.style.pointerEvents='none'; host.appendChild(fs);
+    const g=id=>svg.querySelector('#'+id)||fs.querySelector('#'+id), fr=g('bsFront'); if(!fr){ fs.remove(); return; }
+    const mark=document.createComment('hs'); fr.parentNode.insertBefore(mark,fr);
+    ['bsFront','bsHearts'].forEach(id=>{ const n=g(id); if(n) fs.appendChild(n); });
+    window.__hsLayer=front=>{
+      if(!front){ ['bsShe','bsHe','bsFront','bsHearts'].forEach(id=>{ const n=g(id); if(n) mark.parentNode.insertBefore(n,mark); }); mark.remove(); fs.remove(); window.__hsLayer=null; return; }
+      [['bsShe','she'],['bsHe','he']].forEach(([id,w])=>{ const n=g(id); if(!n) return; if(front.includes(w)) fs.insertBefore(n,g('bsFront')); else mark.parentNode.insertBefore(n,mark); }); };
+  };
   let EVON=null, last=null;
   const clearEv=()=>{ document.querySelectorAll('svg[data-ev]').forEach(n=>n.remove()); EVON=null; };
   const _go=go; go=function(v){ if(EVON) clearEv(); return _go(v); };
@@ -2626,9 +2674,9 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
     svg.style.cssText=`position:fixed;left:0;top:0;width:100vw;height:100vh;max-height:none;contain:none;pointer-events:none;z-index:${kind==='ev_hide'?0:8}`;
     window.__evVB={x0:-ox/s,y0:-oy/s,w:W/s,h:H/s};
     window.__evSpots=[...document.querySelectorAll('.grid2 .big, .sig-wrap')].map(el=>{ const q=el.getBoundingClientRect(); return {x:(q.left-ox)/s,y:(q.top-oy)/s,w:q.width/s,h:q.height/s}; }).filter(q=>q.w>30&&q.h>30);
-    window.__hsOpt={rounds:2,end:'stage'};
-    EVON=kind; last=kind; window.__keepC=true; window.__story=kind; bearShow(); }
-  function evEnd(){ const svg=document.querySelector('svg[data-ev]'), ph=document.querySelector('.ev-ph');
+    window.__hsOpt={rounds:2,end:'stage',sc:1};
+    EVON=kind; last=kind; window.__keepC=true; window.__story=kind; bearShow(); if(kind==='ev_hide') window.__hsMakeLayers(svg,document.body,8); }
+  function evEnd(){ if(window.__hsLayer) window.__hsLayer(null); const svg=document.querySelector('svg[data-ev]'), ph=document.querySelector('.ev-ph');
     if(svg&&ph){ svg.removeAttribute('data-ev'); ph.replaceWith(svg); svg.setAttribute('viewBox','0 0 380 120'); svg.style.cssText=''; }
     EVON=null; window.__keepC=true; window.__story='rand'; bearShow(); }
   window.__onEvEnd=()=>{ if(EVON) setTimeout(evEnd,30); };
@@ -2688,6 +2736,298 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
   const OPENERS='.v-now .grid2 .big[data-go], .v-play .grid2 .big[data-go]';
   addEventListener('pointerdown',()=>{ ensure(); },{capture:true,passive:true});
   addEventListener('click',e=>{ const isOpen=!!(e.target.closest&&e.target.closest(OPENERS)); setTimeout(()=>{ isOpen?open():touch(); },0); },true);
+})();
+</script>
+<script>
+/* ===== 3D bears everywhere (Quiet Moon Lab): the flat bear engine keeps running every animation and story, but its two
+   flat bears are hidden; each frame their pose is read and the 3D plush bears (from the Bears 3D tab, same design) are
+   drawn on a see-through canvas laid exactly over the stage. Props, hearts, text and the stage stay as they are. ===== */
+(function(){
+  const boot=()=>{ if(!window.THREE){ const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; sc.onload=start; sc.onerror=()=>{}; document.head.appendChild(sc); } else start(); };
+  const st=document.createElement('style'); st.textContent='#bsHe,#bsShe{opacity:0!important} canvas.b3d{pointer-events:none}';
+  function start(){
+'use strict';
+const T=THREE, PI=Math.PI, sin=Math.sin, cos=Math.cos, abs=Math.abs, rnd=Math.random, cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const col=h=>new T.Color(h).convertSRGBToLinear();
+/* ================= design settings ================= */
+// Defaults follow the plush teddies in her photos: shaggy brown fur all over, big round head, small round ears up high,
+// small glossy black eyes close together, short snout, rounded brown nose, tan paw pads with toe beans, a little round tail.
+const DEF={
+  he:{size:1,headSize:1,bodyW:1,bodyH:1,armLen:1,legLen:1,limbFat:1,earSize:1,earAngle:56,earHeight:50,earTilt:1,eyeSize:1,eyeGap:17,eyeY:3,muzSize:1,muzY:-15,noseSize:1,
+    tummy:.35,cheekAlpha:0,furScale:1,fur:'#6b3f24',light:'#b5865f',pad:'#8f644a',nose:'#4a2e24',cheek:'#ff8fab',acc:'none',accCol:'#e7a3a8',furLen:1,shag:1,speed:1,bounce:1,breath:1,snappy:1},
+  she:{size:.94,headSize:1.02,bodyW:.95,bodyH:.96,armLen:1,legLen:.97,limbFat:.95,earSize:.95,earAngle:56,earHeight:51,earTilt:1,eyeSize:1.05,eyeGap:17,eyeY:3,muzSize:.95,muzY:-15,noseSize:.9,
+    tummy:.35,cheekAlpha:.18,furScale:1,fur:'#94603a',light:'#d0a47a',pad:'#a77a5c',nose:'#5a372a',cheek:'#ff9fb6',acc:'rose',accCol:'#e7a3a8',furLen:1,shag:1,speed:1,bounce:1,breath:1,snappy:1}};
+const ACC=[['none','Nothing'],['rose','Rose'],['bow','Bow'],['vest','Knit vest'],['vestrose','Vest + rose']];
+const SL=[
+  ['Size',[['size','Whole bear',.6,1.5,.01],['headSize','Head',.7,1.4,.01],['bodyW','Body width',.7,1.4,.01],['bodyH','Body height',.7,1.4,.01],['armLen','Arm length',.6,1.5,.01],['legLen','Leg length',.6,1.6,.01],['limbFat','Chubby arms and legs',.6,1.5,.01]]],
+  ['Fur',[['furLen','Fur length',0,2.5,.05],['shag','Shaggy',0,2,.05],['furScale','Fur clumps',.5,2,.05],['tummy','Lighter tummy',0,1,.01]]],
+  ['Ears',[['earSize','Ear size',.5,1.8,.01],['earAngle','How far apart',25,85,1],['earHeight','How high',20,75,1],['earTilt','Face forward',0,1.5,.01]]],
+  ['Face',[['eyeSize','Eye size',.5,1.8,.01],['eyeGap','Eyes apart',10,32,.5],['eyeY','Eyes up / down',-10,20,.5],['muzSize','Snout size',.6,1.5,.01],['muzY','Snout up / down',-30,5,.5],['noseSize','Nose size',.5,1.8,.01],['cheekAlpha','Blush',0,1,.01]]],
+  ['Colours',[['fur','Fur','c'],['light','Snout and tummy','c'],['pad','Paw pads','c'],['nose','Nose','c'],['cheek','Blush colour','c'],['accCol','Rose or bow','c']]],
+  ['Movement',[['speed','Walking speed',.4,2,.05],['bounce','Bounce',0,2.5,.05],['breath','Breathing',0,3,.05],['snappy','Soft ↔ snappy',.4,2.5,.05]]]];
+const STORE='qm-bears3d-v3';
+let D={he:{},she:{}}; try{ const j=JSON.parse(localStorage.getItem(STORE)||'null'); if(j&&j.he&&j.she) D=j; }catch(e){}
+const cfg=w=>Object.assign({},DEF[w],D[w]);
+const save=()=>{ try{ localStorage.setItem(STORE,JSON.stringify(D)); }catch(e){} };
+
+/* ================= the bear ================= */
+// Each bear is sculpted as ONE smooth body, like a 3D artist's model: head, snout, ears, belly, arms and legs are
+// blended into each other with soft "smooth union" joins (no balls, no seams). The shape is turned into a mesh,
+// given a skeleton (bones for hips, spine, neck, arms, legs) so it bends naturally, and covered with layered fur.
+const GEO={};
+const v3=(x,y,z)=>new T.Vector3(x,y,z);
+// --- shape building blocks (signed distance: < 0 inside) ---
+const smin=(a,b,k)=>{ const h=Math.max(k-Math.abs(a-b),0)/k; return Math.min(a,b)-h*h*k*.25; };
+const smax=(a,b,k)=>-smin(-a,-b,k);
+function ell(px,py,pz,c,r){ // ellipsoid, c centre, r radii
+  const x=(px-c[0])/r[0], y=(py-c[1])/r[1], z=(pz-c[2])/r[2], k0=Math.hypot(x,y,z), k1=Math.hypot(x/r[0],y/r[1],z/r[2]);
+  return k1<1e-6?-Math.min(r[0],r[1],r[2]):k0*(k0-1)/k1; }
+function cap(px,py,pz,a,b,ra,rb){ // tapered capsule a->b
+  const bx=b[0]-a[0], by=b[1]-a[1], bz=b[2]-a[2], qx=px-a[0], qy=py-a[1], qz=pz-a[2];
+  const h=cl((qx*bx+qy*by+qz*bz)/(bx*bx+by*by+bz*bz),0,1); return Math.hypot(qx-bx*h,qy-by*h,qz-bz*h)-(ra+(rb-ra)*h); }
+// rotate a point into a frame that faces direction (az,el) on the head
+function sculptBear(c){
+  const hs=c.headSize, bw=c.bodyW, bh=c.bodyH, fat=c.limbFat, ll=c.legLen, al=c.armLen;
+  const hipY=.25*ll, beltY=hipY+.05, chestY=hipY+.28*bh, neckY=hipY+.42*bh;
+  const head=[0,neckY+.215*hs,.01], HR=[.275*hs,.25*hs,.255*hs];
+  const dirOn=(az,el)=>{ const a=az*PI/180, e=el*PI/180; return [sin(a)*cos(e),sin(e),cos(a)*cos(e)]; };
+  const onH=(az,el,k=1)=>{ const d=dirOn(az,el); return [head[0]+d[0]*HR[0]*k,head[1]+d[1]*HR[1]*k,head[2]+d[2]*HR[2]*k]; };
+  const mzD=dirOn(0,c.muzY), muz=[head[0],head[1]+mzD[1]*HR[1]*.8,head[2]+mzD[2]*HR[2]*.95], MR=[.11*c.muzSize*hs,.085*c.muzSize*hs,.105*c.muzSize*hs];
+  const ears=[1,-1].map(s=>{ const p=onH(s*c.earAngle,c.earHeight,1.02); return {p,s,r:[.095*c.earSize*hs,.088*c.earSize*hs,.052*c.earSize*hs]}; });
+  const eyes=[1,-1].map(s=>onH(s*c.eyeGap,c.eyeY,1.0));
+  const sh=[[.19*bw,neckY-.055,.0],[-.19*bw,neckY-.055,.0]];
+  const arm=sh.map((p,i)=>{ const s=i?-1:1; const el=[p[0]+s*.085,p[1]-.12*al,p[2]+.04], wr=[p[0]+s*.1,p[1]-.23*al,p[2]+.1]; return {sh:p,el,wr,s}; });
+  const legs=[1,-1].map(s=>({hip:[s*.1*bw,hipY+.02,0],knee:[s*.11*bw,hipY*.5,.02],ank:[s*.115*bw,.07,.02],foot:[s*.115*bw,.058,.055],s}));
+  const F={hs,bw,bh,fat,hipY,chestY,neckY,head,HR,muz,MR,ears,eyes,arm,legs,tail:[0,beltY+.02,-.2*bw]};
+  F.sdf=(x,y,z,tag)=>{
+    // body: chubby pear, belly in front
+    const main=ell(x,y,z,[0,beltY+.08*bh,.0],[.21*bw,.2*bh,.19*bw]); let d=main;
+    d=smin(d,ell(x,y,z,[0,chestY,-.005],[.17*bw,.17*bh,.15*bw]),.09);
+    const bel=ell(x,y,z,[0,beltY+.07*bh,.05],[.17*bw,.15*bh,.15*bw]); d=smin(d,bel,.05);
+    // head with cheeks and a soft brow
+    let h=ell(x,y,z,head,HR); h=smin(h,ell(x,y,z,[head[0],head[1]-.06*hs,head[2]+.04],[.21*hs,.15*hs,.19*hs]),.06);
+    // snout blended into the face
+    const m=ell(x,y,z,muz,MR); h=smin(h,m,.04);
+    // ears: thick round discs, cupped at the front
+    let er=1e9, ei=1e9; for(const e of ears){ const p=e.p, r=e.r;
+      const dx=x-p[0], dy=y-p[1], dz=z-p[2], a=-e.s*c.earAngle*PI/180*.55, ca=cos(a), sa=sin(a), lx=dx*ca-dz*sa, lz=dx*sa+dz*ca;
+      let ed=ell(lx,dy,lz,[0,0,0],r); const cup=ell(lx,dy,lz,[0,-.008,r[2]*1.05],[r[0]*.62,r[1]*.6,r[2]*.7]); ed=smax(ed,-cup,.012);
+      if(ed<er) er=ed; if(cup<ei) ei=cup; }
+    h=smin(h,er,.025);
+    // eye sockets, very slight
+    for(const p of eyes) h=smax(h,-ell(x,y,z,p,[.03*c.eyeSize,.032*c.eyeSize,.02]),.015);
+    d=smin(d,h,.07);
+    // arms
+    let a=1e9; for(const A of arm){ let q=cap(x,y,z,A.sh,A.el,.062*fat,.056*fat); q=smin(q,cap(x,y,z,A.el,A.wr,.056*fat,.05*fat),.025); q=smin(q,ell(x,y,z,[A.wr[0],A.wr[1]-.012,A.wr[2]+.005],[.055*fat,.06*fat,.05*fat]),.025);
+      const ds=Math.hypot(x-A.sh[0],y-A.sh[1],z-A.sh[2]), k=.004+.045*cl(1-ds/.1,0,1); d=smin(d,q,k); a=Math.min(a,q); }
+    // legs with big round feet, flat soles
+    let lg=1e9; for(const L of legs){ let q=cap(x,y,z,L.hip,L.knee,.085*fat,.078*fat); q=smin(q,cap(x,y,z,L.knee,L.ank,.078*fat,.07*fat),.03);
+      q=smin(q,ell(x,y,z,L.foot,[.075*fat,.058,.1*fat]),.04); lg=Math.min(lg,q); }
+    lg=smax(lg,-(y-.004),.012); d=smin(d,lg,.06);
+    // little tail
+    d=smin(d,ell(x,y,z,F.tail,[.05,.05,.045]),.03);
+    if(tag){ // which region this point belongs to (for colour, fur length and bones)
+      const parts=[['body',Math.min(main,bel,ell(x,y,z,[0,chestY,-.005],[.17*bw,.17*bh,.15*bw]))],['head',ell(x,y,z,head,HR)],['muz',m],['ear',er],['arm',a],['leg',lg],['tail',ell(x,y,z,F.tail,[.05,.05,.045])]];
+      parts.sort((p,q)=>p[1]-q[1]); tag.part=parts[0][0]; tag.cup=ei; tag.bel=bel; }
+    return d; };
+  return F; }
+// naive surface nets: one vertex per surface cell, quads across sign changes; then snap to the surface and use exact normals
+function mesh(F,step){ const X0=-.42,X1=.42,Y0=-.01,Y1=F.head[1]+F.HR[1]+.12,Z0=-.32,Z1=.42;
+  const nx=Math.ceil((X1-X0)/step)+1, ny=Math.ceil((Y1-Y0)/step)+1, nz=Math.ceil((Z1-Z0)/step)+1, N=nx*ny*nz, val=new Float32Array(N);
+  const I=(i,j,k)=>i+nx*(j+ny*k);
+  for(let k=0;k<nz;k++) for(let j=0;j<ny;j++) for(let i=0;i<nx;i++) val[I(i,j,k)]=F.sdf(X0+i*step,Y0+j*step,Z0+k*step);
+  const vid=new Int32Array(N).fill(-1), P=[];
+  const E=[[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]], O=[[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]];
+  for(let k=0;k<nz-1;k++) for(let j=0;j<ny-1;j++) for(let i=0;i<nx-1;i++){ const v=O.map(o=>val[I(i+o[0],j+o[1],k+o[2])]); let m=0; for(let q=0;q<8;q++) if(v[q]<0) m|=1<<q; if(m===0||m===255) continue;
+    let sx=0,sy=0,sz=0,n=0; for(const [a,b] of E){ if((v[a]<0)!==(v[b]<0)){ const t=v[a]/(v[a]-v[b]); sx+=O[a][0]+(O[b][0]-O[a][0])*t; sy+=O[a][1]+(O[b][1]-O[a][1])*t; sz+=O[a][2]+(O[b][2]-O[a][2])*t; n++; } }
+    vid[I(i,j,k)]=P.length/3; P.push(X0+(i+sx/n)*step,Y0+(j+sy/n)*step,Z0+(k+sz/n)*step); }
+  const idx=[]; const quad=(a,b,c,d,flip)=>{ if(a<0||b<0||c<0||d<0) return; if(flip) idx.push(a,c,b,a,d,c); else idx.push(a,b,c,a,c,d); };
+  for(let k=1;k<nz-1;k++) for(let j=1;j<ny-1;j++) for(let i=1;i<nx-1;i++){ const v0=val[I(i,j,k)]<0;
+    if(v0!==(val[I(i+1,j,k)]<0)) quad(vid[I(i,j-1,k-1)],vid[I(i,j,k-1)],vid[I(i,j,k)],vid[I(i,j-1,k)],!v0);
+    if(v0!==(val[I(i,j+1,k)]<0)) quad(vid[I(i-1,j,k-1)],vid[I(i-1,j,k)],vid[I(i,j,k)],vid[I(i,j,k-1)],!v0);
+    if(v0!==(val[I(i,j,k+1)]<0)) quad(vid[I(i-1,j-1,k)],vid[I(i,j-1,k)],vid[I(i,j,k)],vid[I(i-1,j,k)],!v0); }
+  // snap to the true surface and take smooth normals from the shape itself
+  const nrm=new Float32Array(P.length), e=step*.5;
+  for(let q=0;q<P.length;q+=3){ let x=P[q],y=P[q+1],z=P[q+2];
+    for(let it=0;it<3;it++){ const d=F.sdf(x,y,z), gx=F.sdf(x+e,y,z)-F.sdf(x-e,y,z), gy=F.sdf(x,y+e,z)-F.sdf(x,y-e,z), gz=F.sdf(x,y,z+e)-F.sdf(x,y,z-e), gl=Math.hypot(gx,gy,gz)||1; x-=d*gx/gl; y-=d*gy/gl; z-=d*gz/gl;
+      if(it===2){ nrm[q]=gx/gl; nrm[q+1]=gy/gl; nrm[q+2]=gz/gl; } }
+    P[q]=x; P[q+1]=y; P[q+2]=z; }
+  return {pos:new Float32Array(P),nrm,idx}; }
+const mat=(c,o={})=>new T.MeshStandardMaterial(Object.assign({color:col(c),roughness:.9,metalness:0},o));
+const mixHex=(a,b,t)=>'#'+new T.Color(a).lerp(new T.Color(b),t).getHexString();
+function blob(m,sx,sy,sz){ const me=new T.Mesh(GEO.s||(GEO.s=new T.SphereGeometry(1,32,24)),m); me.scale.set(sx,sy,sz); return me; }
+function rose(c){ const g=new T.Group(); const pm=mat(c,{roughness:.65}), dm=mat(mixHex(c,'#7a2b3a',.35),{roughness:.65}), lm=mat('#8a9a6a',{roughness:.8});
+  for(let i=0;i<9;i++){ const a=i*2.4, r=.005+i*.0035, pt=blob(i<3?dm:pm,.015+i*.0015,.012+i*.0012,.007); pt.position.set(cos(a)*r,sin(a)*r,.004-i*.001); pt.rotation.z=a; g.add(pt); }
+  [-1,1].forEach(s=>{ const lf=blob(lm,.018,.008,.004); lf.position.set(s*.028,-.022,-.005); lf.rotation.z=s*.6; g.add(lf); }); return g; }
+function bowG(c,sc){ const m=mat(c,{roughness:.55}), g=new T.Group(); [-1,1].forEach(s=>{ const l=blob(m,.06*sc,.04*sc,.024*sc); l.position.x=s*.047*sc; l.rotation.z=s*.3; g.add(l); }); g.add(blob(m,.022*sc,.022*sc,.022*sc)); return g; }
+// fur: layered shells over the skinned body; strands come from 3D noise on the body's rest shape, so they stick to it as it moves
+const SHELLS=10;
+function furMaterial(layer,len,c){ const m=new T.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1,skinning:true,transparent:layer>0,depthWrite:layer===0});
+  m.onBeforeCompile=sh=>{ Object.assign(sh.uniforms,{uL:{value:layer/SHELLS},uLen:{value:len},uDen:{value:430/c.furScale},uShag:{value:c.shag}});
+    sh.vertexShader='uniform float uL; uniform float uLen; uniform float uShag; attribute float furA; varying vec3 vRest; varying float vFur;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+      `#include <begin_vertex>
+       vRest=position; vFur=furA;
+       float lyr=uL*furA; transformed+=normalize(objectNormal)*uLen*lyr + vec3(0.0,-1.0,0.0)*uLen*lyr*lyr*0.55*uShag;`);
+    sh.fragmentShader='uniform float uL; uniform float uDen; uniform float uShag; varying vec3 vRest; varying float vFur; float gTip;\nfloat hh(vec3 p){ return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }\nfloat vn(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(mix(hh(i),hh(i+vec3(1,0,0)),f.x),mix(hh(i+vec3(0,1,0)),hh(i+vec3(1,1,0)),f.x),f.y),mix(mix(hh(i+vec3(0,0,1)),hh(i+vec3(1,0,1)),f.x),mix(hh(i+vec3(0,1,1)),hh(i+vec3(1,1,1)),f.x),f.y),f.z); }\n'+sh.fragmentShader.replace('#include <color_fragment>',
+      `#include <color_fragment>
+       float clump=vn(vRest*uDen*0.22);
+       float fine=vn(vRest*uDen*1.1+3.1)*0.6+vn(vRest*uDen*2.3+9.7)*0.4;
+       float strand=fine*0.8+clump*0.4-0.08; strand=smoothstep(0.15,0.85,strand); float r=fine;
+       if(uL>0.0){ if(vFur<0.05 || strand < uL*(0.75+0.5*uShag)) discard; }
+       float tip=mix(0.3,1.2,pow(clamp(uL+0.08,0.0,1.0),0.8)); gTip=uL;
+       // single hairs a shade lighter or darker, like real plush
+       float hair=hh(floor(vRest*uDen*2.6)); diffuseColor.rgb*=tip*(0.8+0.32*clump)*(0.9+0.2*hair);`).replace('#include <dithering_fragment>',
+      `#include <dithering_fragment>
+       float fr=pow(1.0-abs(dot(normalize(vViewPosition),normal)),2.5);
+       gl_FragColor.rgb+=fr*0.12*(0.3+gTip)*vec3(1.0,0.86,0.72);`); };
+  m.customProgramCacheKey=()=>'bfur'+layer; return m; }
+function buildBear(w){
+  const c=cfg(w), girl=w==='she';
+  const F=sculptBear(c), M=mesh(F,c.detail||.0115);
+  const n=M.pos.length/3, colr=new Float32Array(n*3), furA=new Float32Array(n), si=new Uint16Array(n*4), sw=new Float32Array(n*4);
+  const cFur=col(c.fur), cSn=col(mixHex(c.fur,c.light,.8)), cBel=col(mixHex(c.fur,c.light,c.tummy)), cEar=col(mixHex(c.fur,'#2a160c',.3)), cPad=col(c.pad);
+  // bones: 0 root, 1 pelvis, 2 spine, 3 neck/head, 4/5 shoulder L/R, 6/7 elbow, 8/9 hip, 10/11 knee
+  const BP=[[0,0,0],[0,F.hipY,0],[0,F.hipY+.03,0],[0,F.neckY,0],F.arm[0].sh,F.arm[1].sh,F.arm[0].el,F.arm[1].el,F.legs[0].hip,F.legs[1].hip,F.legs[0].knee,F.legs[1].knee];
+  const PAR=[-1,0,1,2,2,2,4,5,1,1,8,9];
+  const seg=(px,py,pz,a,b)=>cap(px,py,pz,a,b,0,0);
+  const tag={};
+  for(let q=0;q<n;q++){ const x=M.pos[q*3],y=M.pos[q*3+1],z=M.pos[q*3+2]; F.sdf(x,y,z,tag);
+    let C=cFur, fa=1; const p=tag.part;
+    if(p==='muz'){ C=cSn; fa=.45; }
+    else if(p==='ear'&&tag.cup<.006){ C=cEar; fa=.35; }
+    else if(p==='body'&&tag.bel<.004&&z>.02) C=cBel;
+    // paw pads with toe beans on the soles, palm pads on the paws
+    if(p==='leg'&&y<.03){ const L=F.legs[x>0?0:1], lx=(x-L.foot[0])/.06, lz=(z-L.foot[2]+.01)/.075;
+      const pad=lx*lx*1.2+lz*lz<.55, bean=[[-.55,.9],[-.18,1.08],[.18,1.08],[.55,.9]].some(([bx,bz])=>(lx-bx)**2+(lz-bz)**2<.06);
+      if(pad||bean){ C=cPad; fa=0; } else if(y<.012){ fa=.3; } }
+    colr.set([C.r,C.g,C.b],q*3); furA[q]=fa;
+    // skin weights from the nearest bone segments of this part
+    let cand;
+    if(p==='head'||p==='muz'||p==='ear') cand=[[3,seg(x,y,z,BP[3],F.head)],[2,seg(x,y,z,BP[2],BP[3])*1.6]];
+    else if(p==='arm'){ const i=x>0?0:1; cand=[[4+i,seg(x,y,z,F.arm[i].sh,F.arm[i].el)],[6+i,seg(x,y,z,F.arm[i].el,F.arm[i].wr)],[2,seg(x,y,z,BP[2],BP[3])*1.8]]; }
+    else if(p==='leg'){ const i=x>0?0:1, L=F.legs[i]; cand=[[8+i,seg(x,y,z,L.hip,L.knee)],[10+i,Math.min(seg(x,y,z,L.knee,L.ank),seg(x,y,z,L.ank,L.foot))],[1,seg(x,y,z,BP[1],BP[2])*2.2]]; }
+    else cand=[[1,seg(x,y,z,[0,0,0],BP[1])],[2,seg(x,y,z,BP[2],BP[3])],[3,seg(x,y,z,BP[3],F.head)*1.4]];
+    let tot=0; const ws=cand.map(([b,d])=>{ const v=1/Math.pow(d+.012,5); tot+=v; return [b,v]; }); ws.sort((a,b)=>b[1]-a[1]);
+    for(let k=0;k<4;k++){ const e=ws[k]; si[q*4+k]=e?e[0]:0; sw[q*4+k]=e?e[1]/tot:0; } }
+  const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(M.pos,3)); geo.setAttribute('normal',new T.BufferAttribute(M.nrm,3));
+  geo.setAttribute('color',new T.BufferAttribute(colr,3)); geo.setAttribute('furA',new T.BufferAttribute(furA,1));
+  geo.setAttribute('skinIndex',new T.Uint16BufferAttribute(si,4)); geo.setAttribute('skinWeight',new T.Float32BufferAttribute(sw,4)); geo.setIndex(M.idx);
+  // skeleton
+  const bones=BP.map(()=>new T.Bone());
+  bones.forEach((b,i)=>{ const p=BP[i], pp=PAR[i]<0?[0,0,0]:BP[PAR[i]]; b.position.set(p[0]-pp[0],p[1]-pp[1],p[2]-pp[2]); if(PAR[i]>=0) bones[PAR[i]].add(b); });
+  bones[3].rotation.order='YXZ'; [4,5].forEach(i=>bones[i].rotation.order='ZXY');
+  const root=new T.Group(); root.add(bones[0]); root.updateMatrixWorld(true);
+  const skel=new T.Skeleton(bones);
+  const body=new T.SkinnedMesh(geo,furMaterial(0,0,c)); body.add(bones[0]); body.bind(skel); body.castShadow=true; body.receiveShadow=true; root.add(body);
+  const len=.014*c.furLen;
+  if(len>0) for(let l=1;l<=SHELLS;l++){ const s=new T.SkinnedMesh(geo,furMaterial(l,len,c)); s.bind(skel,body.bindMatrix); s.renderOrder=l; s.frustumCulled=false; root.add(s); }
+  body.frustumCulled=false;
+  const B={w,c,root,j:{},bones,F}; const j=B.j; j.bones=bones;
+  // face parts ride on the head bone
+  const headB=bones[3], hp=v3(...BP[3]);
+  const atHead=(o,p)=>{ o.position.set(p[0]-hp.x,p[1]-hp.y,p[2]-hp.z); headB.add(o); root.updateMatrixWorld(true); };
+  const eyeM=new T.MeshStandardMaterial({color:0x050302,roughness:.04,metalness:.2}), ringM=mat('#3a2216',{roughness:.3}), white=new T.MeshBasicMaterial({color:0xffffff}), noseM=mat(c.nose,{roughness:.42});
+  j.eyes=F.eyes.map((p,i)=>{ const g=new T.Group(); atHead(g,p); const d=v3(p[0]-F.head[0],p[1]-F.head[1],p[2]-F.head[2]).normalize(); g.lookAt(g.getWorldPosition(v3()).add(d));
+    const open=new T.Group(); g.add(open); const es=c.eyeSize;
+    const ring=blob(ringM,.03*es,.031*es,.016); open.add(ring);
+    const ball=blob(eyeM,.026*es,.027*es,.019); ball.position.z=.004; open.add(ball);
+    const h1=blob(white,.0065*es,.0065*es,.003); h1.position.set(.008*es,.01*es,.02); open.add(h1);
+    const h2=blob(white,.003*es,.003*es,.002); h2.position.set(-.008*es,-.008*es,.02); open.add(h2);
+    // her eyelashes: three soft curved lashes on the outer upper edge
+    if(girl){ const lm=mat('#1c100a',{roughness:.6}), sd=i?-1:1;
+      [0,1,2].forEach(k=>{ const a0=(55+k*22)*PI/180, r0=.031*es, bx=sd*cos(a0)*r0, by=sin(a0)*r0;
+        const c=new T.CatmullRomCurve3([v3(bx,by,.006),v3(bx+sd*.008*es,by+.006*es,.012),v3(bx+sd*.017*es,by+.008*es,.01)]);
+        const l=new T.Mesh(new T.TubeGeometry(c,8,.0022*es,5),lm); open.add(l); }); }
+    const closed=new T.Mesh(new T.TorusGeometry(.02*es,.0035,8,16,PI),ringM); closed.rotation.z=PI; closed.position.y=.005; closed.visible=false; g.add(closed);
+    return {open,closed}; });
+  // nose: soft rounded triangle, glossy
+  { const g=new T.SphereGeometry(1,32,24), pa=g.attributes.position; for(let q=0;q<pa.count;q++){ const y=pa.getY(q); pa.setX(q,pa.getX(q)*(1+.35*y)); } g.computeVertexNormals();
+    const ns=new T.Mesh(g,noseM); const sc=c.noseSize*c.headSize; ns.scale.set(.04*sc,.028*sc,.028*sc);
+    const mzF=[F.muz[0],F.muz[1]+F.MR[1]*.35,F.muz[2]+F.MR[2]*.92]; atHead(ns,mzF); ns.rotation.x=-.25;
+    const hl=blob(white,.008,.004,.003); hl.position.set(-.012*sc,.018*sc,.024*sc); ns.add(hl); hl.scale.set(.2,.12,.1); hl.position.set(-.25,.45,.85);
+    // stitched mouth
+    const mm=new T.LineBasicMaterial({color:col(c.nose)}); const pts=(a)=>new T.BufferGeometry().setFromPoints(a.map(p=>v3(...p)));
+    const mo=new T.Group(); atHead(mo,[F.muz[0],F.muz[1]-F.MR[1]*.15,F.muz[2]+F.MR[2]*.98]);
+    const tube=(arr)=>new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(arr.map(p=>v3(...p))),12,.0028,6),noseM);
+    mo.add(tube([[0,.028,0],[0,.004,.002]])); mo.add(tube([[0,.004,.002],[-.012,-.006,-.002],[-.024,-.002,-.008]])); mo.add(tube([[0,.004,.002],[.012,-.006,-.002],[.024,-.002,-.008]])); j.mouth=mo; }
+  if(c.cheekAlpha>.01){ const cm=new T.MeshBasicMaterial({color:col(c.cheek),transparent:true,opacity:c.cheekAlpha*.6,depthWrite:false});
+    [1,-1].forEach(s=>{ const a=s*38*PI/180, e=-12*PI/180, d=[sin(a)*cos(e),sin(e),cos(a)*cos(e)], p=[F.head[0]+d[0]*F.HR[0]*1.06,F.head[1]+d[1]*F.HR[1]*1.06,F.head[2]+d[2]*F.HR[2]*1.06];
+      const m=new T.Mesh(new T.CircleGeometry(.045,24),cm); atHead(m,p); m.lookAt(m.getWorldPosition(v3()).add(v3(...d))); }); }
+  // accessories
+  const acc=c.acc;
+  const headPt=(az,el,k)=>{ const a=az*PI/180, e=el*PI/180; return [F.head[0]+sin(a)*cos(e)*F.HR[0]*k,F.head[1]+sin(e)*F.HR[1]*k,F.head[2]+cos(a)*cos(e)*F.HR[2]*k]; };
+  if(acc==='rose'){ const r=rose(c.accCol); r.scale.setScalar(1.3); atHead(r,headPt(-36,46,1.1)); r.rotation.set(-.5,-.4,0); }
+  if(acc==='bow'){ const b=bowG(c.accCol,1); atHead(b,headPt(-28,58,1.08)); b.rotation.set(-.6,-.3,.2); }
+  if(acc==='vest'||acc==='vestrose'){ const knit=(()=>{ const N=128, cv=document.createElement('canvas'); cv.width=cv.height=N; const g=cv.getContext('2d'); g.fillStyle='#a88d6a'; g.fillRect(0,0,N,N);
+      for(let y=0;y<N;y+=8) for(let x=0;x<N;x+=8){ g.fillStyle='#cbb08a'; g.beginPath(); g.ellipse(x+2,y+4,2.2,3.6,.5,0,PI*2); g.fill(); g.beginPath(); g.ellipse(x+6,y+4,2.2,3.6,-.5,0,PI*2); g.fill(); }
+      const t=new T.CanvasTexture(cv); t.wrapS=t.wrapT=T.RepeatWrapping; t.repeat.set(9,4); t.encoding=T.sRGBEncoding; return t; })();
+    const vm=new T.MeshStandardMaterial({color:0xffffff,map:knit,bumpMap:knit,bumpScale:.01,roughness:1,side:T.DoubleSide});
+    const v=new T.Mesh(new T.SphereGeometry(1,40,20,PI*.64,PI*1.72,PI*.1,PI*.42),vm); v.scale.set(.215*c.bodyW,.2*c.bodyH,.2*c.bodyW); v.position.set(0,F.chestY-.01-BP[2][1],0); v.castShadow=true; bones[2].add(v);
+    const bt=new T.Mesh(new T.CylinderGeometry(.018,.018,.007,20),mat('#c9a77d',{roughness:.5})); bt.rotation.x=PI/2; bt.position.set(-.04,F.chestY-.05-BP[2][1],.2*c.bodyW); bones[2].add(bt);
+    if(acc==='vestrose'){ const r=rose(c.accCol); r.position.set(.08,F.chestY+.02-BP[2][1],.17*c.bodyW); r.rotation.y=.4; bones[2].add(r); } }
+  B.sitDrop=F.hipY-.075; B.restArm=F.arm.map(A=>Math.atan2(Math.abs(A.wr[0]-A.sh[0]),A.sh[1]-A.wr[1]));
+  root.scale.setScalar(c.size);
+  return B;
+}
+
+// renderer shared by every stage on the page; each stage gets its own 2D canvas we copy into
+let R; try{ R=new T.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:false}); }catch(e){ return; }
+document.head.appendChild(st);
+R.setClearColor(0x000000,0); R.outputEncoding=T.sRGBEncoding; R.toneMapping=T.ACESFilmicToneMapping; R.toneMappingExposure=1.15; R.setPixelRatio(1);
+const scene=new T.Scene();
+scene.add(new T.HemisphereLight(col('#e6dcff'),col('#4a3a2a'),1.0));
+const key=new T.DirectionalLight(col('#fff1d6'),1.3); key.position.set(2,4,6); scene.add(key);
+const fill=new T.DirectionalLight(col('#ffd9c2'),.5); fill.position.set(-4,1,3); scene.add(fill);
+{ const es=new T.Scene(); es.background=new T.Color(0x332a3a); const bx=(c,x,y,z,sx,sy,sz)=>{ const m=new T.Mesh(new T.BoxGeometry(sx,sy,sz),new T.MeshBasicMaterial({color:c})); m.position.set(x,y,z); es.add(m); };
+  bx(0xffffff,0,6,0,8,.2,8); bx(0xfff2e0,-6,2,2,.2,5,5); bx(0xffe6f0,6,2,2,.2,4,4); bx(0x6a5a4a,0,-3,0,20,.2,20);
+  const pm=new T.PMREMGenerator(R); scene.environment=pm.fromScene(es,.04).texture; pm.dispose(); }
+const cam=new T.OrthographicCamera(-1,1,1,-1,-20,20); cam.position.set(0,0,10); cam.lookAt(0,0,0);
+const BEARS={};
+['he','she'].forEach(w=>{ const B=buildBear(w); B.root.visible=false; scene.add(B.root); BEARS[w]=B; });
+const S2=.66, K=13*S2/BEARS.he.F.hipY; // flat units per 3D unit (leg length matches)
+const rad=d=>d*PI/180;
+function pose(B,q,side){ const bn=B.j.bones, s3=B.c.size*(q.sc||1);
+  B.root.scale.setScalar(s3);
+  B.root.position.set(q.x/K,-q.y/K-B.F.hipY*s3,side);
+  B.root.rotation.set(0,rad(q.ps),-rad(q.rot||0));
+  bn[1].position.y=B.F.hipY; bn[2].rotation.set(rad(q.lean)*.8,0,0); bn[3].rotation.set(rad(q.head)*.8,0,0);
+  const near=q.ps>=0?1:0, far=1-near;
+  [[near,0],[far,1]].forEach(([i3,i2])=>{ const a=q.arms[i2], sg=i3?-1:1; bn[4+i3].rotation.z=sg*(.12-B.restArm[i3]); bn[4+i3].rotation.x=-rad(a[0]); bn[6+i3].rotation.x=-rad(a[1])*.9;
+    const l=q.legs[i2]; bn[8+i3].rotation.x=-rad(l[0]); bn[8+i3].rotation.z=0; bn[10+i3].rotation.x=rad(l[1]); });
+  const closed=q.eyes==='closed'||q.eyes==='squint';
+  B.j.eyes.forEach(e=>{ e.open.visible=!closed; e.closed.visible=closed; e.open.scale.y=1; }); }
+const overlays=new Map();
+// the canvas always sits right after its stage, in the same layer: when a stage moves (hide and seek puts it behind
+// the cards, a second stage in front), its 3D bears move with it
+function overlayFor(svg){ let o=overlays.get(svg);
+  if(!o){ const c=document.createElement('canvas'); c.className='b3d'; o={c,g:c.getContext('2d')}; overlays.set(svg,o); }
+  if(o.c.previousSibling!==svg) svg.after(o.c);
+  const cs=getComputedStyle(svg), fixed=cs.position==='fixed', z=cs.zIndex==='auto'?'auto':cs.zIndex;
+  o.c.style.position=fixed?'fixed':'absolute'; o.c.style.zIndex=z; o.c.style.pointerEvents='none'; o.fixed=fixed; return o; }
+function frame(){ requestAnimationFrame(frame);
+  const groups=new Map();
+  ['he','she'].forEach(w=>{ const B=BEARS[w], el=document.getElementById(w==='he'?'bsHeroot':'bsSheroot'); B.root.visible=false;
+    if(!el||!el.__q||!el.isConnected) return; const svg=el.ownerSVGElement; if(!svg) return; const q=el.__q; if(q.o!=null&&q.o<.05) return;
+    if(!groups.has(svg)) groups.set(svg,[]); groups.get(svg).push([B,q,w]); });
+  overlays.forEach((o,svg)=>{ if(!groups.has(svg)){ o.g.clearRect(0,0,o.c.width,o.c.height); if(!svg.isConnected){ o.c.remove(); overlays.delete(svg); } } });
+  groups.forEach((list,svg)=>{ const o=overlayFor(svg), r=svg.getBoundingClientRect(); if(r.width<2||r.height<2) return;
+    const dpr=Math.min(2,devicePixelRatio||1), W=Math.round(r.width*dpr), H=Math.round(r.height*dpr);
+    // place the canvas exactly over the svg, inside the same positioned parent
+    if(o.fixed){ o.c.style.left=r.left+'px'; o.c.style.top=r.top+'px'; }
+    else { const op=o.c.offsetParent||document.body, pr=op.getBoundingClientRect();
+      o.c.style.left=(r.left-pr.left+op.scrollLeft-(op.clientLeft||0))+'px'; o.c.style.top=(r.top-pr.top+op.scrollTop-(op.clientTop||0))+'px'; }
+    o.c.style.width=r.width+'px'; o.c.style.height=r.height+'px';
+    if(o.c.width!==W||o.c.height!==H){ o.c.width=W; o.c.height=H; }
+    const m=svg.getScreenCTM(); if(!m) return;
+    const x0=(r.left-m.e)/m.a, x1=(r.right-m.e)/m.a, y0=(r.top-m.f)/m.d, y1=(r.bottom-m.f)/m.d;
+    cam.left=x0/K; cam.right=x1/K; cam.top=-y0/K; cam.bottom=-y1/K; cam.updateProjectionMatrix();
+    list.forEach(([B,q,w])=>{ B.root.visible=true; const behind=w==='she'&&!q.front; pose(B,q,w==='he'?.15:(q.behindTitle?-.6:-.15)); });
+    R.setSize(W,H,false); R.render(scene,cam); o.g.clearRect(0,0,W,H); o.g.drawImage(R.domElement,0,0);
+    list.forEach(([B])=>{ B.root.visible=false; }); });
+}
+requestAnimationFrame(frame);
+  }
+  if(document.readyState==='loading') addEventListener('DOMContentLoaded',boot); else boot();
 })();
 </script>
 </body></html>
