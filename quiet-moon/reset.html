@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quiet Moon reset</title>
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#130a1b;color:#f8ecf3;font:17px/1.5 system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box}
+h1{font-weight:600;font-size:1.4rem;margin:0 0 8px;color:#f3a6c4}
+p{margin:6px 0;color:#c7aabd}
+a{display:inline-block;margin-top:18px;padding:12px 22px;border-radius:999px;background:#f3a6c4;color:#130a1b;font-weight:700;text-decoration:none}
+</style></head><body>
+<div>
+  <h1 id="t">Clearing the old copy…</h1>
+  <p id="d">This removes Quiet Moon's saved offline copy on this phone. Her notes and settings are not touched.</p>
+  <a id="go" href="./?fresh=1" hidden>Open Quiet Moon</a>
+</div>
+<script>
+// Removes the service worker and its cache for this site, then sends you to the newest version.
+(async function(){
+  let n=0;
+  try{ if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs){ await r.unregister(); n++; } } }catch(e){}
+  try{ if(window.caches){ const keys=await caches.keys(); for(const k of keys){ await caches.delete(k); n++; } } }catch(e){}
+  document.getElementById('t').textContent='Done';
+  document.getElementById('d').textContent=n?'The old copy was removed. Open Quiet Moon below, then install it from Chrome’s ⋮ menu.':'There was no old copy saved. Open Quiet Moon below, then install it from Chrome’s ⋮ menu.';
+  document.getElementById('go').hidden=false;
+})();
+</script>
+</body></html>
