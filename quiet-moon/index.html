@@ -1566,6 +1566,9 @@ function bearShow(){
       if(p.kind==='top'){ T[w].add(1.6+rnd()*.8,(u,t)=>peerDown(p,u,t)); if(rnd()<.6) T[w].add(1.4,(u,t)=>scan(p,u,t)); }
       else { if(rnd()<.5) T[w].add(1.3,(u,t)=>crouchLook(p,u,t)); T[w].add(1.6+rnd()*.6,(u,t)=>peekAround(p,u,t)); }
       T[w].add(1,(u,t)=>rnd()<.5?shrug(p,u,t):scratch(p,u,t)); };
+    const magic=[]; // sparkle bursts: {t0,t1}
+    if(opt.magic){ ['he','she'].forEach(w=>{ const p={...pos[w]}; T[w].add(1.1,(u)=>{ const k=u<.75?1.12*Math.sin(u/.75*PI/2):1.12-.12*(u-.75)/.25; return sitPose(p,{sc:HSC*Math.max(.001,k),eyes:u<.6?'closed':'open',head:-6*Math.sin(u*PI)}); }); }); magic.push({t0:0,t1:1.1}); }
+    else magic.push({t0:0,t1:.8});
     let lastHide=null;
     for(let r=0;r<rounds;r++){
       const seeker=r%2===0?(rnd()<.5?'he':'she'):(T.__last==='he'?'she':'he'), hider=seeker==='he'?'she':'he'; T.__last=seeker;
@@ -1611,17 +1614,18 @@ function bearShow(){
       pos[seeker]={...hugL}; pos[hider]={...hugR}; lastHide=hideSpot;
     }
     sync();
-    if(opt.end==='away'){ ['he','she'].forEach((w,i)=>{ const a={...pos[w]}, b={x:a.x+(i?40:-40),g:vbC.y0+vbC.h+60,dir:i?1:-1}; T[w].add(1.4,(u)=>({...hop(a,b,u,{eyes:'heart'}),o:1-cl((u-.6)/.4)})); }); }
+    if(opt.end==='poof'||opt.end==='away'){ const t0=sync(); ['he','she'].forEach(w=>{ const a={...pos[w]}; T[w].add(1.1,(u)=>{ const k=u<.25?1+.15*Math.sin(u/.25*PI/2):1.15*(1-ease((u-.25)/.75)); return P(a,{sc:HSC*Math.max(.001,k),lift:6*Math.sin(u*PI),eyes:'heart',arms:[[150,20],[140,20]]}); }); }); magic.push({t0,t1:t0+1.1}); }
     else { const hb={x:C-12,g:SH,dir:1}, sb={x:C+12,g:SH,dir:-1}; moveTo('he',hb,'walk',{eyes:'heart'}); moveTo('she',sb,'walk',{eyes:'heart'}); sync();
       ['he','she'].forEach((w,i)=>T[w].add(1,(u)=>{ const e=ease(u); return {x:i?C+12:C-12,dir:i?-1:1,legs:sitLegs(e),y:lerp(STAND,SIT,e),sc:HSC}; })); }
-    const TT=sync();
+    const TT=sync(); if(opt.end!=='poof'&&opt.end!=='away') magic.push({t0:TT-1.2,t1:TT});
     let lay=null; const layerAt=t=>{ let f=layers[0].front; for(const l of layers) if(t>=l.t) f=l.front; return f; };
     return [sg(TT,(t)=>[kissOf(T.he.at(t),'he'),kissOf(T.she.at(t),'she')],{fx:(t,u,E)=>{ kissFx(E,'he'); kissFx(E,'she');
         const f=layerAt(t); if(f!==lay){ lay=f; if(window.__hsLayer) window.__hsLayer(f); }
+        magic.forEach((m,i)=>{ if(t>=m.t0&&t<=m.t1) E.every('mg'+i,110,()=>{ E.p.forEach(q=>{ const sc=q.sc||1; E.spark(q.x+(rnd()-.5)*18*sc,q.y-14*S*sc+(rnd()-.5)*22*sc,3,18); }); }); });
         bubbles.forEach(b=>{ if(t>b.t0&&t<b.t0+b.d){ const q=E.p[b.who==='he'?0:1], sc=q.sc||1; E.front(numBubble(q.x,q.y-50*S*sc,Math.min(10,1+Math.floor((t-b.t0)/b.d*10)),cl((t-b.t0)*3)*cl((b.t0+b.d-t)*3))); } });
         bursts.forEach((b,i)=>{ if(t>b.t) E.once('bu'+i,()=>{ for(let n=0;n<10;n++) E.spawn(b.x+(rnd()-.5)*20,b.y); E.spark(b.x,b.y,14,30); }); });
         hearts.forEach(h=>{ if(t>h.t0&&t<h.t1) E.every('h',300,()=>E.spawn(h.x+(rnd()-.5)*8,h.y)); }); }}),
-      sg(1.2,(t)=>opt.end==='away'?[{x:C-12,dir:1,y:SIT,o:0,legs:sitLegs(1),sc:HSC},{x:C+12,dir:-1,y:SIT,o:0,legs:sitLegs(1),sc:HSC}]:[Hh(t,{eyes:'heart',sc:HSC}),Sh(t,{eyes:'heart',sc:HSC})],{fx:(t,u,E)=>E.once('end',()=>{ if(window.__hsLayer) window.__hsLayer(null); if(window.__onEvEnd) window.__onEvEnd(); })})];
+      sg(1.2,(t)=>(opt.end==='away'||opt.end==='poof')?[{x:C-12,dir:1,y:SIT,o:0,legs:sitLegs(1),sc:.001},{x:C+12,dir:-1,y:SIT,o:0,legs:sitLegs(1),sc:.001}]:[Hh(t,{eyes:'heart',sc:HSC}),Sh(t,{eyes:'heart',sc:HSC})],{fx:(t,u,E)=>E.once('end',()=>{ if(window.__hsLayer) window.__hsLayer(null); if(window.__onEvEnd) window.__onEvEnd(); })})];
   };
   Object.defineProperty(EPS,'ev_hide',{get:()=>hsGame(window.__hsOpt||{}),enumerable:true,configurable:true});
   const nose=()=>{ const n=handOfEl(she.ns,0,0); return n?{x:n.x,y:n.y}:{x:C-1,y:32.5}; };
@@ -2580,7 +2584,7 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
     const svg=box.querySelector('svg'); svg.querySelectorAll(':scope > path, #bsTitle, .bs-sub').forEach(n=>n.remove()); const ld=svg.querySelector('#bsLad'); if(ld) ld.style.display='none';
     window.__evVB={x0,y0,w:W/s,h:H/s};
     window.__evSpots=[...grid.querySelectorAll('.mm-card')].map(el=>{ const q=el.getBoundingClientRect(); return {x:x0+q.left/s,y:y0+q.top/s,w:q.width/s,h:q.height/s}; });
-    window.__hsOpt={rounds:1,end:'away',sc:1};
+    window.__hsOpt={rounds:1,end:'poof',magic:true,sc:1};
     let over=false; const onTap=e=>{ for(const [w,id] of [['he','bsHe'],['she','bsShe']]){ const el=document.getElementById(id); if(!el) continue; const q=el.getBoundingClientRect(), p=8;
         if(e.clientX>q.left-p&&e.clientX<q.right+p&&e.clientY>q.top-p&&e.clientY<q.bottom+p){ window.__bsEvKiss&&window.__bsEvKiss(w); e.preventDefault(); e.stopPropagation(); return; } } };
     document.addEventListener('pointerdown',onTap,true);
