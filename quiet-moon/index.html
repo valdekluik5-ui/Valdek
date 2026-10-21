@@ -2643,30 +2643,50 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
 </script>
 
 <script>
-/* ===== Soft sounds: a gentle tap on every touch, a brighter two-note chime when something opens =====
-   Switched off while calmer sounds are chosen in Quiet Moon Lab (Sounds tab). */
+/* ===== Calm sounds, chosen in Quiet Moon Lab (Sounds tab) =====
+   Touch: "Starlight" (volume 84%, pitch -12, softness 88%, length 40%, space 20%, melody off, vibration on)
+   Open:  "Moon spell" (volume 100%, pitch -9, softness 34%, length 200%, space 11%)
+   Same engine as the Lab: warm low-pass, a soft dark room and a magic shimmer (bright hall + fading echo).
+   Made with Web Audio (no files); starts after the first touch, follows the iPhone silent switch. */
 (function(){
-  const SOUNDS_ON=false; if(!SOUNDS_ON) return;
-  let ctx=null, master=null, opened=false;
+  let ctx=null, out=null, wet=null, dry=null, sparkle=null, opened=false;
+  const ST=n=>Math.pow(2,n/12);
   const ensure=()=>{
-    if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); master=ctx.createGain(); master.gain.value=.9; master.connect(ctx.destination); }catch(e){ return null; } }
+    if(!ctx){
+      try{
+        ctx=new (window.AudioContext||window.webkitAudioContext)();
+        out=ctx.createGain(); out.gain.value=2; out.connect(ctx.destination);
+        const room=(sec,curve)=>{ const n=Math.floor(ctx.sampleRate*sec), b=ctx.createBuffer(2,n,ctx.sampleRate); for(let c=0;c<2;c++){ const d=b.getChannelData(c); for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,curve); } const cv=ctx.createConvolver(); cv.buffer=b; return cv; };
+        const lp=f=>{ const x=ctx.createBiquadFilter(); x.type='lowpass'; x.frequency.value=f; return x; };
+        const conv=room(3.4,2.6), dark=lp(1800);
+        wet=ctx.createGain(); dry=ctx.createGain(); wet.connect(conv); conv.connect(dark); dark.connect(out); dry.connect(out);
+        const hall=room(4.5,2.2), airy=lp(6500), dl=ctx.createDelay(1), fb=ctx.createGain(), dlf=lp(3200);
+        dl.delayTime.value=.29; fb.gain.value=.38; sparkle=ctx.createGain(); sparkle.gain.value=.55;
+        sparkle.connect(hall); hall.connect(airy); airy.connect(out); sparkle.connect(dl); dl.connect(dlf); dlf.connect(fb); fb.connect(dl); dlf.connect(out);
+      }catch(e){ ctx=null; return null; }
+    }
     if(ctx.state==='suspended') ctx.resume().catch(()=>{});
     return ctx;
   };
-  // one soft bell-like note: sine with a quiet octave shimmer, quick attack, smooth fade
-  const note=(f,t0,dur,vol)=>{
-    const o=ctx.createOscillator(), o2=ctx.createOscillator(), g=ctx.createGain(), g2=ctx.createGain();
-    o.type='sine'; o.frequency.setValueAtTime(f,t0); o2.type='sine'; o2.frequency.setValueAtTime(f*2,t0);
-    g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+.008); g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
-    g2.gain.setValueAtTime(0,t0); g2.gain.linearRampToValueAtTime(vol*.18,t0+.008); g2.gain.exponentialRampToValueAtTime(.0001,t0+dur*.6);
-    o.connect(g); o2.connect(g2); g.connect(master); g2.connect(master);
-    o.start(t0); o2.start(t0); o.stop(t0+dur+.05); o2.stop(t0+dur+.05);
-  };
-  const tap=()=>{ if(!ensure()) return; const t=ctx.currentTime; note(740,t,.12,.05); };
-  const open=()=>{ if(!ensure()) return; const t=ctx.currentTime; note(587,t,.32,.055); note(880,t+.07,.42,.045); };
-  // touch: unlock audio on the first touch, then play the tap after the click unless that click opened something
-  addEventListener('pointerdown',ensure,{capture:true,passive:true});
-  addEventListener('click',()=>{ setTimeout(()=>{ if(opened){ opened=false; return; } tap(); },0); },true);
+  function tone(t0,f,{wave='sine',att=.03,rel=1,vol=.05,cut=1400,detune=0,magic=false,trem=0}){
+    const g=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=cut; lp.Q.value=.3;
+    g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+att); g.gain.exponentialRampToValueAtTime(.0001,t0+att+rel);
+    const o=ctx.createOscillator(); o.type=wave; o.frequency.setValueAtTime(f,t0); if(detune) o.detune.value=-detune; o.connect(lp); o.start(t0); o.stop(t0+att+rel+.1);
+    if(trem){ const l=ctx.createOscillator(), lg=ctx.createGain(), tg=ctx.createGain(); l.frequency.value=trem; lg.gain.value=.35; tg.gain.value=1; l.connect(lg); lg.connect(tg.gain); l.start(t0); l.stop(t0+att+rel+.1); lp.connect(tg); tg.connect(g); } else lp.connect(g);
+    g.connect(dry); g.connect(wet); if(magic) g.connect(sparkle);
+  }
+  const room=space=>{ wet.gain.setValueAtTime(space*.9,ctx.currentTime); dry.gain.setValueAtTime(1-space*.45,ctx.currentTime); };
+  // Touch, "Starlight": f = 587.3 Hz at -12 steps, v = 84/40, cut = 1700-1250*0.88, length 40%
+  const touch=()=>{ if(!ensure()) return; room(.2); const t=ctx.currentTime+.01, f=587.3*ST(-12), v=84/40, cut=1700-1250*.88, len=.4;
+    [0,7,12,16].forEach((s,i)=>tone(t+i*.05,f*ST(s),{att:.35,rel:1.8*len,vol:.012*v,cut:cut*3,trem:5.5,magic:true})); };
+  // Open, "Moon spell": f = 146.8 Hz at -9 steps, v = 100/40, length 200%
+  const open=()=>{ if(!ensure()) return; room(.11); const t=ctx.currentTime+.01, f=146.8*ST(-9), v=100/40, len=2;
+    [0,7,12].forEach(s=>tone(t,f*ST(s),{wave:'triangle',att:.4,rel:1.6*len,vol:.022*v,cut:600,detune:4}));
+    [24,28,31,36].forEach((s,i)=>tone(t+.25+i*.14,f*ST(s),{att:.006,rel:.8,vol:.009*v,cut:6000,magic:true})); };
+  const buzz=()=>{ try{ navigator.vibrate&&navigator.vibrate(8); }catch(e){} };
+  // every touch: unlock audio, a soft buzz (Android), then Starlight unless that touch opened something
+  addEventListener('pointerdown',()=>{ ensure(); buzz(); },{capture:true,passive:true});
+  addEventListener('click',()=>{ setTimeout(()=>{ if(opened){ opened=false; return; } touch(); },0); },true);
   const markOpen=()=>{ if(!ctx) return; if(!opened){ opened=true; open(); setTimeout(()=>{ opened=false; },250); } };
   // opening a screen
   const _go=go; go=function(v){ const was=current; const r=_go.apply(this,arguments); if(v!==was) markOpen(); return r; };
