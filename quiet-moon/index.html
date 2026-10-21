@@ -3074,6 +3074,7 @@ function buildBear(w){
   const headB=bones[3], hp=v3(...BP[3]);
   const atHead=(o,p)=>{ o.position.set(p[0]-hp.x,p[1]-hp.y,p[2]-hp.z); headB.add(o); root.updateMatrixWorld(true); };
   const eyeM=new T.MeshStandardMaterial({color:0x050302,roughness:.04,metalness:.2}), ringM=mat('#3a2216',{roughness:.3}), white=new T.MeshBasicMaterial({color:0xffffff}), noseM=mat(c.nose,{roughness:.42});
+  const heartM=new T.MeshStandardMaterial({color:col('#ff4f86'),emissive:col('#ff2a6a'),emissiveIntensity:.35,roughness:.25,metalness:0});
   j.eyes=F.eyes.map((p,i)=>{ const g=new T.Group(); atHead(g,p); const d=v3(p[0]-F.head[0],p[1]-F.head[1],p[2]-F.head[2]).normalize(); g.lookAt(g.getWorldPosition(v3()).add(d));
     const open=new T.Group(); g.add(open); const es=c.eyeSize;
     const ring=blob(ringM,.03*es,.031*es,.016); open.add(ring);
@@ -3086,7 +3087,12 @@ function buildBear(w){
         const c=new T.CatmullRomCurve3([v3(bx,by,.006),v3(bx+sd*.008*es,by+.006*es,.012),v3(bx+sd*.017*es,by+.008*es,.01)]);
         const l=new T.Mesh(new T.TubeGeometry(c,8,.0022*es,5),lm); open.add(l); }); }
     const closed=new T.Mesh(new T.TorusGeometry(.02*es,.0035,8,16,PI),ringM); closed.rotation.z=PI; closed.position.y=.005; closed.visible=false; g.add(closed);
-    return {open,closed}; });
+    // heart eyes: a glossy little pink heart that beats, for the moments the stories ask for them
+    const hs=new T.Shape(); hs.moveTo(0,-.45); hs.bezierCurveTo(-.1,-.35,-.5,-.1,-.5,.15); hs.bezierCurveTo(-.5,.4,-.25,.52,0,.3); hs.bezierCurveTo(.25,.52,.5,.4,.5,.15); hs.bezierCurveTo(.5,-.1,.1,-.35,0,-.45);
+    const hg=new T.ExtrudeGeometry(hs,{depth:.12,bevelEnabled:true,bevelThickness:.08,bevelSize:.06,bevelSegments:4,curveSegments:16}); hg.center();
+    const heart=new T.Mesh(hg,heartM); heart.userData.s=.044*es; heart.scale.setScalar(heart.userData.s); heart.position.z=.012; heart.visible=false; g.add(heart);
+    const hh=blob(white,.006*es,.004*es,.002); hh.position.set(-.013*es,.01*es,.02); heart.add(hh); hh.scale.set(.16,.1,.05); hh.position.set(-.2,.18,.18);
+    return {open,closed,heart}; });
   // nose: soft rounded triangle, glossy
   { const g=new T.SphereGeometry(1,32,24), pa=g.attributes.position; for(let q=0;q<pa.count;q++){ const y=pa.getY(q); pa.setX(q,pa.getX(q)*(1+.35*y)); } g.computeVertexNormals();
     const ns=new T.Mesh(g,noseM); const sc=c.noseSize*c.headSize; ns.scale.set(.04*sc,.028*sc,.028*sc);
@@ -3142,7 +3148,8 @@ function pose(B,q,side){ const bn=B.j.bones, s3=B.c.size*(q.sc||1);
   [[near,0],[far,1]].forEach(([i3,i2])=>{ const a=q.arms[i2], sg=i3?-1:1; bn[4+i3].rotation.z=sg*(.12-B.restArm[i3]); bn[4+i3].rotation.x=-rad(a[0]); bn[6+i3].rotation.x=-rad(a[1])*.9;
     const l=q.legs[i2]; bn[8+i3].rotation.x=-rad(l[0]); bn[8+i3].rotation.z=0; bn[10+i3].rotation.x=rad(l[1]); });
   const closed=q.eyes==='closed'||q.eyes==='squint';
-  B.j.eyes.forEach(e=>{ e.open.visible=!closed; e.closed.visible=closed; e.open.scale.y=1; }); }
+  const ht=q.eyes==='heart', beat=1+.12*Math.max(0,sin(performance.now()/1000*7));
+  B.j.eyes.forEach(e=>{ e.open.visible=!closed&&!ht; e.closed.visible=closed; e.open.scale.y=1; if(e.heart){ e.heart.visible=ht; if(ht) e.heart.scale.setScalar(e.heart.userData.s*beat); } }); }
 const overlays=new Map();
 // the canvas always sits right after its stage, in the same layer: when a stage moves (hide and seek puts it behind
 // the cards, a second stage in front), its 3D bears move with it
