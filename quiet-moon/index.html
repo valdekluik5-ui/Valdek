@@ -2643,8 +2643,10 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
 </script>
 
 <script>
-/* ===== Soft sounds: a gentle tap on every touch, a brighter two-note chime when something opens ===== */
+/* ===== Soft sounds: a gentle tap on every touch, a brighter two-note chime when something opens =====
+   Switched off while calmer sounds are chosen in Quiet Moon Lab (Sounds tab). */
 (function(){
+  const SOUNDS_ON=false; if(!SOUNDS_ON) return;
   let ctx=null, master=null, opened=false;
   const ensure=()=>{
     if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); master=ctx.createGain(); master.gain.value=.9; master.connect(ctx.destination); }catch(e){ return null; } }
