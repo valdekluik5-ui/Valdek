@@ -316,6 +316,13 @@ main{display:flex;flex-direction:column}
 .bs-small{font-size:21px;fill:#e88fb5}
 .bs-sub{font-family:var(--rune);font-size:8.5px;letter-spacing:1.8px;fill:#c7aabd;text-transform:uppercase}
 @media (max-height:720px){.v-now .grid2 .big{padding:10px 12px!important;gap:6px!important}}
+/* home-screen app: pin to the real screen edges (iOS standalone reports 100% short and leaves a band at the bottom) */
+:root{padding-top:0!important;padding-bottom:0!important}
+body{position:fixed;inset:0;height:auto}
+main{padding-top:calc(env(safe-area-inset-top,0px) + 14px)!important;padding-bottom:12px!important}
+.v-now .hero-row{margin-bottom:clamp(0px,.6vh,10px)}
+.v-now .note-link.stage{margin-inline:-16px;width:calc(100% + 32px)}
+.v-now .bearstage{max-height:clamp(96px,17vh,168px)}
 .mlogo{overflow:visible}
 .mlogo .ml-halo{transform-origin:120px 120px;animation:mlHalo 5s ease-in-out infinite}
 @keyframes mlHalo{0%,100%{transform:scale(.94);opacity:.75}50%{transform:scale(1.06);opacity:1}}
