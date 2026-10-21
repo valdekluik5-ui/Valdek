@@ -1,6 +1,7 @@
 {
  "name": "Quiet Moon",
  "short_name": "Quiet Moon",
+ "id": "./",
  "start_url": "./",
  "scope": "./",
  "display": "fullscreen",
