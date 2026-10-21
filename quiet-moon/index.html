@@ -2776,7 +2776,7 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
     const s=Math.min(r.width/380,r.height/120), ox=r.left+(r.width-380*s)/2, oy=r.top+(r.height-120*s)/2, W=innerWidth, H=innerHeight;
     const ph=document.createElement('div'); ph.className='ev-ph'; ph.style.cssText=`width:${r.width}px;height:${r.height}px`; svg.replaceWith(ph); document.body.appendChild(svg);
     svg.setAttribute('data-ev','1'); svg.setAttribute('viewBox',`${(-ox/s).toFixed(1)} ${(-oy/s).toFixed(1)} ${(W/s).toFixed(1)} ${(H/s).toFixed(1)}`);
-    svg.style.cssText=`position:fixed;left:0;top:0;width:100vw;height:100vh;max-height:none;contain:none;pointer-events:none;z-index:${kind==='ev_hide'?0:8}`;
+    svg.style.cssText=`position:fixed;left:0;top:0;width:${W}px;height:${H}px;max-height:none;contain:none;pointer-events:none;z-index:${kind==='ev_hide'?0:8}`;
     window.__evVB={x0:-ox/s,y0:-oy/s,w:W/s,h:H/s};
     window.__evSpots=[...document.querySelectorAll('.grid2 .big, .sig-wrap')].map(el=>{ const q=el.getBoundingClientRect(); return {x:(q.left-ox)/s,y:(q.top-oy)/s,w:q.width/s,h:q.height/s}; }).filter(q=>q.w>30&&q.h>30);
     window.__hsOpt={rounds:2,end:'stage',sc:1};
@@ -3155,8 +3155,8 @@ requestAnimationFrame(frame);
   const PI=Math.PI, sin=Math.sin, cos=Math.cos, abs=Math.abs, rnd=Math.random, cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)), lerp=(a,b,t)=>a+(b-a)*t, ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
   let top=null, g=null, dim=null, dg=null, W=0, H=0, clouds=null, last=0, run=false, seenStrike=0, tm=0;
   const S={cloud:0,dark:0,rain:0,sun:0,flash:0,warm:0}, drops=[], bits=[], rings=[], bolts=[], motes=[];
-  const mk=z=>{ const c=document.createElement('canvas'); c.setAttribute('aria-hidden','true'); c.style.cssText=`position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:${z}`; document.body.appendChild(c); return c; };
-  function size(){ const d=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight; [top,dim].forEach(c=>{ c.width=Math.round(W*d); c.height=Math.round(H*d); }); g.setTransform(d,0,0,d,0,0); dg.setTransform(d,0,0,d,0,0); clouds=null; }
+  const mk=z=>{ const c=document.createElement('canvas'); c.setAttribute('aria-hidden','true'); c.style.cssText=`position:fixed;left:0;top:0;pointer-events:none;z-index:${z}`; document.body.appendChild(c); return c; };
+  function size(){ const d=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight; /* sized in pixels to the window the bears are measured in (on iPhone 100vh is taller than the window, which stretched the weather down) */ [top,dim].forEach(c=>{ c.width=Math.round(W*d); c.height=Math.round(H*d); c.style.width=W+'px'; c.style.height=H+'px'; }); g.setTransform(d,0,0,d,0,0); dg.setTransform(d,0,0,d,0,0); clouds=null; }
   // a storm cloud seen from below: many soft lit puffs, lumpy underside, built once as a light and a dark version
   function sprite(w,h,seed,storm){ w*=.5; h*=.5; const c=document.createElement('canvas'); c.width=Math.ceil(w); c.height=Math.ceil(h); const x=c.getContext('2d');
     let s=seed; const R=()=>(s=(s*16807)%2147483647)/2147483647;
