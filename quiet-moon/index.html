@@ -2831,7 +2831,8 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
   document.addEventListener('click',e=>{ if(EVON==='ev_superbear'){ e.preventDefault(); e.stopPropagation(); } },true);
   window.__evOn=()=>EVON; window.__evRun=d=>{ window.__runDir=d; evStart('ev_run'); };
   window.__evStart=evStart; window.__evEnd=()=>{ if(EVON) evEnd(); };
-  window.__evMaybe=()=>{ if(EVON||current!=='now'||RM||window.__evOff) return; const r=Math.random(); /* each new bear story: 15% hide-and-seek, 15% super bear */ if(r<.15) evStart('ev_hide'); else if(r<.30) evStart('ev_superbear'); };
+  let evRest=0; // after a random event the bears rest from them for 3 minutes, so the events stay a surprise
+  window.__evMaybe=()=>{ if(EVON||current!=='now'||RM||window.__evOff||Date.now()<evRest) return; const r=Math.random(); /* each new bear story: 7% hide-and-seek, 7% super bear */ if(r<.07) evStart('ev_hide'); else if(r<.14) evStart('ev_superbear'); if(EVON) evRest=Date.now()+180000; };
 })();
 </script>
 
