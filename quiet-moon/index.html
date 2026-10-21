@@ -2645,11 +2645,11 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
 <script>
 /* ===== Calm sounds, chosen in Quiet Moon Lab (Sounds tab) =====
    Touch: "Starlight" (volume 84%, pitch -12, softness 88%, length 40%, space 20%, melody off, vibration on)
-   Open:  "Moon spell" (volume 100%, pitch -9, softness 34%, length 200%, space 11%)
+   Open:  "Moon spell" (volume 100%, pitch -9, softness 34%, length 200%, space 11%), only for home cards and games
    Same engine as the Lab: warm low-pass, a soft dark room and a magic shimmer (bright hall + fading echo).
    Made with Web Audio (no files); starts after the first touch, follows the iPhone silent switch. */
 (function(){
-  let ctx=null, out=null, wet=null, dry=null, sparkle=null, opened=false;
+  let ctx=null, out=null, wet=null, dry=null, sparkle=null;
   const ST=n=>Math.pow(2,n/12);
   const ensure=()=>{
     if(!ctx){
@@ -2684,14 +2684,10 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
     [0,7,12].forEach(s=>tone(t,f*ST(s),{wave:'triangle',att:.4,rel:1.6*len,vol:.022*v,cut:600,detune:4}));
     [24,28,31,36].forEach((s,i)=>tone(t+.25+i*.14,f*ST(s),{att:.006,rel:.8,vol:.009*v,cut:6000,magic:true})); };
   const buzz=()=>{ try{ navigator.vibrate&&navigator.vibrate(8); }catch(e){} };
-  // every touch: unlock audio, a soft buzz (Android), then Starlight unless that touch opened something
+  // Open sound only for the four cards on the home screen and the games in the Магія tab; every other tap is the touch sound.
+  const OPENERS='.v-now .grid2 .big[data-go], .v-play .grid2 .big[data-go]';
   addEventListener('pointerdown',()=>{ ensure(); buzz(); },{capture:true,passive:true});
-  addEventListener('click',()=>{ setTimeout(()=>{ if(opened){ opened=false; return; } touch(); },0); },true);
-  const markOpen=()=>{ if(!ctx) return; if(!opened){ opened=true; open(); setTimeout(()=>{ opened=false; },250); } };
-  // opening a screen
-  const _go=go; go=function(v){ const was=current; const r=_go.apply(this,arguments); if(v!==was) markOpen(); return r; };
-  // opening a sheet, card or message
-  new MutationObserver(ms=>{ for(const m of ms) for(const n of m.addedNodes){ if(n.nodeType===1&&n.matches&&n.matches('.sheet-wrap,.overlay,.showmsg')){ markOpen(); return; } } }).observe(document.body,{childList:true});
+  addEventListener('click',e=>{ const isOpen=!!(e.target.closest&&e.target.closest(OPENERS)); setTimeout(()=>{ isOpen?open():touch(); },0); },true);
 })();
 </script>
 </body></html>
