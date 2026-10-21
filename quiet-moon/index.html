@@ -3433,7 +3433,8 @@ requestAnimationFrame(frame);
   const st=document.createElement('style'); st.textContent=`
 #main{touch-action:pan-y}
 svg.ev-run>text,svg.ev-run>path,svg.ev-run #bsLad{display:none}
-#view.sw-anim{transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .32s ease}
+#view.sw-drag{will-change:transform,opacity}
+#view.sw-anim{transition:transform var(--swd,.34s) cubic-bezier(.22,1,.36,1),opacity var(--swd,.34s) ease}
 .sw-spark{position:fixed;left:0;top:0;width:12px;height:12px;margin:-6px 0 0 -6px;pointer-events:none;z-index:30;border-radius:50%;background:radial-gradient(circle,#fffaf0 0,#f0c97a 35%,rgba(240,201,122,0) 70%);animation:swSp .75s ease-out forwards}
 @keyframes swSp{from{opacity:1}to{transform:translate(var(--dx),var(--dy)) scale(.15);opacity:0}}
 .sw-glow{position:fixed;inset:0;pointer-events:none;z-index:29;animation:swGl .7s ease-out forwards}
@@ -3469,34 +3470,40 @@ svg.ev-run>text,svg.ev-run>path,svg.ev-run #bsLad{display:none}
     s.style.setProperty('--dx',((Math.random()-.5)*50).toFixed(0)+'px'); s.style.setProperty('--dy',((Math.random()-.3)*-40).toFixed(0)+'px'); s.style.transform=`scale(${(.6+Math.random()*.8).toFixed(2)})`;
     document.body.appendChild(s); setTimeout(()=>s.remove(),800); } }
   function glow(d){ const g=document.createElement('div'); g.className='sw-glow'; g.style.background=`radial-gradient(60% 50% at ${d>0?'100%':'0%'} 60%,rgba(255,226,170,.22),rgba(255,226,170,0))`; document.body.appendChild(g); setTimeout(()=>g.remove(),750); }
-  // the drag
-  const idx=()=>IDS.indexOf(current);
-  let on=false, lock=0, id=-1, sx=0, sy=0, t0=0, dx=0, busy=false, dragEnd=0;
+  // the drag: the page follows the finger once per screen frame, nothing but a slide and a soft fade
+  const idx=()=>IDS.indexOf(current), W=()=>innerWidth;
+  let on=false, lock=0, id=-1, sx=0, sy=0, dx=0, busy=false, dragEnd=0, raf=0, lx=0, lt=0, vel=0, px=0, py=0;
   const ok=e=>{ if(busy||idx()<0) return false; const ev=window.__evOn&&window.__evOn(); if(ev&&ev!=='ev_run') return false;
     if(document.querySelector('.overlay,.sheet-wrap,.showmsg')) return false;
     if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable],.bodymap,.field,.stirzone,canvas,[data-noswipe],.mm-wrap,.lang')) return false;
     return e.clientX>18&&e.clientX<innerWidth-18; };   // leave the screen edges to the phone's own gestures
-  main.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse'&&e.button!==0) return; if(!ok(e)) return; on=true; lock=0; id=e.pointerId; sx=e.clientX; sy=e.clientY; t0=performance.now(); dx=0; },{passive:true});
+  const band=v=>{ const m=W()*.14; return Math.sign(v)*m*(1-Math.exp(-Math.abs(v)/(W()*.5))); };   // soft stretch at the first and last page
+  function paint(){ raf=0; const i=idx(), tg=i+(dx<0?1:-1), has=tg>=0&&tg<IDS.length, v=has?dx:band(dx), k=Math.min(1,Math.abs(v)/W());
+    if(!RMq.matches) view.style.transform=`translate3d(${v.toFixed(1)}px,0,0)`; view.style.opacity=(1-k*.45).toFixed(3);
+    const f=i-(has?v/W():0); glide(f,false); moon(f);
+    const now=performance.now(); if(now-lastSp>55&&!RMq.matches){ lastSp=now; spark(px,py,1); } }
+  main.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse'&&e.button!==0) return; if(!ok(e)) return; on=true; lock=0; id=e.pointerId; sx=lx=e.clientX; sy=e.clientY; lt=performance.now(); vel=0; dx=0; },{passive:true});
   addEventListener('pointermove',e=>{ if(!on||e.pointerId!==id) return; const mx=e.clientX-sx, my=e.clientY-sy;
-    if(!lock){ if(Math.abs(mx)>12&&Math.abs(mx)>Math.abs(my)*1.3){ lock=1; view.classList.remove('sw-anim'); } else { if(Math.abs(my)>12) on=false; return; } }
-    dx=mx; const i=idx(), tg=i+(dx<0?1:-1), has=tg>=0&&tg<IDS.length, v=has?dx:dx*.25, k=Math.min(1,Math.abs(v)/innerWidth);
-    if(!RMq.matches) view.style.transform=`translateX(${v.toFixed(1)}px) scale(${(1-k*.04).toFixed(3)})`; view.style.opacity=(1-k*.55).toFixed(3);
-    const f=i-(has?v/innerWidth:0); glide(f,false); moon(f);
-    const now=performance.now(); if(now-lastSp>28&&!RMq.matches){ lastSp=now; spark(e.clientX,e.clientY,1); } },{passive:true});
-  const settle=()=>{ view.classList.add('sw-anim'); view.style.transform=''; view.style.opacity=''; setTimeout(()=>view.classList.remove('sw-anim'),340); };
-  function commit(i,tg,d){ busy=true; try{ localStorage.setItem('qm-swiped','1'); }catch(_){}
+    if(!lock){ if(Math.abs(mx)>10&&Math.abs(mx)>Math.abs(my)*1.2){ lock=1; sx=e.clientX-Math.sign(mx)*2; view.classList.remove('sw-anim'); view.classList.add('sw-drag'); } else { if(Math.abs(my)>12) on=false; return; } }
+    const now=performance.now(), dt=Math.max(1,now-lt); vel=.75*((e.clientX-lx)/dt)+.25*vel; lx=e.clientX; lt=now;   // finger speed from the last moves
+    dx=e.clientX-sx; px=e.clientX; py=e.clientY; if(!raf) raf=requestAnimationFrame(paint); },{passive:true});
+  const settle=(ms=.34)=>{ view.style.setProperty('--swd',ms+'s'); view.classList.add('sw-anim'); view.style.transform=''; view.style.opacity=''; setTimeout(()=>{ view.classList.remove('sw-anim','sw-drag'); },ms*1000+40); };
+  function commit(i,tg,d,speed){ busy=true; if(raf){ cancelAnimationFrame(raf); raf=0; } try{ localStorage.setItem('qm-swiped','1'); }catch(_){}
     if(window.__qmWhoosh) window.__qmWhoosh();
     if(IDS[i]==='now'&&!RMq.matches&&window.__evRun) window.__evRun(d);   // the bears run over with her
-    view.classList.add('sw-anim'); if(!RMq.matches) view.style.transform=`translateX(${(-d*innerWidth*.6).toFixed(0)}px) scale(.96)`; view.style.opacity='0';
+    // the faster the flick, the quicker the page goes
+    const left=W()*.55-Math.min(Math.abs(dx),W()*.55), out=Math.max(.14,Math.min(.24,left/Math.max(.8,Math.abs(speed))/1000));
+    view.style.setProperty('--swd',out+'s'); view.classList.add('sw-anim');
+    if(!RMq.matches) view.style.transform=`translate3d(${(-d*W()*.55).toFixed(0)}px,0,0)`; view.style.opacity='0';
     glide(tg); moon(tg);
-    setTimeout(()=>{ view.classList.remove('sw-anim'); go(IDS[tg]); if(!RMq.matches) view.style.transform=`translateX(${(d*innerWidth*.35).toFixed(0)}px) scale(.96)`; view.style.opacity='0'; void view.offsetWidth;
-      settle(); if(!RMq.matches){ glow(d); for(let j=0;j<10;j++) setTimeout(()=>spark(d>0?innerWidth*(.55+Math.random()*.4):innerWidth*(.05+Math.random()*.4),innerHeight*(.25+Math.random()*.5),1),j*25); }
-      moonOff(); setTimeout(()=>{ busy=false; },360); },260); }
-  function end(e){ if(!on||e.pointerId!==id) return; on=false; if(!lock) return; dragEnd=performance.now();
-    const i=idx(), d=dx<0?1:-1, tg=i+d, vel=Math.abs(dx)/Math.max(1,dragEnd-t0);
-    if(tg>=0&&tg<IDS.length&&(Math.abs(dx)>innerWidth*.22||(vel>.45&&Math.abs(dx)>40))) commit(i,tg,d); else { settle(); glide(i); moonOff(500); } }
+    setTimeout(()=>{ view.classList.remove('sw-anim'); go(IDS[tg]); if(!RMq.matches) view.style.transform=`translate3d(${(d*W()*.22).toFixed(0)}px,0,0)`; view.style.opacity='0'; void view.offsetWidth;
+      settle(.42); if(!RMq.matches){ glow(d); for(let j=0;j<8;j++) setTimeout(()=>spark(d>0?W()*(.55+Math.random()*.4):W()*(.05+Math.random()*.4),innerHeight*(.25+Math.random()*.5),1),j*35); }
+      moonOff(); setTimeout(()=>{ busy=false; },440); },out*1000); }
+  function end(e){ if(!on||e.pointerId!==id) return; on=false; if(!lock) return; dragEnd=performance.now(); if(performance.now()-lt>90) vel=0;   // a pause before letting go is not a flick
+    const i=idx(), d=dx<0?1:-1, tg=i+d, flick=Math.abs(vel)>.35&&Math.sign(vel)===-d;
+    if(tg>=0&&tg<IDS.length&&(Math.abs(dx)>W()*.22||(flick&&Math.abs(dx)>30))) commit(i,tg,d,vel); else { if(raf){ cancelAnimationFrame(raf); raf=0; } settle(.38); glide(i); moonOff(500); } }
   addEventListener('pointerup',end,{passive:true});
-  addEventListener('pointercancel',e=>{ if(on&&e.pointerId===id){ on=false; if(lock){ settle(); glide(idx()); moonOff(500); } } },{passive:true});
+  addEventListener('pointercancel',e=>{ if(on&&e.pointerId===id){ on=false; if(lock){ if(raf){ cancelAnimationFrame(raf); raf=0; } settle(); glide(idx()); moonOff(500); } } },{passive:true});
   // a swipe must not also open the card it started on
   addEventListener('click',e=>{ if(performance.now()-dragEnd<450){ e.stopPropagation(); e.preventDefault(); } },true);
   // the paw: the first few times she is on the home page, until she has swiped once
