@@ -2891,29 +2891,40 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
    flat bears are hidden; each frame their pose is read and the 3D plush bears (from the Bears 3D tab, same design) are
    drawn on a see-through canvas laid exactly over the stage. Props, hearts, text and the stage stay as they are. ===== */
 (function(){
-  const boot=()=>{ if(!window.THREE){ const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; sc.onload=start; sc.onerror=()=>{}; document.head.appendChild(sc); } else start(); };
+  // fur colour plates: the turnaround sheets cut into front / side / back, shading removed and the face painted out
+  // (bears/*.jpg). They are projected onto the bears; without them the bears keep their plain colours.
+  let PL=null;
+  const plates=()=>new Promise(done=>{ const out={}, all=[]; let ok=true;
+    ['he','she'].forEach(w=>{ out[w]={}; ['front','side','back'].forEach(v=>all.push(new Promise(r=>{ const im=new Image();
+      im.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=im.width; c.height=im.height; const g=c.getContext('2d'); g.drawImage(im,0,0); out[w][v]=g.getImageData(0,0,im.width,im.height); }catch(e){ ok=false; } r(); };
+      im.onerror=()=>{ ok=false; r(); }; im.src='bears/'+w+'-'+v+'.jpg'; }))); });
+    const t=setTimeout(()=>done(null),6000); Promise.all(all).then(()=>{ clearTimeout(t); done(ok?out:null); }); });
+  const go=()=>plates().then(p=>{ PL=p; start(); });
+  const boot=()=>{ if(!window.THREE){ const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; sc.onload=go; sc.onerror=()=>{}; document.head.appendChild(sc); } else go(); };
   const st=document.createElement('style'); st.textContent='#bsHe,#bsShe{opacity:0!important} canvas.b3d{pointer-events:none}';
   function start(){
 'use strict';
 const T=THREE, PI=Math.PI, sin=Math.sin, cos=Math.cos, abs=Math.abs, rnd=Math.random, cl=(v,a,b)=>Math.max(a,Math.min(b,v));
 const col=h=>new T.Color(h).convertSRGBToLinear();
 /* ================= design settings ================= */
-// Defaults follow the plush teddies in her photos: shaggy brown fur all over, big round head, small round ears up high,
-// small glossy black eyes close together, short snout, rounded brown nose, tan paw pads with toe beans, a little round tail.
+// Defaults follow the turnaround sheets of the two plush teddies (designs/quiet-moon-bears): mohair fur, big round head,
+// small round ears out at the corners of the head, glossy glass eyes set wide, short snout, felt nose, chubby arms with
+// dark palm pads, thick legs ending in big soles with a heel pad and four toe beans, a little round tail. She has blush
+// and a pink crochet flower by her left ear. The fur colour itself comes from the sheets (see plates above).
 const DEF={
-  he:{size:1,headSize:1,bodyW:1,bodyH:1,armLen:1,legLen:1,limbFat:1,earSize:1,earAngle:56,earHeight:50,earTilt:1,eyeSize:1,eyeGap:17,eyeY:3,muzSize:1,muzY:-15,noseSize:1,
-    tummy:.35,cheekAlpha:0,furScale:1,fur:'#6b3f24',light:'#b5865f',pad:'#8f644a',nose:'#4a2e24',cheek:'#ff8fab',acc:'none',accCol:'#e7a3a8',furLen:1,shag:1,speed:1,bounce:1,breath:1,snappy:1},
-  she:{size:.94,headSize:1.02,bodyW:.95,bodyH:.96,armLen:1,legLen:.97,limbFat:.95,earSize:.95,earAngle:56,earHeight:51,earTilt:1,eyeSize:1.05,eyeGap:17,eyeY:3,muzSize:.95,muzY:-15,noseSize:.9,
-    tummy:.35,cheekAlpha:.18,furScale:1,fur:'#94603a',light:'#d0a47a',pad:'#a77a5c',nose:'#5a372a',cheek:'#ff9fb6',acc:'rose',accCol:'#e7a3a8',furLen:1,shag:1,speed:1,bounce:1,breath:1,snappy:1}};
+  he:{size:1,headSize:1,bodyW:1,bodyH:1,armLen:1,legLen:1,limbFat:1,earSize:1,eyeSize:1.3,eyeGap:.099,muzSize:1,noseSize:1.7,
+    tummy:0,cheekAlpha:0,furScale:1,fur:'#5a3520',light:'#7a4c30',pad:'#674837',palm:'#462c1e',nose:'#2e1a12',cheek:'#ff8fab',acc:'none',accCol:'#e48fc0',furLen:.85,shag:.8,speed:1,bounce:1,breath:1,snappy:1},
+  she:{size:.93,headSize:1.03,bodyW:.97,bodyH:.98,armLen:1,legLen:.98,limbFat:.97,earSize:.97,eyeSize:1.35,eyeGap:.104,muzSize:.95,noseSize:1.45,
+    tummy:0,cheekAlpha:.55,furScale:1,fur:'#9a6a3c',light:'#c09060',pad:'#78563e',palm:'#5e3c25',nose:'#46302d',cheek:'#ff9fb6',acc:'rose',accCol:'#d982b4',furLen:.85,shag:.8,speed:1,bounce:1,breath:1,snappy:1}};
 const ACC=[['none','Nothing'],['rose','Rose'],['bow','Bow'],['vest','Knit vest'],['vestrose','Vest + rose']];
 const SL=[
   ['Size',[['size','Whole bear',.6,1.5,.01],['headSize','Head',.7,1.4,.01],['bodyW','Body width',.7,1.4,.01],['bodyH','Body height',.7,1.4,.01],['armLen','Arm length',.6,1.5,.01],['legLen','Leg length',.6,1.6,.01],['limbFat','Chubby arms and legs',.6,1.5,.01]]],
   ['Fur',[['furLen','Fur length',0,2.5,.05],['shag','Shaggy',0,2,.05],['furScale','Fur clumps',.5,2,.05],['tummy','Lighter tummy',0,1,.01]]],
-  ['Ears',[['earSize','Ear size',.5,1.8,.01],['earAngle','How far apart',25,85,1],['earHeight','How high',20,75,1],['earTilt','Face forward',0,1.5,.01]]],
-  ['Face',[['eyeSize','Eye size',.5,1.8,.01],['eyeGap','Eyes apart',10,32,.5],['eyeY','Eyes up / down',-10,20,.5],['muzSize','Snout size',.6,1.5,.01],['muzY','Snout up / down',-30,5,.5],['noseSize','Nose size',.5,1.8,.01],['cheekAlpha','Blush',0,1,.01]]],
-  ['Colours',[['fur','Fur','c'],['light','Snout and tummy','c'],['pad','Paw pads','c'],['nose','Nose','c'],['cheek','Blush colour','c'],['accCol','Rose or bow','c']]],
+  ['Ears',[['earSize','Ear size',.5,1.8,.01]]],
+  ['Face',[['eyeSize','Eye size',.5,1.8,.01],['eyeGap','Eyes apart',.07,.14,.001],['muzSize','Snout size',.6,1.5,.01],['noseSize','Nose size',.5,2.2,.01],['cheekAlpha','Blush',0,1,.01]]],
+  ['Colours',[['fur','Fur','c'],['light','Snout and tummy','c'],['pad','Paw pads','c'],['palm','Palm pads','c'],['nose','Nose','c'],['cheek','Blush colour','c'],['accCol','Rose or bow','c']]],
   ['Movement',[['speed','Walking speed',.4,2,.05],['bounce','Bounce',0,2.5,.05],['breath','Breathing',0,3,.05],['snappy','Soft ↔ snappy',.4,2.5,.05]]]];
-const STORE='qm-bears3d-v3';
+const STORE='qm-bears3d-v4';
 let D={he:{},she:{}}; try{ const j=JSON.parse(localStorage.getItem(STORE)||'null'); if(j&&j.he&&j.she) D=j; }catch(e){}
 const cfg=w=>Object.assign({},DEF[w],D[w]);
 const save=()=>{ try{ localStorage.setItem(STORE,JSON.stringify(D)); }catch(e){} };
@@ -2935,47 +2946,45 @@ function cap(px,py,pz,a,b,ra,rb){ // tapered capsule a->b
   const h=cl((qx*bx+qy*by+qz*bz)/(bx*bx+by*by+bz*bz),0,1); return Math.hypot(qx-bx*h,qy-by*h,qz-bz*h)-(ra+(rb-ra)*h); }
 // rotate a point into a frame that faces direction (az,el) on the head
 function sculptBear(c){
+  // proportions measured from the turnaround sheets, in units where the sitting bear is 1 tall: the head is about half
+  // as wide as the bear is tall, the legs are almost as thick as the head is deep and stick straight out when sitting
   const hs=c.headSize, bw=c.bodyW, bh=c.bodyH, fat=c.limbFat, ll=c.legLen, al=c.armLen;
-  const hipY=.25*ll, beltY=hipY+.05, chestY=hipY+.28*bh, neckY=hipY+.42*bh;
-  const head=[0,neckY+.215*hs,.01], HR=[.275*hs,.25*hs,.255*hs];
-  const dirOn=(az,el)=>{ const a=az*PI/180, e=el*PI/180; return [sin(a)*cos(e),sin(e),cos(a)*cos(e)]; };
-  const onH=(az,el,k=1)=>{ const d=dirOn(az,el); return [head[0]+d[0]*HR[0]*k,head[1]+d[1]*HR[1]*k,head[2]+d[2]*HR[2]*k]; };
-  const mzD=dirOn(0,c.muzY), muz=[head[0],head[1]+mzD[1]*HR[1]*.8,head[2]+mzD[2]*HR[2]*.95], MR=[.11*c.muzSize*hs,.085*c.muzSize*hs,.105*c.muzSize*hs];
-  const ears=[1,-1].map(s=>{ const p=onH(s*c.earAngle,c.earHeight,1.02); return {p,s,r:[.095*c.earSize*hs,.088*c.earSize*hs,.052*c.earSize*hs]}; });
-  const eyes=[1,-1].map(s=>onH(s*c.eyeGap,c.eyeY,1.0));
-  const sh=[[.19*bw,neckY-.055,.0],[-.19*bw,neckY-.055,.0]];
-  const arm=sh.map((p,i)=>{ const s=i?-1:1; const el=[p[0]+s*.085,p[1]-.12*al,p[2]+.04], wr=[p[0]+s*.1,p[1]-.23*al,p[2]+.1]; return {sh:p,el,wr,s}; });
-  const legs=[1,-1].map(s=>({hip:[s*.1*bw,hipY+.02,0],knee:[s*.11*bw,hipY*.5,.02],ank:[s*.115*bw,.07,.02],foot:[s*.115*bw,.058,.055],s}));
-  const F={hs,bw,bh,fat,hipY,chestY,neckY,head,HR,muz,MR,ears,eyes,arm,legs,tail:[0,beltY+.02,-.2*bw]};
+  const hipY=.34*ll, chestY=hipY+.33*bh, neckY=hipY+.44*bh;
+  const head=[0,neckY+.215*hs,-.012*hs], HR=[.245*hs,.205*hs,.222*hs];
+  const onFace=(x,y,k=1)=>head[2]+HR[2]*k*Math.sqrt(Math.max(0,1-((x-head[0])/HR[0])**2-((y-head[1])/HR[1])**2));
+  const muz=[0,head[1]-.11*hs,head[2]+.192*hs], MR=[.095*c.muzSize*hs,.075*c.muzSize*hs,.11*c.muzSize*hs];
+  const ears=[1,-1].map(s=>({p:[s*.24*hs,head[1]+.13*hs,head[2]-.01*hs],s,r:[.07*c.earSize*hs,.068*c.earSize*hs,.042*c.earSize*hs]}));
+  const eyes=[1,-1].map(s=>{ const x=s*c.eyeGap*hs, y=head[1]-.01*hs; return [x,y,onFace(x,y)]; });
+  const arm=[1,-1].map(s=>{ const sh=[s*.152*bw,hipY+.39*bh,0], el=[s*.22*bw,sh[1]-.12*al,.03], wr=[s*.28*bw,sh[1]-.24*al,.055]; return {sh,el,wr,s}; });
+  const legs=[1,-1].map(s=>({hip:[s*.11*bw,hipY,0],knee:[s*.15*bw,hipY*.55,.005],ank:[s*.19*bw,.11,.01],foot:[s*.2*bw,.07,.015],s}));
+  const SR=[.135*fat,.14*fat]; // sole radii: across, and heel-to-toe (up and down when sitting)
+  const F={hs,bw,bh,fat,hipY,chestY,neckY,head,HR,muz,MR,ears,eyes,arm,legs,SR,legR:.12*fat,tail:[0,hipY+.035,-.19*bw]};
   F.sdf=(x,y,z,tag)=>{
-    // body: chubby pear, belly in front
-    const main=ell(x,y,z,[0,beltY+.08*bh,.0],[.21*bw,.2*bh,.19*bw]); let d=main;
-    d=smin(d,ell(x,y,z,[0,chestY,-.005],[.17*bw,.17*bh,.15*bw]),.09);
-    const bel=ell(x,y,z,[0,beltY+.07*bh,.05],[.17*bw,.15*bh,.15*bw]); d=smin(d,bel,.05);
-    // head with cheeks and a soft brow
-    let h=ell(x,y,z,head,HR); h=smin(h,ell(x,y,z,[head[0],head[1]-.06*hs,head[2]+.04],[.21*hs,.15*hs,.19*hs]),.06);
-    // snout blended into the face
-    const m=ell(x,y,z,muz,MR); h=smin(h,m,.04);
-    // ears: thick round discs, cupped at the front
+    // body: a soft pear, rounder at the tummy
+    const main=ell(x,y,z,[0,hipY+.11*bh,-.005],[.205*bw,.23*bh,.185*bw]); let d=main;
+    const chest=ell(x,y,z,[0,chestY,0],[.152*bw,.17*bh,.145*bw]); d=smin(d,chest,.09);
+    const bel=ell(x,y,z,[0,hipY+.1*bh,.05],[.17*bw,.19*bh,.15*bw]); d=smin(d,bel,.05);
+    // head with full lower cheeks
+    let h=ell(x,y,z,head,HR); h=smin(h,ell(x,y,z,[head[0],head[1]-.07*hs,head[2]+.03*hs],[.205*hs,.14*hs,.18*hs]),.06);
+    const m=ell(x,y,z,muz,MR); h=smin(h,m,.05);
+    // ears: round, cupped at the front, set out at the corners of the head
     let er=1e9, ei=1e9; for(const e of ears){ const p=e.p, r=e.r;
-      const dx=x-p[0], dy=y-p[1], dz=z-p[2], a=-e.s*c.earAngle*PI/180*.55, ca=cos(a), sa=sin(a), lx=dx*ca-dz*sa, lz=dx*sa+dz*ca;
-      let ed=ell(lx,dy,lz,[0,0,0],r); const cup=ell(lx,dy,lz,[0,-.008,r[2]*1.05],[r[0]*.62,r[1]*.6,r[2]*.7]); ed=smax(ed,-cup,.012);
+      const dx=x-p[0], dy=y-p[1], dz=z-p[2], a=-e.s*.45, ca=cos(a), sa=sin(a), lx=dx*ca-dz*sa, lz=dx*sa+dz*ca;
+      let ed=ell(lx,dy,lz,[0,0,0],r); const cup=ell(lx,dy,lz,[0,-.006,r[2]*1.05],[r[0]*.62,r[1]*.6,r[2]*.7]); ed=smax(ed,-cup,.012);
       if(ed<er) er=ed; if(cup<ei) ei=cup; }
-    h=smin(h,er,.025);
-    // eye sockets, very slight
-    for(const p of eyes) h=smax(h,-ell(x,y,z,p,[.03*c.eyeSize,.032*c.eyeSize,.02]),.015);
-    d=smin(d,h,.07);
-    // arms
-    let a=1e9; for(const A of arm){ let q=cap(x,y,z,A.sh,A.el,.062*fat,.056*fat); q=smin(q,cap(x,y,z,A.el,A.wr,.056*fat,.05*fat),.025); q=smin(q,ell(x,y,z,[A.wr[0],A.wr[1]-.012,A.wr[2]+.005],[.055*fat,.06*fat,.05*fat]),.025);
-      const ds=Math.hypot(x-A.sh[0],y-A.sh[1],z-A.sh[2]), k=.004+.045*cl(1-ds/.1,0,1); d=smin(d,q,k); a=Math.min(a,q); }
-    // legs with big round feet, flat soles
-    let lg=1e9; for(const L of legs){ let q=cap(x,y,z,L.hip,L.knee,.085*fat,.078*fat); q=smin(q,cap(x,y,z,L.knee,L.ank,.078*fat,.07*fat),.03);
-      q=smin(q,ell(x,y,z,L.foot,[.075*fat,.058,.1*fat]),.04); lg=Math.min(lg,q); }
-    lg=smax(lg,-(y-.004),.012); d=smin(d,lg,.06);
-    // little tail
-    d=smin(d,ell(x,y,z,F.tail,[.05,.05,.045]),.03);
+    h=smin(h,er,.03);
+    for(const p of eyes) h=smax(h,-ell(x,y,z,p,[.028*c.eyeSize,.03*c.eyeSize,.02]),.015);
+    d=smin(d,h,.06);
+    // chubby arms with round paws
+    let a=1e9; for(const A of arm){ let q=cap(x,y,z,A.sh,A.el,.08*fat,.075*fat); q=smin(q,cap(x,y,z,A.el,A.wr,.075*fat,.07*fat),.025); q=smin(q,ell(x,y,z,[A.wr[0],A.wr[1]-.015,A.wr[2]+.005],[.072*fat,.075*fat,.068*fat]),.03);
+      const ds=Math.hypot(x-A.sh[0],y-A.sh[1],z-A.sh[2]), k=.004+.05*cl(1-ds/.11,0,1); d=smin(d,q,k); a=Math.min(a,q); }
+    // thick legs ending in big flat soles
+    let lg=1e9; for(const L of legs){ let q=cap(x,y,z,L.hip,L.knee,.115*fat,.12*fat); q=smin(q,cap(x,y,z,L.knee,L.ank,.12*fat,.12*fat),.03);
+      q=smin(q,ell(x,y,z,L.foot,[SR[0],.075,SR[1]]),.04); lg=Math.min(lg,q); }
+    lg=smax(lg,-(y-.004),.012); d=smin(d,lg,.05);
+    const tl=ell(x,y,z,F.tail,[.055,.055,.05]); d=smin(d,tl,.03);
     if(tag){ // which region this point belongs to (for colour, fur length and bones)
-      const parts=[['body',Math.min(main,bel,ell(x,y,z,[0,chestY,-.005],[.17*bw,.17*bh,.15*bw]))],['head',ell(x,y,z,head,HR)],['muz',m],['ear',er],['arm',a],['leg',lg],['tail',ell(x,y,z,F.tail,[.05,.05,.045])]];
+      const parts=[['body',Math.min(main,bel,chest)],['head',ell(x,y,z,head,HR)],['muz',m],['ear',er],['arm',a],['leg',lg],['tail',tl]];
       parts.sort((p,q)=>p[1]-q[1]); tag.part=parts[0][0]; tag.cup=ei; tag.bel=bel; }
     return d; };
   return F; }
@@ -3007,6 +3016,10 @@ function blob(m,sx,sy,sz){ const me=new T.Mesh(GEO.s||(GEO.s=new T.SphereGeometr
 function rose(c){ const g=new T.Group(); const pm=mat(c,{roughness:.65}), dm=mat(mixHex(c,'#7a2b3a',.35),{roughness:.65}), lm=mat('#8a9a6a',{roughness:.8});
   for(let i=0;i<9;i++){ const a=i*2.4, r=.005+i*.0035, pt=blob(i<3?dm:pm,.015+i*.0015,.012+i*.0012,.007); pt.position.set(cos(a)*r,sin(a)*r,.004-i*.001); pt.rotation.z=a; g.add(pt); }
   [-1,1].forEach(s=>{ const lf=blob(lm,.018,.008,.004); lf.position.set(s*.028,-.022,-.005); lf.rotation.z=s*.6; g.add(lf); }); return g; }
+function flower(c){ const g=new T.Group(), pm=mat(c,{roughness:1}), dm=mat(mixHex(c,'#7a2b4a',.25),{roughness:1}), cm=mat(mixHex(c,'#5a1838',.4),{roughness:1});
+  for(let i=0;i<6;i++){ const a=i/6*PI*2, pt=blob(pm,.03,.023,.011); pt.position.set(cos(a)*.03,sin(a)*.03,0); pt.rotation.z=a; g.add(pt); }
+  for(let i=0;i<5;i++){ const a=i/5*PI*2+.3, pt=blob(dm,.019,.015,.01); pt.position.set(cos(a)*.016,sin(a)*.016,.008); pt.rotation.z=a; g.add(pt); }
+  const ce=blob(cm,.011,.011,.008); ce.position.z=.014; g.add(ce); return g; }
 function bowG(c,sc){ const m=mat(c,{roughness:.55}), g=new T.Group(); [-1,1].forEach(s=>{ const l=blob(m,.06*sc,.04*sc,.024*sc); l.position.x=s*.047*sc; l.rotation.z=s*.3; g.add(l); }); g.add(blob(m,.022*sc,.022*sc,.022*sc)); return g; }
 // fur: layered shells over the skinned body; strands come from 3D noise on the body's rest shape, so they stick to it as it moves
 const SHELLS=10;
@@ -3022,18 +3035,51 @@ function furMaterial(layer,len,c){ const m=new T.MeshStandardMaterial({color:0xf
        float fine=vn(vRest*uDen*1.1+3.1)*0.6+vn(vRest*uDen*2.3+9.7)*0.4;
        float strand=fine*0.8+clump*0.4-0.08; strand=smoothstep(0.15,0.85,strand); float r=fine;
        if(uL>0.0){ if(vFur<0.05 || strand < uL*(0.75+0.5*uShag)) discard; }
-       float tip=mix(0.3,1.2,pow(clamp(uL+0.08,0.0,1.0),0.8)); gTip=uL;
+       float tip=mix(0.55,1.15,pow(clamp(uL+0.08,0.0,1.0),0.8)); gTip=uL;
        // single hairs a shade lighter or darker, like real plush
-       float hair=hh(floor(vRest*uDen*2.6)); diffuseColor.rgb*=tip*(0.8+0.32*clump)*(0.9+0.2*hair);`).replace('#include <dithering_fragment>',
+       float hair=hh(floor(vRest*uDen*2.6)); if(vFur<0.05){ tip=1.0; clump=0.6; hair=0.5; } diffuseColor.rgb*=tip*(0.86+0.22*clump)*(0.9+0.2*hair);`).replace('#include <dithering_fragment>',
       `#include <dithering_fragment>
        float fr=pow(1.0-abs(dot(normalize(vViewPosition),normal)),2.5);
        gl_FragColor.rgb+=fr*0.12*(0.3+gTip)*vec3(1.0,0.86,0.72);`); };
   m.customProgramCacheKey=()=>'bfur'+layer; return m; }
+// where the bear's outline sits inside each plate (fractions of the image), from the script that cut the sheets
+const PM={he:{front:[.0689,.0529,.9311,.9471],side:[.0814,.0528,.9186,.9472],back:[.0711,.0526,.9289,.9474]},
+  she:{front:[.0592,.0532,.929,.9468],side:[.0861,.0524,.9139,.9476],back:[.0803,.0534,.9414,.9466]}};
+// the fur shader and the scene lights brighten and warm the colour; this brings the rendered fur back to the sheets' colour
+const PG=[.32,.4,.37];
+// Fur colour from the sheets: sit the bear like on the sheets (legs straight out), look at every point from the front,
+// the side and the back, and take the plate's colour there, blended by which way the point faces. Pads stay as they are.
+function paintFromPlates(w,P,geo,bones,skel,root,fixed){
+  bones[8].rotation.x=bones[9].rotation.x=-PI/2; root.updateMatrixWorld(true);
+  const mats=bones.map((b,i)=>new T.Matrix4().multiplyMatrices(b.matrixWorld,skel.boneInverses[i]));
+  const pa=geo.attributes.position, na=geo.attributes.normal, si=geo.attributes.skinIndex, sw=geo.attributes.skinWeight, ca=geo.attributes.color, n=pa.count;
+  const pos=new Float32Array(n*3), nrm=new Float32Array(n*3), lo=[1e9,1e9,1e9], hi=[-1e9,-1e9,-1e9], v=v3(), a=v3(), nn=v3(), m=v3();
+  for(let q=0;q<n;q++){ a.set(0,0,0); nn.set(0,0,0);
+    for(let k=0;k<4;k++){ const wt=sw.array[q*4+k]; if(!wt) continue; const M=mats[si.array[q*4+k]];
+      a.addScaledVector(v.fromBufferAttribute(pa,q).applyMatrix4(M),wt); nn.addScaledVector(m.fromBufferAttribute(na,q).transformDirection(M),wt); }
+    nn.normalize(); pos.set([a.x,a.y,a.z],q*3); nrm.set([nn.x,nn.y,nn.z],q*3);
+    for(let k=0;k<3;k++){ lo[k]=Math.min(lo[k],pos[q*3+k]); hi[k]=Math.max(hi[k],pos[q*3+k]); } }
+  bones[8].rotation.x=bones[9].rotation.x=0; root.updateMatrixWorld(true);
+  const smp=(img,u,vv,o,wt)=>{ const W=img.width, H=img.height, D=img.data, x=cl(u*(W-1),0,W-1), y=cl(vv*(H-1),0,H-1), x0=x|0, y0=y|0, x1=Math.min(x0+1,W-1), y1=Math.min(y0+1,H-1), fx=x-x0, fy=y-y0;
+    for(let k=0;k<3;k++){ const t=D[(y0*W+x0)*4+k]*(1-fx)+D[(y0*W+x1)*4+k]*fx, b=D[(y1*W+x0)*4+k]*(1-fx)+D[(y1*W+x1)*4+k]*fx; o[k]+=(t*(1-fy)+b*fy)*wt; } };
+  const fr=PM[w], o=[0,0,0], span=k=>hi[k]-lo[k];
+  for(let q=0;q<n;q++){ if(fixed[q]) continue; const x=pos[q*3], y=pos[q*3+1], z=pos[q*3+2], nx=nrm[q*3], nz=nrm[q*3+2];
+    let wf=Math.max(0,nz)**2, ws=nx*nx, wb=Math.max(0,-nz)**2; const tot=wf+ws+wb+.06; wf=(wf+.02)/tot; ws=(ws+.02)/tot; wb=(wb+.02)/tot;
+    const vy=f=>f[1]+(hi[1]-y)/span(1)*(f[3]-f[1]); o[0]=o[1]=o[2]=0;
+    smp(P.front,fr.front[0]+(x-lo[0])/span(0)*(fr.front[2]-fr.front[0]),vy(fr.front),o,wf);
+    smp(P.side,fr.side[0]+(hi[2]-z)/span(2)*(fr.side[2]-fr.side[0]),vy(fr.side),o,ws);
+    smp(P.back,fr.back[0]+(hi[0]-x)/span(0)*(fr.back[2]-fr.back[0]),vy(fr.back),o,wb);
+    ca.setXYZ(q,PG[0]*(o[0]/255)**2.2,PG[1]*(o[1]/255)**2.2,PG[2]*(o[2]/255)**2.2); }
+  const mean=[0,0,0]; let cnt=0; for(let q=0;q<n;q++) if(!fixed[q]){ mean[0]+=ca.getX(q); mean[1]+=ca.getY(q); mean[2]+=ca.getZ(q); cnt++; }
+  for(let q=0;q<n;q++) if(!fixed[q]){ const f=(v,k)=>mean[k]/cnt+(v-mean[k]/cnt)*.6; ca.setXYZ(q,f(ca.getX(q),0),f(ca.getY(q),1),f(ca.getZ(q),2)); }
+  ca.needsUpdate=true; }
 function buildBear(w){
   const c=cfg(w), girl=w==='she';
   const F=sculptBear(c), M=mesh(F,c.detail||.0115);
   const n=M.pos.length/3, colr=new Float32Array(n*3), furA=new Float32Array(n), si=new Uint16Array(n*4), sw=new Float32Array(n*4);
-  const cFur=col(c.fur), cSn=col(mixHex(c.fur,c.light,.8)), cBel=col(mixHex(c.fur,c.light,c.tummy)), cEar=col(mixHex(c.fur,'#2a160c',.3)), cPad=col(c.pad);
+  const plate=PL&&PL[w];
+  const cFur=col(c.fur), cSn=col(mixHex(c.fur,c.light,.8)), cBel=col(mixHex(c.fur,c.light,c.tummy)), cEar=col(mixHex(c.fur,'#2a160c',.3)), cPad=col(c.pad), cPalm=col(c.palm), fixed=new Uint8Array(n);
+  if(plate) [cPad,cPalm].forEach(C=>{ C.r*=PG[0]*1.15; C.g*=PG[1]*1.15; C.b*=PG[2]*1.15; }); // pads skip the fur darkening, so they get the same colour correction
   // bones: 0 root, 1 pelvis, 2 spine, 3 neck/head, 4/5 shoulder L/R, 6/7 elbow, 8/9 hip, 10/11 knee
   const BP=[[0,0,0],[0,F.hipY,0],[0,F.hipY+.03,0],[0,F.neckY,0],F.arm[0].sh,F.arm[1].sh,F.arm[0].el,F.arm[1].el,F.legs[0].hip,F.legs[1].hip,F.legs[0].knee,F.legs[1].knee];
   const PAR=[-1,0,1,2,2,2,4,5,1,1,8,9];
@@ -3041,13 +3087,16 @@ function buildBear(w){
   const tag={};
   for(let q=0;q<n;q++){ const x=M.pos[q*3],y=M.pos[q*3+1],z=M.pos[q*3+2]; F.sdf(x,y,z,tag);
     let C=cFur, fa=1; const p=tag.part;
-    if(p==='muz'){ C=cSn; fa=.45; }
+    if(p==='muz'){ C=plate?cFur:cSn; fa=.55; }
     else if(p==='ear'&&tag.cup<.006){ C=cEar; fa=.35; }
     else if(p==='body'&&tag.bel<.004&&z>.02) C=cBel;
-    // paw pads with toe beans on the soles, palm pads on the paws
-    if(p==='leg'&&y<.03){ const L=F.legs[x>0?0:1], lx=(x-L.foot[0])/.06, lz=(z-L.foot[2]+.01)/.075;
-      const pad=lx*lx*1.2+lz*lz<.55, bean=[[-.55,.9],[-.18,1.08],[.18,1.08],[.55,.9]].some(([bx,bz])=>(lx-bx)**2+(lz-bz)**2<.06);
-      if(pad||bean){ C=cPad; fa=0; } else if(y<.012){ fa=.3; } }
+    // soles: a big heel pad and four toe beans in an arc above it (the toes point up when the bear sits)
+    if(p==='leg'&&y<.03){ const L=F.legs[x>0?0:1], lx=(x-L.foot[0])/F.SR[0], lz=(z-L.foot[2])/F.SR[1];
+      const pad=(lx/.6)**2+((lz+.2)/.58)**2<1, bean=[[-.6,.4],[-.22,.64],[.22,.64],[.6,.4]].some(([bx,bz])=>(lx-bx)**2+(lz-bz)**2<.036);
+      if(pad||bean){ C=cPad; fa=0; fixed[q]=1; } else if(y<.012){ fa=.3; } }
+    // dark palm pads on the inside front of each paw
+    if(p==='arm'){ const A=F.arm[x>0?0:1], dx=x-A.wr[0], dy=y-(A.wr[1]-.015), dz=z-A.wr[2]-.005;
+      if(Math.hypot(dx,dy,dz)<.062&&-A.s*.8*M.nrm[q*3]-.2*M.nrm[q*3+1]+.55*M.nrm[q*3+2]>.6){ C=cPalm; fa=0; fixed[q]=1; } }
     colr.set([C.r,C.g,C.b],q*3); furA[q]=fa;
     // skin weights from the nearest bone segments of this part
     let cand;
@@ -3070,11 +3119,12 @@ function buildBear(w){
   const len=.014*c.furLen;
   if(len>0) for(let l=1;l<=SHELLS;l++){ const s=new T.SkinnedMesh(geo,furMaterial(l,len,c)); s.bind(skel,body.bindMatrix); s.renderOrder=l; s.frustumCulled=false; root.add(s); }
   body.frustumCulled=false;
+  if(plate) paintFromPlates(w,plate,geo,bones,skel,root,fixed);
   const B={w,c,root,j:{},bones,F}; const j=B.j; j.bones=bones;
   // face parts ride on the head bone
   const headB=bones[3], hp=v3(...BP[3]);
   const atHead=(o,p)=>{ o.position.set(p[0]-hp.x,p[1]-hp.y,p[2]-hp.z); headB.add(o); root.updateMatrixWorld(true); };
-  const eyeM=new T.MeshStandardMaterial({color:0x050302,roughness:.04,metalness:.2}), ringM=mat('#3a2216',{roughness:.3}), white=new T.MeshBasicMaterial({color:0xffffff}), noseM=mat(c.nose,{roughness:.42});
+  const eyeM=new T.MeshStandardMaterial({color:0x050302,roughness:.04,metalness:.2}), ringM=mat('#6a4428',{roughness:.25}), white=new T.MeshBasicMaterial({color:0xffffff}), noseM=mat(c.nose,{roughness:.42});
   const heartM=new T.MeshStandardMaterial({color:col('#ff4f86'),emissive:col('#ff2a6a'),emissiveIntensity:.35,roughness:.25,metalness:0});
   j.eyes=F.eyes.map((p,i)=>{ const g=new T.Group(); atHead(g,p); const d=v3(p[0]-F.head[0],p[1]-F.head[1],p[2]-F.head[2]).normalize(); g.lookAt(g.getWorldPosition(v3()).add(d));
     const open=new T.Group(); g.add(open); const es=c.eyeSize;
@@ -3104,13 +3154,14 @@ function buildBear(w){
     const mo=new T.Group(); atHead(mo,[F.muz[0],F.muz[1]-F.MR[1]*.15,F.muz[2]+F.MR[2]*.98]);
     const tube=(arr)=>new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(arr.map(p=>v3(...p))),12,.0028,6),noseM);
     mo.add(tube([[0,.028,0],[0,.004,.002]])); mo.add(tube([[0,.004,.002],[-.012,-.006,-.002],[-.024,-.002,-.008]])); mo.add(tube([[0,.004,.002],[.012,-.006,-.002],[.024,-.002,-.008]])); j.mouth=mo; }
-  if(c.cheekAlpha>.01){ const cm=new T.MeshBasicMaterial({color:col(c.cheek),transparent:true,opacity:c.cheekAlpha*.6,depthWrite:false});
-    [1,-1].forEach(s=>{ const a=s*38*PI/180, e=-12*PI/180, d=[sin(a)*cos(e),sin(e),cos(a)*cos(e)], p=[F.head[0]+d[0]*F.HR[0]*1.06,F.head[1]+d[1]*F.HR[1]*1.06,F.head[2]+d[2]*F.HR[2]*1.06];
-      const m=new T.Mesh(new T.CircleGeometry(.045,24),cm); atHead(m,p); m.lookAt(m.getWorldPosition(v3()).add(v3(...d))); }); }
+  if(c.cheekAlpha>.01){ const ca=geo.attributes.color, pa=geo.attributes.position, pk=col(c.cheek), cs=[1,-1].map(sg=>[sg*.165*F.hs,F.head[1]-.1*F.hs,F.head[2]+.16*F.hs]);
+    for(let q=0;q<pa.count;q++){ if(fixed[q]) continue; let t=0; for(const p of cs){ const d=Math.hypot(pa.getX(q)-p[0],pa.getY(q)-p[1],(pa.getZ(q)-p[2])*.6)/(.08*F.hs); if(d<1) t=Math.max(t,(1-d*d)**1.5); }
+      if(t>0){ const a=t*c.cheekAlpha; ca.setXYZ(q,ca.getX(q)+(pk.r*.45-ca.getX(q))*a,ca.getY(q)+(pk.g*.45-ca.getY(q))*a,ca.getZ(q)+(pk.b*.45-ca.getZ(q))*a); } }
+    ca.needsUpdate=true; }
   // accessories
   const acc=c.acc;
   const headPt=(az,el,k)=>{ const a=az*PI/180, e=el*PI/180; return [F.head[0]+sin(a)*cos(e)*F.HR[0]*k,F.head[1]+sin(e)*F.HR[1]*k,F.head[2]+cos(a)*cos(e)*F.HR[2]*k]; };
-  if(acc==='rose'){ const r=rose(c.accCol); r.scale.setScalar(1.3); atHead(r,headPt(-36,46,1.1)); r.rotation.set(-.5,-.4,0); }
+  if(acc==='rose'){ const r=flower(c.accCol); r.scale.setScalar(1.35); atHead(r,[F.head[0]+.2*F.hs,F.head[1]+.13*F.hs,F.head[2]+.1*F.hs]); r.rotation.set(-.25,.75,0); } // by her left ear
   if(acc==='bow'){ const b=bowG(c.accCol,1); atHead(b,headPt(-28,58,1.08)); b.rotation.set(-.6,-.3,.2); }
   if(acc==='vest'||acc==='vestrose'){ const knit=(()=>{ const N=128, cv=document.createElement('canvas'); cv.width=cv.height=N; const g=cv.getContext('2d'); g.fillStyle='#a88d6a'; g.fillRect(0,0,N,N);
       for(let y=0;y<N;y+=8) for(let x=0;x<N;x+=8){ g.fillStyle='#cbb08a'; g.beginPath(); g.ellipse(x+2,y+4,2.2,3.6,.5,0,PI*2); g.fill(); g.beginPath(); g.ellipse(x+6,y+4,2.2,3.6,-.5,0,PI*2); g.fill(); }
@@ -3119,6 +3170,11 @@ function buildBear(w){
     const v=new T.Mesh(new T.SphereGeometry(1,40,20,PI*.64,PI*1.72,PI*.1,PI*.42),vm); v.scale.set(.215*c.bodyW,.2*c.bodyH,.2*c.bodyW); v.position.set(0,F.chestY-.01-BP[2][1],0); v.castShadow=true; bones[2].add(v);
     const bt=new T.Mesh(new T.CylinderGeometry(.018,.018,.007,20),mat('#c9a77d',{roughness:.5})); bt.rotation.x=PI/2; bt.position.set(-.04,F.chestY-.05-BP[2][1],.2*c.bodyW); bones[2].add(bt);
     if(acc==='vestrose'){ const r=rose(c.accCol); r.position.set(.08,F.chestY+.02-BP[2][1],.17*c.bodyW); r.rotation.y=.4; bones[2].add(r); } }
+  // sculpted sole pads: a heel pad and four toe beans standing a little proud of the sole, riding on the lower leg
+  { const pm=mat(c.pad,{roughness:.75}); if(plate){ pm.color.r*=PG[0]*1.15; pm.color.g*=PG[1]*1.15; pm.color.b*=PG[2]*1.15; }
+    F.legs.forEach((L,i)=>{ const kb=bones[10+i], at=(m,x,z)=>{ m.position.set(x-BP[10+i][0],.006-BP[10+i][1],z-BP[10+i][2]); kb.add(m); };
+      at(blob(pm,.56*F.SR[0],.012,.48*F.SR[1]),L.foot[0],L.foot[2]-.22*F.SR[1]);
+      [[-.6,.4],[-.22,.64],[.22,.64],[.6,.4]].forEach(([bx,bz])=>at(blob(pm,.2*F.SR[0],.011,.19*F.SR[1]),L.foot[0]+bx*F.SR[0],L.foot[2]+bz*F.SR[1])); }); }
   B.sitDrop=F.hipY-.075; B.restArm=F.arm.map(A=>Math.atan2(Math.abs(A.wr[0]-A.sh[0]),A.sh[1]-A.wr[1]));
   root.scale.setScalar(c.size);
   return B;
@@ -3138,16 +3194,19 @@ const fill=new T.DirectionalLight(col('#ffd9c2'),.5); fill.position.set(-4,1,3);
 const cam=new T.OrthographicCamera(-1,1,1,-1,-20,20); cam.position.set(0,0,10); cam.lookAt(0,0,0);
 const BEARS={};
 ['he','she'].forEach(w=>{ const B=buildBear(w); B.root.visible=false; scene.add(B.root); BEARS[w]=B; });
-const S2=.66, K=13*S2/BEARS.he.F.hipY; // flat units per 3D unit (leg length matches)
+const S2=.66, HREF=.25, K=13*S2/HREF; // flat units per 3D unit (the flat bear's leg is HREF long)
 const rad=d=>d*PI/180;
 function pose(B,q,side){ const bn=B.j.bones, s3=B.c.size*(q.sc||1);
   B.root.scale.setScalar(s3);
-  B.root.position.set(q.x/K,-q.y/K-B.F.hipY*s3,side);
+  // sitting (both hips bent forward): the knees straighten so the legs stick out with the soles to the front, like the
+  // plush on the sheets, and the bottom rests on the floor; standing: the feet stand on the ground
+  const sit=cl(((q.legs[0][0]+q.legs[1][0])/2-30)/55,0,1);
+  B.root.position.set(q.x/K,-q.y/K-(HREF*(1-sit*11/13)-sit*(B.F.legR-B.F.hipY))*s3,side);
   B.root.rotation.set(0,rad(q.ps),-rad(q.rot||0));
   bn[1].position.y=B.F.hipY; bn[2].rotation.set(rad(q.lean)*.8,0,0); bn[3].rotation.set(rad(q.head)*.8,0,0);
   const near=q.ps>=0?1:0, far=1-near;
-  [[near,0],[far,1]].forEach(([i3,i2])=>{ const a=q.arms[i2], sg=i3?-1:1; bn[4+i3].rotation.z=sg*(.12-B.restArm[i3]); bn[4+i3].rotation.x=-rad(a[0]); bn[6+i3].rotation.x=-rad(a[1])*.9;
-    const l=q.legs[i2]; bn[8+i3].rotation.x=-rad(l[0]); bn[8+i3].rotation.z=0; bn[10+i3].rotation.x=rad(l[1]); });
+  [[near,0],[far,1]].forEach(([i3,i2])=>{ const a=q.arms[i2], sg=i3?-1:1; bn[4+i3].rotation.z=sg*(.38-B.restArm[i3]); bn[4+i3].rotation.x=-rad(a[0]); bn[6+i3].rotation.x=-rad(a[1])*.9;
+    const l=q.legs[i2]; bn[8+i3].rotation.x=-rad(l[0]); bn[8+i3].rotation.z=0; bn[10+i3].rotation.x=rad(l[1])*(1-sit); });
   const closed=q.eyes==='closed'||q.eyes==='squint';
   const ht=q.eyes==='heart', beat=1+.12*Math.max(0,sin(performance.now()/1000*7));
   B.j.eyes.forEach(e=>{ e.open.visible=!closed&&!ht; e.closed.visible=closed; e.open.scale.y=1; if(e.heart){ e.heart.visible=ht; if(ht) e.heart.scale.setScalar(e.heart.userData.s*beat); } }); }
