@@ -3246,7 +3246,8 @@ function frame(){ requestAnimationFrame(frame); weatherLight();
     const x0=(r.left-m.e)/m.a, x1=(r.right-m.e)/m.a, y0=(r.top-m.f)/m.d, y1=(r.bottom-m.f)/m.d;
     cam.left=x0/K; cam.right=x1/K; cam.top=-y0/K; cam.bottom=-y1/K; cam.updateProjectionMatrix();
     list.forEach(([B,q,w])=>{ B.root.visible=true; const behind=w==='she'&&!q.front; pose(B,q,w==='he'?.15:(q.behindTitle?-.6:-.15)); });
-    R.setSize(W,H,false); R.render(scene,cam); o.g.clearRect(0,0,W,H); o.g.drawImage(R.domElement,0,0);
+    // resizing clears the drawing buffer even at the same size, so only resize when it changes
+    if(R.__w!==W||R.__h!==H){ R.setSize(W,H,false); R.__w=W; R.__h=H; } R.render(scene,cam); o.g.clearRect(0,0,W,H); o.g.drawImage(R.domElement,0,0);
     list.forEach(([B])=>{ B.root.visible=false; }); });
 }
 requestAnimationFrame(frame);
