@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quiet Moon Bears</title>
+<style>
+:root{--bg:#f6f1ea;--card:#fffdf9;--ink:#3b2a20;--soft:#8a7464;--line:#e6dacb}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Georgia,'Times New Roman',serif}
+main{max-width:1240px;margin:0 auto;padding:28px 16px 60px}
+h1{font-weight:normal;font-size:30px;margin:0 0 4px}
+h2{font-weight:normal;font-size:22px;margin:34px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+p.sub{color:var(--soft);margin:0 0 18px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+figure{margin:0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+figure canvas,figure img{width:100%;height:auto;display:block;border-radius:8px;background:#fbf8f4}
+figcaption{font-size:13px;color:var(--soft);margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+td,th{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-weight:normal;color:var(--soft)}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px;border:1px solid #0002}
+</style>
+</head>
+<body>
+<main>
+<h1>Quiet Moon Bears: model sheet</h1>
+<p class="sub">Turnaround drawings for the 3D bears. He is drawn from the photo: same face, proportions, fur and vest. She is designed from him.</p>
+
+<h2>Reference photos</h2>
+<div class="row">
+  <figure><img src="ref-front.jpg" alt="Original plush bear, front"><figcaption>Original: front</figcaption></figure>
+  <figure><img src="ref-back.jpg" alt="Original bear, back, hanging on a mug"><figcaption>Original: back (tail, body shape)</figcaption></figure>
+</div>
+
+<h2>He: the boy bear</h2>
+<div class="row">
+  <figure><canvas data-bear="he" data-view="front" width="1000" height="1320"></canvas><figcaption>Front</figcaption></figure>
+  <figure><canvas data-bear="he" data-view="side" width="1000" height="1320"></canvas><figcaption>Side (facing right)</figcaption></figure>
+  <figure><canvas data-bear="he" data-view="back" width="1000" height="1320"></canvas><figcaption>Back</figcaption></figure>
+</div>
+<div class="row" style="margin-top:14px">
+  <figure><canvas data-bear="he" data-view="face" width="1000" height="800"></canvas><figcaption>Face close-up</figcaption></figure>
+  <figure><canvas data-bear="he" data-view="paw" width="1000" height="800"></canvas><figcaption>Foot sole: tan pad and four toe beans</figcaption></figure>
+</div>
+
+<h2>She: the girl bear</h2>
+<div class="row">
+  <figure><canvas data-bear="she" data-view="front" width="1000" height="1320"></canvas><figcaption>Front</figcaption></figure>
+  <figure><canvas data-bear="she" data-view="side" width="1000" height="1320"></canvas><figcaption>Side (facing right)</figcaption></figure>
+  <figure><canvas data-bear="she" data-view="back" width="1000" height="1320"></canvas><figcaption>Back</figcaption></figure>
+</div>
+<div class="row" style="margin-top:14px">
+  <figure><canvas data-bear="she" data-view="face" width="1000" height="800"></canvas><figcaption>Face close-up</figcaption></figure>
+  <figure><canvas data-bear="she" data-view="paw" width="1000" height="800"></canvas><figcaption>Foot sole: rosy pad and four toe beans</figcaption></figure>
+</div>
+<h2>Together</h2>
+<div class="row">
+  <figure><canvas data-bear="pair" data-view="pair" width="1600" height="1200"></canvas><figcaption>Side by side, to scale</figcaption></figure>
+</div>
+
+<h2>Specs for the 3D model</h2>
+<table>
+<tr><th></th><th>He</th><th>She</th></tr>
+<tr><th>Height (sitting, ear tip to floor)</th><td>1.00</td><td>0.93 of his height</td></tr>
+<tr><th>Head</th><td>Very large: 45% of the height. Wider than tall (1.34 : 1), full cheeks lower down</td><td>Same shape, 4% rounder</td></tr>
+<tr><th>Ears</th><td>Small, round, high at "10 and 2 o'clock". Dark cupped inside, fur on the back</td><td>Same, 5% smaller. Rose by her right ear</td></tr>
+<tr><th>Eyes</th><td>Glossy black, thin grey-brown ring. Wide apart (0.7 of head width), halfway down the head</td><td>10% bigger, three lashes at the outer corner</td></tr>
+<tr><th>Snout and nose</th><td>Short, soft snout with shorter fur. Rounded triangle nose, dark brown, glossy. Stitched "Y" mouth</td><td>Smaller nose in rosy brown. Pink blush on the cheeks</td></tr>
+<tr><th>Body</th><td>Chubby pear shape, sits with legs straight out and soles facing forward. Short arms at the sides</td><td>Same, a little narrower</td></tr>
+<tr><th>Feet</th><td>Big oval soles. Smooth tan pad (looks like suede or clay) and 4 toe beans</td><td>Same, rosy tan</td></tr>
+<tr><th>Tail</th><td>Small round fur ball, low on the back</td><td>Same</td></tr>
+<tr><th>Fur</th><td>Medium-long shaggy mohair, clumps falling slightly down. Darker at the roots, lighter tips</td><td>Same length, softer and a little curlier</td></tr>
+<tr><th>Clothes</th><td>Oatmeal cable-knit vest, one wooden button on the left, small dusty-pink rose on his left chest</td><td>Dusty-rose knit vest, cream pearl button, the same rose at her ear</td></tr>
+<tr><th>Colours</th>
+<td><span class="sw" style="background:#a8754c"></span>fur #a8754c<br><span class="sw" style="background:#6a4026"></span>fur shadow #6a4026<br><span class="sw" style="background:#a47b5c"></span>pads #a47b5c<br><span class="sw" style="background:#4a3226"></span>nose #4a3226<br><span class="sw" style="background:#a08167"></span>vest #a08167</td>
+<td><span class="sw" style="background:#c79464"></span>fur #c79464<br><span class="sw" style="background:#8a5a36"></span>fur shadow #8a5a36<br><span class="sw" style="background:#c3907c"></span>pads #c3907c<br><span class="sw" style="background:#6a3f34"></span>nose #6a3f34<br><span class="sw" style="background:#c99a98"></span>vest #c99a98</td></tr>
+</table>
+</main>
+
+<script>
+'use strict';
+/* Fur painter. Every bear part is an ellipse measured from the front photo (photo pixels, 896 x 1195). Each part is shaded like
+   a round 3D shape and then covered with thousands of short hair strokes that follow a flow direction, with tufts and
+   lighter tips, and a fuzzy edge where the hair sticks out past the outline. */
+const PI=Math.PI, sin=Math.sin, cos=Math.cos, cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+let seed=1; const rnd=()=>{ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+const hash=(x,y)=>{ const s=sin(x*127.1+y*311.7)*43758.5453; return s-Math.floor(s); };
+const noise=(x,y)=>{ const ix=Math.floor(x), iy=Math.floor(y), fx=x-ix, fy=y-iy, u=fx*fx*(3-2*fx), v=fy*fy*(3-2*fy);
+  return (hash(ix,iy)*(1-u)+hash(ix+1,iy)*u)*(1-v)+(hash(ix,iy+1)*(1-u)+hash(ix+1,iy+1)*u)*v; };
+const hex=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+const rgb=(c,a=1)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+const LIGHT=(()=>{ const l=[-.45,-.62,.64], n=Math.hypot(...l); return l.map(v=>v/n); })();
+
+const STYLE={
+  he:{dark:'#4a2a16',mid:'#8e5c37',light:'#c8935f',tip:'#dcae7c',pad:'#a47b5c',padD:'#6e4a33',nose:'#4a3226',vest:'#a08167',vestD:'#6f5640',vestL:'#c4a888',
+      btn:'#a8835c',rose:'#d39a92',roseD:'#a35f5c',girl:false,s:1},
+  she:{dark:'#6a4226',mid:'#ad7a4c',light:'#e0b17f',tip:'#f0cfa3',pad:'#c3907c',padD:'#8f5e4e',nose:'#6a3f34',vest:'#c99a98',vestD:'#93626a',vestL:'#e8c3c0',
+      btn:'#f4ece0',rose:'#e2a0a6',roseD:'#ad5f6c',girl:true,s:.93}};
+
+/* ---------- one furry ellipse ---------- */
+// p: {x,y,rx,ry,rot, flow(x,y)->angle, len, dens, tone (0..1 base brightness), fuzz (edge hair 0..1), arc:[a0,a1] edge range}
+function fur(g,S,p){
+  const dark=hex(S.dark), mid=hex(S.mid), light=hex(S.light), tip=hex(S.tip);
+  const cr=cos(p.rot||0), sr=sin(p.rot||0);
+  const local=(x,y)=>{ const dx=x-p.x, dy=y-p.y; return [(dx*cr+dy*sr)/p.rx,(-dx*sr+dy*cr)/p.ry]; };
+  const shadeAt=(x,y)=>{ const [u,v]=local(x,y), r2=u*u+v*v; if(r2>1.15) return -1; const nz=Math.sqrt(Math.max(0,1-Math.min(1,r2)));
+    const nx=u*cr-v*sr, ny=u*sr+v*cr; let d=nx*LIGHT[0]+ny*LIGHT[1]+nz*LIGHT[2];
+    return cl(.18+.82*Math.max(0,d)*(p.tone??1)-.12*Math.max(0,v)*(p.ao??1),0,1); };
+  const col=(s,t)=>{ let c=s<.5?mix(dark,mid,s*2):mix(mid,light,(s-.5)*2); return mix(c,tip,t*.35*s); };
+  // undercoat: smooth shading
+  g.save(); g.translate(p.x,p.y); g.rotate(p.rot||0);
+  const gr=g.createRadialGradient(-p.rx*.35,-p.ry*.4,p.rx*.1,0,0,Math.max(p.rx,p.ry)*1.05);
+  gr.addColorStop(0,rgb(col(.62*(p.tone??1),0))); gr.addColorStop(.7,rgb(col(.32,0))); gr.addColorStop(1,rgb(col(.12,0)));
+  g.fillStyle=gr; g.beginPath(); g.ellipse(0,0,p.rx,p.ry,0,0,2*PI); g.fill(); g.restore();
+  const L=p.len*(p.scale||1), area=PI*p.rx*p.ry, n=Math.round(area*(p.dens||.32));
+  const stroke=(x,y,a,len,s,w,alpha,t)=>{ const bend=(rnd()-.5)*.9, mx=x+cos(a)*len*.5+cos(a+PI/2)*len*bend*.25, my=y+sin(a)*len*.5+sin(a+PI/2)*len*bend*.25;
+    g.strokeStyle=rgb(col(s,t),alpha); g.lineWidth=w; g.beginPath(); g.moveTo(x,y); g.quadraticCurveTo(mx,my,x+cos(a+bend*.4)*len,y+sin(a+bend*.4)*len); g.stroke(); };
+  g.lineCap='round';
+  // two passes: dense darker under-hair, then lighter top hair in tufts
+  for(let pass=0;pass<2;pass++){ const cnt=pass?n*.55:n;
+    for(let i=0;i<cnt;i++){ const a0=rnd()*2*PI, r0=Math.sqrt(rnd()), u=cos(a0)*r0, v=sin(a0)*r0;
+      const x=p.x+(u*p.rx)*cr-(v*p.ry)*sr, y=p.y+(u*p.rx)*sr+(v*p.ry)*cr; const s=shadeAt(x,y); if(s<0) continue;
+      const tuft=noise(x*.045,y*.045), ang=p.flow(x,y)+(tuft-.5)*1.3+(rnd()-.5)*.5;
+      const clump=noise(x*.11+9,y*.11+3);
+      const ss=cl(s*(pass?1.02:.82)+(clump-.5)*.32+(rnd()-.5)*.14,0,1);
+      stroke(x,y,ang,L*(.55+rnd()*.7)*(pass?1.1:.8),ss,pass?1.25:1.6,pass?.75:.6,pass?clump:0); } }
+  // fuzzy edge: hairs sticking out past the outline
+  const [e0,e1]=p.arc||[0,2*PI], ne=Math.round((p.rx+p.ry)*(e1-e0)/2*(p.fuzz??1)*1.6);
+  for(let i=0;i<ne;i++){ const t=e0+rnd()*(e1-e0), k=.9+rnd()*.08; const lx=cos(t)*p.rx*k, ly=sin(t)*p.ry*k;
+    const x=p.x+lx*cr-ly*sr, y=p.y+lx*sr+ly*cr; const nAng=Math.atan2(sin(t)/p.ry,cos(t)/p.rx)+(p.rot||0);
+    const fl=p.flow(x,y); let ang=nAng*.55+fl*.45; if(Math.abs(nAng-fl)>PI) ang+=PI*.45; ang+=(rnd()-.5)*.7;
+    const s=cl(shadeAt(x,y)*.95+(rnd()-.5)*.2,0,1); stroke(x,y,ang,L*(.45+rnd()*.6),Math.max(s,.08),1.15,.7,.6); }
+}
+const away=(ox,oy,down=.6)=>(x,y)=>{ const dx=x-ox, dy=y-oy, d=Math.hypot(dx,dy)||1; return Math.atan2(dy/d+down,dx/d); };
+const along=(a)=>()=>a;
+
+/* ---------- details ---------- */
+function eye(g,x,y,r,S,side){ // glossy black bead with a thin grey-brown ring
+  const sh=g.createRadialGradient(x,y+r*.15,r*.7,x,y+r*.1,r*1.9); sh.addColorStop(0,'rgba(40,20,8,.55)'); sh.addColorStop(1,'rgba(40,20,8,0)');
+  g.fillStyle=sh; g.beginPath(); g.arc(x,y,r*1.9,0,2*PI); g.fill();
+  const ring=g.createRadialGradient(x-r*.3,y-r*.3,0,x,y,r*1.15); ring.addColorStop(0,'#9b8f88'); ring.addColorStop(1,'#4f4038');
+  g.fillStyle=ring; g.beginPath(); g.ellipse(x,y,r*1.12,r*1.1,0,0,2*PI); g.fill();
+  const b=g.createRadialGradient(x-r*.25,y-r*.3,r*.05,x,y,r); b.addColorStop(0,'#3a3a44'); b.addColorStop(.55,'#0b0b10'); b.addColorStop(1,'#000');
+  g.fillStyle=b; g.beginPath(); g.ellipse(x,y,r*.93,r*.92,0,0,2*PI); g.fill();
+  g.fillStyle='rgba(255,255,255,.95)'; g.beginPath(); g.ellipse(x-r*.32,y-r*.36,r*.28,r*.22,-.5,0,2*PI); g.fill();
+  g.fillStyle='rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(x+r*.38,y+r*.34,r*.12,r*.09,0,0,2*PI); g.fill();
+  g.strokeStyle='rgba(255,255,255,.25)'; g.lineWidth=r*.08; g.beginPath(); g.arc(x,y,r*.7,PI*.15,PI*.55); g.stroke();
+  if(S.girl){ g.strokeStyle='#1d120c'; g.lineCap='round'; g.lineWidth=r*.13; // three lashes at the outer upper corner
+    for(let k=0;k<3;k++){ const a=-PI/2+side*(.55+k*.33), bx=x+cos(a)*r*1.08, by=y+sin(a)*r*1.08;
+      g.beginPath(); g.moveTo(bx,by); g.quadraticCurveTo(bx+side*r*.25+cos(a)*r*.25,by+sin(a)*r*.35,bx+side*r*.55+cos(a)*r*.3,by+sin(a)*r*.4-r*.12); g.stroke(); } }
+}
+function nose(g,x,y,w,h,S){ // rounded triangle, glossy
+  g.save(); g.translate(x,y);
+  const p=new Path2D(); p.moveTo(-w*.5,-h*.28); p.bezierCurveTo(-w*.52,-h*.62,w*.52,-h*.62,w*.5,-h*.28); p.bezierCurveTo(w*.46,h*.12,w*.14,h*.5,0,h*.52); p.bezierCurveTo(-w*.14,h*.5,-w*.46,h*.12,-w*.5,-h*.28);
+  const n=hex(S.nose), gr=g.createLinearGradient(0,-h*.6,0,h*.55); gr.addColorStop(0,rgb(mix(n,[255,235,220],.22))); gr.addColorStop(.55,rgb(n)); gr.addColorStop(1,rgb(mix(n,[0,0,0],.45)));
+  g.shadowColor='rgba(30,15,5,.45)'; g.shadowBlur=w*.18; g.shadowOffsetY=h*.12; g.fillStyle=gr; g.fill(p); g.shadowColor='transparent';
+  g.fillStyle='rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(-w*.12,-h*.3,w*.17,h*.09,-.15,0,2*PI); g.fill();
+  g.fillStyle='rgba(255,255,255,.25)'; g.beginPath(); g.ellipse(w*.2,-h*.25,w*.07,h*.05,0,0,2*PI); g.fill();
+  g.restore();
+}
+function mouth(g,x,y,sc,S){ g.strokeStyle=rgb(mix(hex(S.nose),[0,0,0],.25),.9); g.lineWidth=3*sc; g.lineCap='round';
+  g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+18*sc); g.quadraticCurveTo(x-12*sc,y+28*sc,x-26*sc,y+22*sc); g.moveTo(x,y+18*sc); g.quadraticCurveTo(x+12*sc,y+28*sc,x+26*sc,y+22*sc); g.stroke(); }
+function sole(g,x,y,rx,ry,rot,S){ // smooth pad and four beans on a furry rim
+  g.save(); g.translate(x,y); g.rotate(rot);
+  const pad=hex(S.pad), padD=hex(S.padD);
+  const P=(cx,cy,rx2,ry2,a)=>{ const gr=g.createRadialGradient(cx-rx2*.35,cy-ry2*.4,0,cx,cy,Math.max(rx2,ry2)*1.1);
+    gr.addColorStop(0,rgb(mix(pad,[255,240,225],.25))); gr.addColorStop(.6,rgb(pad)); gr.addColorStop(1,rgb(padD));
+    g.shadowColor='rgba(40,20,8,.5)'; g.shadowBlur=rx*.12; g.shadowOffsetY=rx*.04; g.fillStyle=gr; g.beginPath(); g.ellipse(cx,cy,rx2,ry2,a,0,2*PI); g.fill(); g.shadowColor='transparent';
+    for(let i=0;i<rx2*ry2*.08;i++){ const t=rnd()*2*PI, r=Math.sqrt(rnd()); g.fillStyle=`rgba(${rnd()<.5?'60,35,20':'255,240,220'},.08)`; g.fillRect(cx+cos(t)*r*rx2*.9,cy+sin(t)*r*ry2*.9,1.4,1.4); } };
+  // main pad: a soft rounded heart
+  const mp=new Path2D(), w=rx*.72, h=ry*.62, cy=ry*.24;
+  mp.moveTo(0,cy-h*.55); mp.bezierCurveTo(w*.55,cy-h*.95,w*1.05,cy-h*.2,w*.85,cy+h*.35); mp.bezierCurveTo(w*.65,cy+h*.95,-w*.65,cy+h*.95,-w*.85,cy+h*.35); mp.bezierCurveTo(-w*1.05,cy-h*.2,-w*.55,cy-h*.95,0,cy-h*.55);
+  const gr=g.createRadialGradient(-w*.3,cy-h*.3,0,0,cy,w*1.2); gr.addColorStop(0,rgb(mix(pad,[255,240,225],.25))); gr.addColorStop(.6,rgb(pad)); gr.addColorStop(1,rgb(padD));
+  g.shadowColor='rgba(40,20,8,.5)'; g.shadowBlur=rx*.12; g.shadowOffsetY=rx*.04; g.fillStyle=gr; g.fill(mp); g.shadowColor='transparent';
+  g.fillStyle='rgba(255,240,225,.18)'; g.beginPath(); g.ellipse(-w*.25,cy-h*.1,w*.3,h*.2,-.4,0,2*PI); g.fill();
+  [[-.62,-.36,-.5],[-.22,-.56,-.15],[.22,-.56,.15],[.62,-.36,.5]].forEach(([bx,by,a])=>P(bx*rx*.95,by*ry,rx*.2,ry*.17,a));
+  g.restore();
+}
+function knit(g,path,S,box,light){ // stockinette V stitches, shaded like a round chest
+  const v=hex(S.vest), vd=hex(S.vestD), vl=hex(S.vestL);
+  g.save(); g.clip(path);
+  g.fillStyle=rgb(mix(v,vd,.35)); g.fillRect(box[0],box[1],box[2],box[3]);
+  const st=13*light.sc, cols=Math.ceil(box[2]/st)+1, rows=Math.ceil(box[3]/(st*.8))+1;
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){ const x=box[0]+c*st+(r%2)*0, y=box[1]+r*st*.8;
+    const u=(x-light.cx)/light.rx, w=(y-light.cy)/light.ry, nz=Math.sqrt(Math.max(0,1-u*u-w*w*.4)), d=cl(-.45*u-.5*w+.65*nz,0,1);
+    const cable=light.cable&&Math.abs(((x-light.cx)%(st*6)+st*6)%(st*6)-st*3)<st*1.2; const s=.25+.75*d+(rnd()-.5)*.1;
+    const base=mix(mix(vd,v,s),vl,Math.max(0,s-.6));
+    [-1,1].forEach(k=>{ g.fillStyle=rgb(base); g.beginPath(); g.ellipse(x+k*st*.22,y,st*.24,st*.48,k*-.55*(cable?1.3:1),0,2*PI); g.fill();
+      g.fillStyle=rgb(mix(base,[255,250,240],.18),.7); g.beginPath(); g.ellipse(x+k*st*.22-st*.05,y-st*.15,st*.08,st*.2,k*-.55,0,2*PI); g.fill(); });
+    if(rnd()<.25){ g.strokeStyle=rgb(vl,.35); g.lineWidth=.8; g.beginPath(); const fx=x+(rnd()-.5)*st, fy=y+(rnd()-.5)*st; g.moveTo(fx,fy); g.lineTo(fx+(rnd()-.5)*8,fy+(rnd()-.5)*8); g.stroke(); } }
+  // soft shadow at the edges of the garment
+  g.lineWidth=18*light.sc; g.strokeStyle='rgba(40,25,15,.25)'; g.filter=`blur(${8*light.sc}px)`; g.stroke(path); g.filter='none';
+  g.restore();
+}
+function rib(g,pts,S,wid){ // ribbed knit edging along a polyline
+  const vd=hex(S.vestD), v=hex(S.vest), vl=hex(S.vestL);
+  for(let i=0;i<pts.length-1;i++){ const [x0,y0]=pts[i], [x1,y1]=pts[i+1], len=Math.hypot(x1-x0,y1-y0), n=Math.ceil(len/5), a=Math.atan2(y1-y0,x1-x0);
+    for(let k=0;k<n;k++){ const t=k/n, x=x0+(x1-x0)*t, y=y0+(y1-y0)*t; g.save(); g.translate(x,y); g.rotate(a);
+      g.fillStyle=rgb(k%2?mix(v,vl,.35):mix(v,vd,.3)); g.fillRect(-2.6,-wid/2,5.2,wid); g.restore(); } }
+}
+function button(g,x,y,r,S){ const c=hex(S.btn); const gr=g.createRadialGradient(x-r*.4,y-r*.4,0,x,y,r);
+  gr.addColorStop(0,rgb(mix(c,[255,255,255],.35))); gr.addColorStop(1,rgb(mix(c,[40,20,5],.35)));
+  g.shadowColor='rgba(30,15,5,.5)'; g.shadowBlur=r*.5; g.shadowOffsetY=r*.15; g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,2*PI); g.fill(); g.shadowColor='transparent';
+  if(!S.girl){ g.strokeStyle=rgb(mix(c,[40,20,5],.4),.6); g.lineWidth=1.5; g.beginPath(); g.arc(x,y,r*.72,0,2*PI); g.stroke();
+    g.fillStyle=rgb(mix(c,[30,15,5],.6)); [[-.28,0],[.28,0]].forEach(([dx,dy])=>{ g.beginPath(); g.arc(x+dx*r,y+dy*r,r*.13,0,2*PI); g.fill(); });
+    for(let i=0;i<6;i++){ g.strokeStyle=rgb(mix(c,[60,30,10],.3),.25); g.beginPath(); g.moveTo(x-r*.9,y-r*.6+i*r*.25); g.quadraticCurveTo(x,y-r*.5+i*r*.25+(rnd()-.5)*4,x+r*.9,y-r*.6+i*r*.25); g.stroke(); } }
+  else { g.fillStyle='rgba(255,255,255,.7)'; g.beginPath(); g.ellipse(x-r*.3,y-r*.35,r*.3,r*.2,-.5,0,2*PI); g.fill(); } }
+function rose(g,x,y,r,S,rot=0){ g.save(); g.translate(x,y); g.rotate(rot);
+  const pc=hex(S.rose), pd=hex(S.roseD), cream=[236,220,196];
+  [[-1.15,.55,-.6],[1.05,.75,.5]].forEach(([lx,ly,a])=>{ g.fillStyle='#7f9a62'; g.beginPath(); g.ellipse(lx*r,ly*r,r*.55,r*.24,a,0,2*PI); g.fill(); g.strokeStyle='#5c7444'; g.lineWidth=1; g.beginPath(); g.moveTo(lx*r*.5,ly*r*.5); g.lineTo(lx*r*1.4,ly*r*1.1); g.stroke(); });
+  for(let i=0;i<5;i++){ const a=i/5*2*PI+.3; g.fillStyle=rgb(mix(cream,pc,.25+.1*(i%2))); g.strokeStyle=rgb(mix(cream,pd,.35)); g.lineWidth=1;
+    g.beginPath(); g.ellipse(cos(a)*r*.48,sin(a)*r*.48,r*.55,r*.42,a,0,2*PI); g.fill(); g.stroke(); }
+  for(let i=0;i<4;i++){ const a=i*1.7, rr=r*(.42-i*.08); g.fillStyle=rgb(mix(pc,pd,i*.22)); g.beginPath(); g.ellipse(cos(a)*r*.06,sin(a)*r*.06,rr,rr*.85,a,0,2*PI); g.fill();
+    g.strokeStyle=rgb(mix(pd,[60,20,20],.3),.6); g.beginPath(); g.arc(0,0,rr*.8,a,a+PI*1.2); g.stroke(); }
+  g.restore(); }
+function blush(g,x,y,r){ const gr=g.createRadialGradient(x,y,0,x,y,r); gr.addColorStop(0,'rgba(255,120,150,.38)'); gr.addColorStop(1,'rgba(255,120,150,0)'); g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,2*PI); g.fill(); }
+function floorShadow(g,x,y,rx,ry){ const gr=g.createRadialGradient(x,y,0,x,y,rx); gr.addColorStop(0,'rgba(60,40,25,.35)'); gr.addColorStop(1,'rgba(60,40,25,0)'); g.save(); g.scale(1,ry/rx); g.fillStyle=gr; g.beginPath(); g.arc(x,y*rx/ry,rx,0,2*PI); g.fill(); g.restore(); }
+function contact(g,x,y,rx,ry,a=.35){ g.save(); g.translate(x,y); g.scale(1,ry/rx); const gr=g.createRadialGradient(0,0,0,0,0,rx); gr.addColorStop(0,`rgba(35,18,8,${a})`); gr.addColorStop(1,'rgba(35,18,8,0)'); g.fillStyle=gr; g.beginPath(); g.arc(0,0,rx,0,2*PI); g.fill(); g.restore(); }
+function tuft(g,S,x,y,sc){ // a few soft curls on top of her head, each one built from many hairs
+  const c=hex(S.dark), l=hex(S.light); g.lineCap='round';
+  [[-22,6,1,22],[0,-4,-1,26],[22,6,1,20]].forEach(([dx,dy,dir,R])=>{ const cx=x+dx*sc, cy=y+dy*sc;
+    for(let i=0;i<120;i++){ const r=R*sc*(.55+rnd()*.5), a0=PI*.5+(rnd()-.5)*.6, sweep=dir*(PI*1.3+rnd()*.5), w=(rnd()-.5)*4;
+      g.strokeStyle=rgb(mix(c,l,.25+rnd()*.7),.85); g.lineWidth=1.7; g.beginPath();
+      for(let k=0;k<=12;k++){ const t=k/12, a=a0+sweep*t, rr=r*(1-.45*t); const px=cx+cos(a)*rr+w, py=cy+sin(a)*rr*.8; k?g.lineTo(px,py):g.moveTo(px,py); } g.stroke(); } }); }
+/* ---------- the views (photo coordinates) ---------- */
+const FL=21; // fur length
+function front(g,S){ const L=FL;
+  floorShadow(g,450,940,300,36);
+  // ears behind the head
+  [[308,382,-.3],[588,374,.3]].forEach(([x,y,r])=>fur(g,S,{x,y,rx:50,ry:50,rot:r,len:L*.8,flow:away(x,y+30,.2),fuzz:1.2}));
+  [[312,388],[584,380]].forEach(([x,y])=>{ fur(g,{...S,mid:S.dark,light:S.mid,tip:S.mid},{x,y,rx:29,ry:27,len:L*.45,flow:away(x,y+10,0),tone:.55,fuzz:.4,dens:.5}); contact(g,x+2,y+4,26,22,.4); });
+  // body and thighs
+  fur(g,S,{x:450,y:770,rx:128,ry:150,len:L,flow:away(450,560,.9)});
+  [[322,842,.35],[580,838,-.35]].forEach(([x,y,r])=>fur(g,S,{x,y,rx:82,ry:72,rot:r,len:L,flow:away(450,760,.3)}));
+  // vest
+  const vp=new Path2D('M340 600 Q450 650 560 598 Q590 640 580 690 Q574 728 566 752 Q450 788 334 752 Q324 724 318 690 Q312 640 340 600 Z');
+  knit(g,vp,S,[300,580,300,220],{cx:450,cy:690,rx:150,ry:130,sc:1,cable:true});
+  rib(g,[[336,752],[400,770],[450,775],[500,770],[566,752]],S,12); rib(g,[[470,612],[440,648],[418,690],[404,742],[400,768]],S,13);
+  button(g,424,676,15,S);
+  // arms
+  [[302,690,.38,1],[598,686,-.38,-1]].forEach(([x,y,r,s])=>{ fur(g,S,{x,y,rx:48,ry:92,rot:r,len:L*.9,flow:along(PI/2-s*.35)}); fur(g,S,{x:x-s*20,y:y+62,rx:42,ry:40,len:L*.8,flow:away(x,y,.8),tone:.95}); });
+  // feet soles
+  [[292,876,-.18],[598,868,.18]].forEach(([x,y,r])=>{ fur(g,S,{x,y,rx:66,ry:74,rot:r,len:L*.75,flow:away(x,y,0),fuzz:1.3}); sole(g,x,y+4,54,62,r,S); });
+  // head shadow on the vest, then head with lower cheeks
+  contact(g,450,612,170,40,.45);
+  fur(g,S,{x:448,y:470,rx:172,ry:132,len:L,flow:away(450,505,.35),fuzz:1.1});
+  fur(g,S,{x:448,y:528,rx:150,ry:82,len:L*.85,flow:away(450,505,.5),fuzz:.6,arc:[.1,PI-.1]});
+  // snout: shorter, softer fur
+  contact(g,450,556,70,24,.3);
+  fur(g,S,{x:450,y:534,rx:64,ry:50,len:L*.42,flow:away(450,515,.1),dens:.6,fuzz:.5,tone:1.05});
+  eye(g,388,478,S.girl?22:20,S,-1); eye(g,511,476,S.girl?22:20,S,1);
+  if(S.girl){ blush(g,345,535,44); blush(g,555,533,44); }
+  nose(g,450,520,S.girl?48:56,S.girl?32:37,S); mouth(g,450,538,1,S);
+  if(S.girl) rose(g,322,428,30,S,-.3); else rose(g,526,640,26,S,.2);
+}
+function side(g,S){ const L=FL; // facing right
+  floorShadow(g,470,940,280,32);
+  fur(g,S,{x:300,y:875,rx:30,ry:28,len:L*.8,flow:away(280,860,.3),fuzz:1.4}); // tail
+  fur(g,{...S,mid:S.dark},{x:520,y:868,rx:100,ry:58,len:L,flow:along(0),tone:.7}); // far leg
+  fur(g,S,{x:430,y:780,rx:122,ry:150,len:L,flow:away(450,560,1)});
+  const vp=new Path2D('M352 610 Q440 640 520 612 Q548 660 546 700 Q544 735 540 755 Q440 775 330 748 Q312 700 318 660 Q326 625 352 610 Z');
+  knit(g,vp,S,[300,590,260,200],{cx:450,cy:690,rx:130,ry:130,sc:1,cable:false});
+  rib(g,[[330,748],[440,772],[540,755]],S,12); rib(g,[[516,612],[536,660],[544,710],[540,755]],S,12);
+  if(!S.girl) rose(g,500,642,22,S,.6);
+  fur(g,S,{x:520,y:862,rx:112,ry:64,len:L,flow:along(0)}); // near leg
+  fur(g,S,{x:632,y:856,rx:36,ry:74,len:L*.7,flow:away(600,856,0),fuzz:1.2});
+  sole(g,656,858,18,58,0,{...S}); // the sole seen edge-on
+  fur(g,S,{x:470,y:700,rx:46,ry:94,rot:-.4,len:L*.9,flow:along(PI/2-.4)}); fur(g,S,{x:505,y:762,rx:42,ry:40,len:L*.8,flow:away(470,700,.8)});
+  contact(g,470,612,150,38,.45);
+  fur(g,S,{x:450,y:470,rx:150,ry:132,len:L,flow:away(560,505,.35),fuzz:1.1});
+  fur(g,S,{x:470,y:530,rx:132,ry:80,len:L*.85,flow:away(560,505,.5),fuzz:.6,arc:[.1,PI-.1]});
+  fur(g,S,{x:418,y:352,rx:26,ry:50,rot:-.15,len:L*.75,flow:away(378,400,.1),fuzz:1.2}); // ear edge-on
+  if(S.girl) rose(g,350,392,26,S,-.4);
+  contact(g,585,560,60,20,.3);
+  fur(g,S,{x:585,y:530,rx:58,ry:46,len:L*.42,flow:away(620,515,.1),dens:.6,fuzz:.5,tone:1.05});
+  g.save(); g.translate(546,476); g.scale(.62,1); eye(g,0,0,S.girl?22:20,S,1); g.restore();
+  if(S.girl) blush(g,560,535,40);
+  g.save(); g.translate(636,520); g.scale(.62,1); nose(g,0,0,S.girl?48:56,S.girl?32:37,S); g.restore();
+  g.strokeStyle=rgb(mix(hex(S.nose),[0,0,0],.25),.9); g.lineWidth=3; g.beginPath(); g.moveTo(634,538); g.quadraticCurveTo(630,556,612,560); g.stroke();
+}
+function back(g,S){ const L=FL;
+  floorShadow(g,450,940,300,36);
+  [[320,872],[580,872]].forEach(([x,y])=>fur(g,S,{x,y,rx:82,ry:60,len:L,flow:away(450,800,.3)})); // legs reaching forward
+  fur(g,S,{x:450,y:770,rx:130,ry:152,len:L,flow:away(450,560,1)});
+  const vp=new Path2D('M330 612 Q450 590 570 612 Q590 660 580 700 Q574 730 566 752 Q450 790 334 752 Q324 728 320 700 Q310 660 330 612 Z');
+  knit(g,vp,S,[300,580,300,220],{cx:450,cy:680,rx:150,ry:130,sc:1,cable:true});
+  rib(g,[[334,752],[400,772],[450,778],[500,772],[566,752]],S,12);
+  fur(g,S,{x:450,y:868,rx:34,ry:32,len:L*.8,flow:away(450,850,.3),fuzz:1.4}); // tail
+  [[300,690,.38,1],[600,686,-.38,-1]].forEach(([x,y,r,s])=>{ fur(g,S,{x,y,rx:48,ry:92,rot:r,len:L*.9,flow:along(PI/2-s*.35)}); fur(g,S,{x:x-s*20,y:y+62,rx:42,ry:40,len:L*.8,flow:away(x,y,.8),tone:.95}); });
+  contact(g,450,612,170,40,.45);
+  fur(g,S,{x:448,y:482,rx:172,ry:142,len:L,flow:away(450,330,1.2),fuzz:1.1});
+  [[308,370,-.3],[588,362,.3]].forEach(([x,y,r])=>fur(g,S,{x,y,rx:50,ry:48,rot:r,len:L*.8,flow:away(x,y+30,.2),fuzz:1.2}));
+  if(S.girl) rose(g,578,418,30,S,.3);
+}
+const VIEWS={front:[front,[190,300,520,686]],side:[side,[200,300,520,686]],back:[back,[190,300,520,686]],face:[front,[260,320,380,304]],paw:[front,[215,792,470,170]]};
+function draw(cv){
+  const g=cv.getContext('2d'), b=cv.dataset.bear, v=cv.dataset.view;
+  g.fillStyle='#fbf8f4'; g.fillRect(0,0,cv.width,cv.height);
+  const paint=(S,fn,box,ox,oy,W,H)=>{ seed=b==='she'?77:11; const k=Math.min(W/box[2],H/box[3]);
+    g.save(); g.translate(ox+(W-box[2]*k)/2,oy+(H-box[3]*k)/2); g.scale(k,k); g.translate(-box[0],-box[1]);
+    // the girl bear is 7% smaller, scaled about the floor
+    if(S.s!==1){ g.translate(450,940); g.scale(S.s,S.s); g.translate(-450,-940); }
+    fn(g,S); g.restore(); };
+  if(v==='pair'){ seed=11; paint(STYLE.he,front,[150,300,600,680],0,40,cv.width/2+40,cv.height-60); paint(STYLE.she,front,[150,300,600,680],cv.width/2-40,40,cv.width/2+40,cv.height-60); return; }
+  const [fn,box]=VIEWS[v], S=STYLE[b]; paint(S,fn,box,30,30,cv.width-60,cv.height-60);
+}
+const cvs=[...document.querySelectorAll('canvas[data-bear]')];
+let i=0; (function next(){ if(i<cvs.length){ draw(cvs[i++]); setTimeout(next,0); } else document.body.dataset.done='1'; })();
+</script>
+</body>
+</html>
