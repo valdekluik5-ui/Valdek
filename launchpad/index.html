@@ -524,18 +524,14 @@ function drawMountains(x,W,H){
 /* glow in the accent colour, a lighter middle and a near-white core */
 function sceneLook(){ const acc=cssVar('--accent'), c=[1,3,5].map(i=>parseInt(acc.slice(i,i+2),16)), mix=k=>`rgb(${c.map(v=>Math.round(v+(255-v)*k)).join(',')})`;
   return {glow:acc,mid:mix(.25),core:mix(.88)}; }
-/* where: 'bg' = behind the pages (dragon on the right, faint), 'boot' = start screen (whole dragon above the eye when it fits) */
+/* where: 'bg' = behind the pages (dragon fills the page height, centred), 'boot' = start screen (no dragon) */
 function paintScene(x,W,H,where){
   x.clearRect(0,0,W,H);
   if(SKINS[S.skin].style!=='dragon'||(where==='bg'&&S.bg)) return;
   if(S.skin==='frost') drawMountains(x,W,H);
-  let h=Math.min(H*.82,720), ox=W-h*.6, oy=H*.1, alpha=S.skin==='frost'?.3:.32;
-  if(where==='boot'){
-    const top=$('#eye').getBoundingClientRect().top, fit=Math.min(460,(top-24)*.95,W*1.3);
-    if(fit>=200){ h=fit; ox=(W-h*.625)/2; oy=top-14-h*.97; alpha=1; }
-    else { h=Math.min(H*.9,620); ox=(W-h*.625)/2; oy=H*.03; alpha=.3; }
-  }
-  x.globalAlpha=alpha; drawTribal(x,ox,oy,h,sceneLook()); x.globalAlpha=1;
+  if(where==='boot') return;
+  const h=Math.min(H*.96,W*1.08/.625);
+  x.globalAlpha=S.skin==='frost'?.34:.38; drawTribal(x,(W-h*.625)/2,(H-h)/2,h,sceneLook()); x.globalAlpha=1;
 }
 function fitCanvas(c){ const d=Math.min(2,devicePixelRatio||1), W=c.clientWidth, H=c.clientHeight; c.width=W*d; c.height=H*d; const x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); return [x,W,H]; }
 
