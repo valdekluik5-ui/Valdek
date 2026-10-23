@@ -49,6 +49,11 @@ if('serviceWorker' in navigator&&location.protocol==='https:') addEventListener(
   --bg:#080506; --panel:rgba(20,11,13,.8); --panel-2:rgba(32,16,19,.9); --line:#3c2329;
   --ink:#f2eeee; --muted:#a99a9c; --eye-core:#ffffff;
 }
+:root[data-skin=jade]{
+  --gold:#b6e3a8;
+  --bg:#040806; --panel:rgba(8,18,12,.8); --panel-2:rgba(13,28,19,.9); --line:#1c3a26;
+  --ink:#e8f3ea; --muted:#92a996; --eye-core:#ffffff;
+}
 :root[data-skin=ember]{
   --gold:#d6a548;
   --bg:#0d0908; --panel:rgba(22,14,12,.86); --panel-2:rgba(32,21,17,.92); --line:#3a2721;
@@ -78,7 +83,7 @@ a{color:var(--accent)}
 #bgdim{position:fixed;inset:0;background:var(--black);z-index:0;pointer-events:none}
 #pattern{position:fixed;inset:0;z-index:0;pointer-events:none}
 /* crimson and steel: fine mesh, smoky top, glow behind the dragon, dark vignette */
-[data-skin=crimson] #pattern{background:radial-gradient(120% 90% at 50% 45%,transparent 50%,var(--black) 100%),radial-gradient(70% 45% at 45% 55%,color-mix(in srgb,var(--accent) 18%,transparent),transparent 70%),radial-gradient(circle,rgba(255,255,255,.07) .8px,transparent 1.3px) 0 0/5px 5px,linear-gradient(rgba(150,140,140,.12),transparent 55%)}
+[data-skin=crimson] #pattern,[data-skin=jade] #pattern{background:radial-gradient(120% 90% at 50% 45%,transparent 50%,var(--black) 100%),radial-gradient(70% 45% at 45% 55%,color-mix(in srgb,var(--accent) 18%,transparent),transparent 70%),radial-gradient(circle,rgba(255,255,255,.07) .8px,transparent 1.3px) 0 0/5px 5px,linear-gradient(rgba(150,140,140,.12),transparent 55%)}
 [data-skin=steel] #pattern{background:radial-gradient(120% 90% at 50% 45%,transparent 50%,var(--black) 100%),radial-gradient(75% 50% at 45% 55%,rgba(150,20,28,.32),transparent 72%),radial-gradient(circle,rgba(255,255,255,.07) .8px,transparent 1.3px) 0 0/5px 5px,linear-gradient(rgba(170,165,170,.12),transparent 55%)}
 [data-skin=frost] #pattern{background:radial-gradient(90% 50% at 70% 0%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%),linear-gradient(#0c1934,var(--bg) 55%)}
 [data-skin=ember] #pattern{
@@ -122,7 +127,7 @@ header{position:relative;z-index:2;padding-top:10px;padding-left:max(16px,env(sa
 .wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 h2{font:700 23px/1.15 var(--display);margin:4px 0 0;letter-spacing:.04em;text-wrap:balance}
 h2::before{content:var(--h-mark);color:var(--accent);font-size:.7em;vertical-align:.12em}
-[data-skin=crimson] h2,[data-skin=frost] h2,[data-skin=steel] h2{text-transform:uppercase;letter-spacing:.08em;font-size:21px}
+[data-skin=crimson] h2,[data-skin=frost] h2,[data-skin=steel] h2,[data-skin=jade] h2{text-transform:uppercase;letter-spacing:.08em;font-size:21px}
 [data-style=terminal] h2{font-size:20px;letter-spacing:.01em}
 [data-style=terminal] h2::before{font-size:1em;vertical-align:0}
 .sub{color:var(--muted);font-size:15px;margin:-8px 0 0}
@@ -265,6 +270,14 @@ details p{margin:6px 0 2px;color:var(--muted);font-size:14.5px}
 .syncform input{min-width:0;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:9px;padding:9px 10px;font:14px var(--mono);color:var(--ink)}
 .steps{padding-left:20px;margin:8px 0;font-size:14px;color:var(--muted)}
 .steps li{margin:4px 0}
+.addtask{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px 6px;border-top:1px dashed var(--line);list-style:none}
+.addtask form,.addgroup{display:flex;gap:8px;flex:1;min-width:220px}
+.addtask input,.addgroup input,.projform input,.projform select,.taborder select{min-width:0;flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:14px var(--mono);color:var(--ink)}
+.taborder select{flex:0 1 150px;padding:6px 8px;font-size:12.5px}
+.item .del{flex:0 0 auto;border:1px solid var(--line);background:transparent;border-radius:8px;width:30px;height:28px;color:var(--muted)}
+.item .del.armed,.linkbtn.armed{background:var(--danger);color:var(--white);border-color:var(--danger)}
+.projform{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}
+.projform input{grid-column:1/-1}
 .rule{font:12.5px var(--mono);color:var(--muted);margin-top:4px}
 .empty{color:var(--muted);font:13px var(--mono);text-align:center;padding:16px}
 
@@ -275,6 +288,7 @@ details p{margin:6px 0 2px;color:var(--muted);font-size:14.5px}
 #sheet h3{font:700 18px var(--display);letter-spacing:.06em;margin:0;display:flex;justify-content:space-between;align-items:center}
 .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
 @media (max-width:380px){.seg{grid-template-columns:repeat(2,1fr)}}
+#wideMode{grid-template-columns:1fr 1fr}
 .seg button{border:1px solid var(--line);background:var(--panel-2);border-radius:10px;padding:10px;font:600 13.5px var(--mono);color:var(--muted)}
 .seg button[aria-pressed=true]{border-color:var(--accent);color:var(--ink);background:var(--acc-soft)}
 .swatches{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
@@ -317,16 +331,23 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
 .linkbtn.armed{color:var(--danger)}
 
 @media (min-width:700px){ .totals{grid-template-columns:repeat(4,1fr)} }
-/* big screen: every page is a column side by side, each scrolling on its own; tabs jump to a column */
+/* big screen, one tab at a time: the tab fills the screen and its cards flow in columns */
 @media (min-width:1100px){
   .bar,.tabs{max-width:none}
-  #pages{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(340px,1fr);gap:14px;scroll-snap-type:x proximity;
+  html:not(.wide-all) .page .wrap{max-width:none;display:block;columns:380px;column-gap:16px}
+  html:not(.wide-all) .page .wrap>*{break-inside:avoid;margin:0 0 14px}
+  html:not(.wide-all) .page .wrap>:is(h2,.sub,div:first-child){column-span:all}
+  html:not(.wide-all) .page .wrap>.sub{margin-top:-6px}
+}
+/* big screen, all tabs: every page is a column side by side, each scrolling on its own; tabs jump to a column */
+@media (min-width:1100px){
+  html.wide-all #pages{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(340px,1fr);gap:14px;scroll-snap-type:x proximity;
     padding-bottom:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-  .page{padding:0 2px 24px;scroll-snap-stop:normal;border-radius:16px}
-  .page .wrap{max-width:none}
-  .page.focus{animation:focuscol 1.2s ease-out}
-  .totals{grid-template-columns:repeat(2,1fr)}
-  #dots{display:none}
+  html.wide-all .page{padding:0 2px 24px;scroll-snap-stop:normal;border-radius:16px}
+  html.wide-all .page .wrap{max-width:none}
+  html.wide-all .page.focus{animation:focuscol 1.2s ease-out}
+  html.wide-all .totals{grid-template-columns:repeat(2,1fr)}
+  html.wide-all #dots{display:none}
 }
 @keyframes focuscol{from{box-shadow:inset 0 0 0 2px var(--accent)}to{box-shadow:inset 0 0 0 2px transparent}}
 @media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
@@ -367,6 +388,17 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
     <div>
       <div class="label">Tab order</div>
       <ol class="taborder" id="tabOrder"></ol>
+      <div class="hint">Pick each tab's look from the list.</div>
+    </div>
+    <div>
+      <div class="label">New project</div>
+      <form class="projform" id="addProject"><input id="pj-name" name="name" placeholder="Project name, e.g. Quiet Moon launch" autocomplete="off" required>
+        <select id="pj-skin" name="skin" aria-label="Look">${''}</select><button class="btn primary" type="submit">Create tab</button></form>
+      <div class="hint">A project becomes its own tab. Add groups and tasks inside it; its tasks also show up on Today after your priorities.</div>
+    </div>
+    <div>
+      <div class="label">Big screen layout</div>
+      <div class="seg" id="wideMode"><button data-wide="single">One tab, full screen</button><button data-wide="all">All tabs side by side</button></div>
       <div class="hint">On the phone the app opens on the first tab after the PIN. On the computer it reopens the page you last had open.</div>
     </div>
     <div>
@@ -509,6 +541,7 @@ const SKINS={
   crimson:{style:'dragon',accent:'#d42a2a',done:'Every task done. The dragon bows to you.'},
   frost:{style:'dragon',accent:'#4fb3f0',done:'Every task done. The storm is yours.'},
   steel:{style:'dragon',accent:'#d9dde3',done:'Every task done. Forged.'},
+  jade:{style:'dragon',accent:'#2fbf6a',done:'Every task done. The jade dragon rests.'},
   ember:{style:'dragon',accent:'#d0592f',done:'Every task done. The hoard is yours.'},
   terminal:{style:'terminal',accent:'#3a9d5d',done:'All tasks done. Access level: legend.'}
 };
@@ -516,17 +549,22 @@ const SKINS={
 const PAGE_SKIN={today:'crimson',income:'steel',repairs:'ember',apps:'crimson',cyber:'frost'};
 /* pages in the order the user set in Settings; pages missing from the saved order go at the end */
 let VIEW=[];
-function orderPages(){ const ids=(S.order||[]).filter(id=>PAGES.some(p=>p.id===id)); PAGES.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); }); VIEW=ids.map(id=>PAGES.find(p=>p.id===id)); }
-const APP_VERSION='4.4';
+/* the user's own projects become pages of their own */
+function projectPage(pr){ return {id:'pj-'+pr.id,tab:pr.name,title:pr.name,sub:'Your project',project:pr,groups:pr.groups.map(g=>({...g,custom:true,pid:pr.id}))}; }
+const allPages=()=>[...PAGES,...(S.projects||[]).map(projectPage)];
+const skinFor=id=>(S.skins&&S.skins[id])||PAGE_SKIN[id]||'crimson';
+function orderPages(){ const all=allPages(), ids=(S.order||[]).filter(id=>all.some(p=>p.id===id)); all.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); }); VIEW=ids.map(id=>all.find(p=>p.id===id)); }
+const APP_VERSION='5.0';
 const BOOT_LINES=[`> dragon v${APP_VERSION}`,'> waking the dragon ...','> identity check'];
-const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#b3122e','#8a62b8','#3a9d5d'];
+const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#2fbf6a','#b3122e','#8a62b8'];
+const SKIN_NAMES={crimson:'Crimson (red)',frost:'Frost (blue)',steel:'Steel (silver)',ember:'Ember (orange)',jade:'Jade (green)'};
 let SK='crimson';
 const ACC=()=>S.accent||SKINS[SK].accent;
 const RAINBOW='conic-gradient(red,yellow,lime,cyan,blue,magenta,red)';
 
 /* ---------- state ---------- */
 const KEY='launchpad.v1';
-const blank=()=>({checked:{},closed:{},notes:{},flips:[],earn:[],later:{},scores:[],accent:'',bg:'',dim:55,page:0,pinHash:'',pinSalt:'',v3:1,v4:1});
+const blank=()=>({checked:{},closed:{},notes:{},flips:[],earn:[],later:{},scores:[],projects:[],skins:{},wide:'single',accent:'',bg:'',dim:55,page:0,pinHash:'',pinSalt:'',v3:1,v4:1});
 let S=blank();
 try{ const saved=JSON.parse(localStorage.getItem(KEY)||'{}');
   if(!saved.skin&&saved.accent==='#3a9d5d') delete saved.accent; // v1 default green → new default
@@ -535,7 +573,7 @@ try{ const saved=JSON.parse(localStorage.getItem(KEY)||'{}');
   if(!saved.v3){ saved.v3=1; if(saved.skin&&saved.skin!=='crimson'){ saved.skin='crimson'; delete saved.accent; } }
   if(!saved.v4){ saved.v4=1; saved.accent=''; delete saved.skin; } // v4: each page has its own look
   Object.assign(S,saved); }catch(e){}
-let lastSnap=JSON.stringify({checked:S.checked,closed:S.closed,notes:S.notes,flips:S.flips,earn:S.earn,later:S.later,scores:S.scores,order:S.order,accent:S.accent});
+let lastSnap=JSON.stringify({checked:S.checked,closed:S.closed,notes:S.notes,flips:S.flips,earn:S.earn,later:S.later,scores:S.scores,order:S.order,accent:S.accent,projects:S.projects,skins:S.skins});
 /* saves on this device; a change to anything that syncs is stamped and sent to the other device a few seconds later */
 function save(){ const snap=JSON.stringify(syncPick(S)); if(snap!==lastSnap){ lastSnap=snap; S.updated=Date.now(); scheduleSync(); }
   try{ localStorage.setItem(KEY,JSON.stringify(S)); return true; }catch(e){ return false; } }
@@ -548,9 +586,9 @@ const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* every task in order: cyber → income → apps → flips */
 const todayKey=()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-const pageById=id=>PAGES.find(p=>p.id===id);
+const pageById=id=>allPages().find(p=>p.id===id);
 /* every task, in priority order; tasks put off with "Later" today go to the back */
-function allTasks(){ const out=[]; let n=0; PAGES.forEach((p,pi)=>(p.groups||[]).forEach(g=>!g.track&&g.items.forEach(it=>out.push({...it,page:p,pi,group:g,n:n++}))));
+function allTasks(){ const out=[]; let n=0; allPages().forEach((p,pi)=>(p.groups||[]).forEach(g=>!g.track&&g.items.forEach(it=>out.push({...it,page:p,pi,group:g,n:n++}))));
   const t=todayKey(), rank=x=>(S.later[x.id]===t?100:0)+(x.group.prio||9);
   return out.sort((a,b)=>rank(a)-rank(b)||a.n-b.n); }
 function prioProgress(k){ let n=0,d=0,pi=''; PAGES.forEach(p=>(p.groups||[]).forEach(g=>{ if(g.prio!==k) return; pi=p.id; g.items.forEach(it=>{n++; if(S.checked[it.id]) d++;}); })); return {n,d,pi}; }
@@ -580,6 +618,7 @@ function applyTheme(){
   document.body.classList.toggle('has-bg',!!S.bg);
   fx.toggle(SKINS[SK].style==='dragon');
   if(!$('#boot').hidden) paintBoot();
+  hostSay({type:'skin',skin:SK,accent:acc});
 }
 /* switch look with a short fade of the backdrop */
 let swapT;
@@ -650,7 +689,8 @@ function groupHtml(g){
   <section class="card group${closed?' closed':''}${d===n?' done':''}" data-g="${g.id}">
     <button class="ghead" aria-expanded="${!closed}"><span class="gt">${esc(g.title)}${g.sub&&!g.week?`<small>${esc(g.sub)}</small>`:''}</span><span class="gc">${d}/${n}</span><span class="chev">▾</span></button>
     <div class="gbar"><i style="width:${n?d/n*100:0}%"></i></div>
-    <ul class="items">${g.items.map(it=>`<li class="item${S.checked[it.id]?' checked':''}"><label><input type="checkbox" data-id="${it.id}"${S.checked[it.id]?' checked':''}><span class="txt"><span>${it.day?`<i class="day">Day ${it.day}</i> `:''}${esc(it.t)}</span>${it.d?`<small>${esc(it.d)}</small>`:''}${linksRow(it.links)}</span></label>${linkHtml(it.url)}</li>`).join('')}
+    <ul class="items">${g.items.map(it=>`<li class="item${S.checked[it.id]?' checked':''}"><label><input type="checkbox" data-id="${it.id}"${S.checked[it.id]?' checked':''}><span class="txt"><span>${it.day?`<i class="day">Day ${it.day}</i> `:''}${esc(it.t)}</span>${it.d?`<small>${esc(it.d)}</small>`:''}${linksRow(it.links)}</span></label>${linkHtml(it.url)}${g.custom?`<button class="del" data-deltask="${g.pid}|${g.id}|${it.id}" aria-label="Delete task">✕</button>`:''}</li>`).join('')}
+    ${g.custom?`<li class="addtask"><form data-addtask="${g.pid}|${g.id}"><input name="t" placeholder="New task" aria-label="New task in ${esc(g.title)}" autocomplete="off"><button class="btn" type="submit">+ Add</button></form><button class="linkbtn" data-delgroup="${g.pid}|${g.id}">Delete group</button></li>`:''}
     ${g.check&&g.check.length?`<li class="selfcheck"><div class="label">Self-check · answer from memory, then tap to see</div>${g.check.map(([q,a])=>`<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</li>`:''}</ul>
   </section>`;
 }
@@ -790,6 +830,7 @@ function pageHtml(p){
   return `<div class="wrap"><h2>${esc(p.title)}</h2><p class="sub">${esc(p.sub)}</p>
     ${p.note?`<div class="note">${p.note}</div>`:''}
     ${p.groups.map(groupHtml).join('')}
+    ${p.project?`<form class="card addgroup" data-addgroup="${p.project.id}"><input name="t" placeholder="New group, e.g. This week" aria-label="New group" autocomplete="off"><button class="btn primary" type="submit">+ Group</button></form>`:''}
     ${p.earnings?earningsHtml():''}
     ${p.cyber?scoresHtml()+guidesHtml():''}
     ${notesHtml(p)}</div>`;
@@ -801,7 +842,7 @@ function build(){
   tabsEl.innerHTML=VIEW.map((p,i)=>`<button class="tab" role="tab" data-go="${i}">${esc(p.tab)}</button>`).join('');
   dotsEl.innerHTML=VIEW.map((p,i)=>`<button class="dot" data-go="${i}" tabindex="-1"></button>`).join('');
   pagesEl.innerHTML=VIEW.map(p=>`<section class="page" id="pg-${p.id}" role="tabpanel" aria-label="${esc(p.tab)}"></section>`).join('');
-  PAGES.forEach(renderPage); cur=-1;
+  VIEW.forEach(renderPage); cur=-1;
 }
 /* while locked nothing is in the page at all */
 function clearPages(){ pagesEl.innerHTML=''; tabsEl.innerHTML=''; dotsEl.innerHTML=''; }
@@ -816,18 +857,20 @@ const renderToday=()=>renderPage(PAGES.find(p=>p.id==='today'));
 /* ---------- navigation ---------- */
 let cur=-1;
 function setActive(i){
-  if(i===cur||!VIEW[i]) return; cur=i; S.pageId=VIEW[i].id; save(); if(!locked) setSkin(PAGE_SKIN[VIEW[i].id]||'crimson');
+  if(i===cur||!VIEW[i]) return; cur=i; S.pageId=VIEW[i].id; save(); if(!locked) setSkin(skinFor(VIEW[i].id));
   tabsEl.querySelectorAll('.tab').forEach((t,j)=>{ t.setAttribute('aria-selected',j===i); if(j===i) t.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'}); });
   dotsEl.querySelectorAll('.dot').forEach((d,j)=>d.classList.toggle('on',j===i));
 }
 const WIDE=matchMedia('(min-width:1100px)');
+const wideAll=()=>WIDE.matches&&S.wide==='all';
+function applyWide(){ document.documentElement.classList.toggle('wide-all',S.wide==='all'); if(cur>=0) go(cur,false); }
 function go(i,smooth=true){
-  if(WIDE.matches){ const el=document.getElementById('pg-'+VIEW[i]?.id); if(el){ el.scrollIntoView({inline:'nearest',block:'nearest',behavior:smooth?'smooth':'auto'}); if(smooth){ el.classList.remove('focus'); void el.offsetWidth; el.classList.add('focus'); } } }
+  if(wideAll()){ const el=document.getElementById('pg-'+VIEW[i]?.id); if(el){ el.scrollIntoView({inline:'nearest',block:'nearest',behavior:smooth?'smooth':'auto'}); if(smooth){ el.classList.remove('focus'); void el.offsetWidth; el.classList.add('focus'); } } }
   else pagesEl.scrollTo({left:i*pagesEl.clientWidth,behavior:smooth?'smooth':'auto'});
   setActive(i); }
-let st; pagesEl.addEventListener('scroll',()=>{ if(WIDE.matches) return; clearTimeout(st); st=setTimeout(()=>setActive(Math.round(pagesEl.scrollLeft/pagesEl.clientWidth)),60); },{passive:true});
+let st; pagesEl.addEventListener('scroll',()=>{ if(wideAll()) return; clearTimeout(st); st=setTimeout(()=>setActive(Math.round(pagesEl.scrollLeft/pagesEl.clientWidth)),60); },{passive:true});
 /* on a big screen, clicking into a column gives the window that page's look */
-pagesEl.addEventListener('pointerdown',e=>{ if(!WIDE.matches) return; const pg=e.target.closest('.page'); if(pg){ const i=VIEW.findIndex(p=>'pg-'+p.id===pg.id); if(i>=0) setActive(i); } });
+pagesEl.addEventListener('pointerdown',e=>{ if(!wideAll()) return; const pg=e.target.closest('.page'); if(pg){ const i=VIEW.findIndex(p=>'pg-'+p.id===pg.id); if(i>=0) setActive(i); } });
 addEventListener('resize',()=>{ if(cur>=0) go(cur,false); });
 
 /* ---------- events ---------- */
@@ -837,10 +880,15 @@ document.addEventListener('click',e=>{
   const g=t.closest('[data-go]'); if(g){ go(+g.dataset.go); return; }
   const gi=t.closest('[data-goid]'); if(gi){ go(Math.max(0,VIEW.findIndex(p=>p.id===gi.dataset.goid))); return; }
   const gh=t.closest('.ghead'); if(gh){ const sec=gh.parentElement, id=sec.dataset.g, closed=!sec.classList.contains('closed'); S.closed[id]=closed; save(); sec.classList.toggle('closed',closed); gh.setAttribute('aria-expanded',!closed); return; }
-  const dn=t.closest('[data-done]'); if(dn){ S.checked[dn.dataset.done]=true; save(); PAGES.forEach(renderPage); return; }
+  const dn=t.closest('[data-done]'); if(dn){ S.checked[dn.dataset.done]=true; save(); VIEW.forEach(renderPage); return; }
   const ds=t.closest('[data-delscore]'); if(ds){
     if(!ds.classList.contains('armed')){ ds.classList.add('armed'); ds.textContent='?'; setTimeout(()=>{ ds.classList.remove('armed'); ds.textContent='✕'; },2500); return; }
     S.scores=S.scores.filter(x=>x.id!==ds.dataset.delscore); save(); renderPage(pageById('cyber')); return; }
+  const dt=t.closest('[data-deltask],[data-delgroup]'); if(dt){
+    if(!dt.classList.contains('armed')){ dt.classList.add('armed'); const was=dt.textContent; dt.textContent=dt.dataset.delgroup?'Tap again to delete the group':'?'; setTimeout(()=>{ dt.classList.remove('armed'); dt.textContent=was; },2500); return; }
+    const [pid,gid,tid]=(dt.dataset.deltask||dt.dataset.delgroup).split('|'), pr=S.projects.find(x=>x.id===pid); if(!pr) return;
+    if(tid){ const g=pr.groups.find(x=>x.id===gid); if(g) g.items=g.items.filter(x=>x.id!==tid); } else pr.groups=pr.groups.filter(x=>x.id!==gid);
+    save(); renderPage(pageById('pj-'+pid)); renderToday(); return; }
   const lt=t.closest('[data-later]'); if(lt){ S.later[lt.dataset.later]=todayKey(); save(); renderToday(); return; }
   const de=t.closest('[data-delearn]'); if(de){
     if(!de.classList.contains('armed')){ de.classList.add('armed'); de.textContent='?'; setTimeout(()=>{ de.classList.remove('armed'); de.textContent='✕'; },2500); return; }
@@ -872,6 +920,11 @@ function updateDev(t){
   $('#flipTotals').outerHTML=flipsTopHtml(); renderToday(); renderPage(pageById('income'));
 }
 document.addEventListener('submit',e=>{
+  const ag=e.target.dataset.addgroup, at=e.target.dataset.addtask;
+  if(ag||at){ e.preventDefault(); const t=String(new FormData(e.target).get('t')||'').trim(); if(!t) return;
+    const pr=S.projects.find(x=>x.id===(ag||at.split('|')[0])); if(!pr) return; const nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    if(ag) pr.groups.push({id:'pg'+nid(),title:t,items:[]}); else { const g=pr.groups.find(x=>x.id===at.split('|')[1]); if(g) g.items.push({id:'pt'+nid(),t}); }
+    save(); renderPage(pageById('pj-'+pr.id)); renderToday(); document.querySelector(ag?`[data-addgroup="${pr.id}"] input`:`[data-addtask="${at}"] input`)?.focus(); return; }
   if(e.target.id==='addScore'){ e.preventDefault(); const fd=new FormData(e.target), score=Math.round(num(fd.get('score'))), test=String(fd.get('test')).trim(); if(!test||score<=0||score>100) return;
     S.scores.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),d:todayKey(),exam:String(fd.get('exam')),test,score});
     save(); document.activeElement.blur(); renderPage(pageById('cyber')); return; }
@@ -888,8 +941,9 @@ document.addEventListener('submit',e=>{
 /* ---------- settings ---------- */
 const sheet=$('#sheet');
 function renderTabOrder(){ orderPages();
-  $('#tabOrder').innerHTML=VIEW.map((p,i)=>`<li><span>${esc(p.tab)}</span><button data-move="${p.id}" data-dir="-1" aria-label="Move ${esc(p.tab)} up"${i?'':' disabled'}>↑</button><button data-move="${p.id}" data-dir="1" aria-label="Move ${esc(p.tab)} down"${i<VIEW.length-1?'':' disabled'}>↓</button></li>`).join(''); }
-function renderSettings(){ renderTabOrder(); renderSync();
+  $('#tabOrder').innerHTML=VIEW.map((p,i)=>`<li><span>${esc(p.tab)}</span><select data-skinfor="${p.id}" aria-label="Look for ${esc(p.tab)}">${Object.entries(SKIN_NAMES).map(([k,n])=>`<option value="${k}"${skinFor(p.id)===k?' selected':''}>${n}</option>`).join('')}</select><button data-move="${p.id}" data-dir="-1" aria-label="Move ${esc(p.tab)} up"${i?'':' disabled'}>↑</button><button data-move="${p.id}" data-dir="1" aria-label="Move ${esc(p.tab)} down"${i<VIEW.length-1?'':' disabled'}>↓</button>${p.project?`<button data-delproject="${p.project.id}" aria-label="Delete project ${esc(p.tab)}">✕</button>`:''}</li>`).join('');
+  $('#wideMode').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.wide===(S.wide||'single'))); }
+function renderSettings(){ renderTabOrder(); renderSync(); $('#pj-skin').innerHTML=Object.entries(SKIN_NAMES).map(([k,n])=>`<option value="${k}">${n}</option>`).join('');
   $('#swatches').innerHTML=PRESETS.map(c=>`<button class="sw${c===S.accent?' on':''}" style="background:${c}" data-c="${c}" aria-label="Accent ${c}"></button>`).join('')+
     `<span class="picker" style="background:${!S.accent||PRESETS.includes(S.accent)?RAINBOW:S.accent}"><input type="color" id="custom" value="${ACC()}" aria-label="Pick any colour"></span>`;
   $('#pageColours').setAttribute('aria-pressed',!S.accent); $('#pageColours').disabled=!S.accent;
@@ -897,10 +951,21 @@ function renderSettings(){ renderTabOrder(); renderSync();
   $('#thumb').style.backgroundImage=S.bg?`url("${S.bg}")`:'none'; $('#bgRemove').disabled=!S.bg;
 }
 function bgMsg(text){ const m=$('#bgMsg'); m.textContent=text; m.hidden=!text; }
-function rerenderAll(){ if(!locked){ PAGES.forEach(renderPage); } }
+function rerenderAll(){ if(!locked){ VIEW.forEach(renderPage); } }
 $('#openSettings').onclick=()=>{ renderSettings(); bgMsg(''); sheet.hidden=false; };
 $('#closeSettings').onclick=()=>sheet.hidden=true;
+sheet.addEventListener('change',e=>{ const sf=e.target.dataset.skinfor; if(!sf) return;
+  S.skins={...(S.skins||{}),[sf]:e.target.value}; save(); if(!locked&&VIEW[cur]?.id===sf) setSkin(e.target.value); });
+sheet.addEventListener('submit',e=>{ if(e.target.id!=='addProject') return; e.preventDefault();
+  const fd=new FormData(e.target), name=String(fd.get('name')).trim(); if(!name) return;
+  const id=Date.now().toString(36);
+  S.projects=[...(S.projects||[]),{id,name,groups:[{id:'pg'+id,title:'To do',items:[]}]}]; S.skins={...(S.skins||{}),['pj-'+id]:fd.get('skin')}; save();
+  e.target.reset(); if(!locked){ build(); go(VIEW.findIndex(p=>p.id==='pj-'+id)); } renderTabOrder(); });
 sheet.addEventListener('click',e=>{ if(e.target===sheet) sheet.hidden=true;
+  const wm=e.target.closest('[data-wide]'); if(wm){ S.wide=wm.dataset.wide; save(); applyWide(); renderTabOrder(); return; }
+  const dp=e.target.closest('[data-delproject]'); if(dp){
+    if(!dp.classList.contains('armed')){ dp.classList.add('armed'); dp.textContent='?'; setTimeout(()=>{ dp.classList.remove('armed'); dp.textContent='✕'; },2500); return; }
+    S.projects=S.projects.filter(x=>x.id!==dp.dataset.delproject); save(); if(!locked){ build(); go(0,false); } renderTabOrder(); return; }
   const mv=e.target.closest('[data-move]'); if(mv){ const ids=VIEW.map(p=>p.id), i=ids.indexOf(mv.dataset.move), j=i+ +mv.dataset.dir;
     if(j<0||j>=ids.length) return; [ids[i],ids[j]]=[ids[j],ids[i]]; S.order=ids; save();
     const here=VIEW[cur]?.id; if(!locked){ build(); go(Math.max(0,VIEW.findIndex(p=>p.id===here)),false); }
@@ -942,7 +1007,7 @@ $('#lockNow').onclick=()=>lock(false);
 const DESKTOP=!!(window.chrome&&window.chrome.webview);
 /* messages to the Windows app (it hides the training browser while Dragon is locked) */
 function hostSay(msg){ try{ if(DESKTOP) window.chrome.webview.postMessage(msg); }catch(e){} }
-const SYNC_KEYS=['checked','closed','notes','flips','earn','later','scores','order','accent'];
+const SYNC_KEYS=['checked','closed','notes','flips','earn','later','scores','order','accent','projects','skins'];
 const SYNC_FILE='dragon-sync.json', SYNC_CFG='dragon.sync';
 const syncPick=st=>{ const o={}; SYNC_KEYS.forEach(k=>o[k]=st[k]); return o; };
 const syncCfg=()=>{ try{ return JSON.parse(localStorage.getItem(SYNC_CFG)||'null'); }catch(e){ return null; } };  // device only, never synced
@@ -1118,6 +1183,7 @@ document.addEventListener('visibilitychange',()=>{
 
 /* ---------- start ---------- */
 DRAGON_ART.decode?.().then(()=>{ if(!locked) applyTheme(); }).catch(()=>{});
+document.documentElement.classList.toggle('wide-all',S.wide==='all');
 applyTheme(); lock(true);
 </script>
 </body>
