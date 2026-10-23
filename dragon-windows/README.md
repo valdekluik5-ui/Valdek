@@ -13,4 +13,10 @@ Build (works on Linux too, thanks to `EnableWindowsTargeting`):
     cp ../launchpad/index.html ../launchpad/favicon-32.png ../launchpad/apple-touch-icon.png app/
     dotnet build -c Release
 
-Ship `bin/Release` (without the .pdb) as a zip.
+Installer (NSIS, also runs on Linux): copy `bin/Release` without the .pdb to a folder, then
+
+    makensis -DSRC=<that folder> -DOUT=Dragon-Setup.exe installer.nsi
+
+Setup installs to `%LOCALAPPDATA%\Programs\Dragon` without admin rights, adds Desktop and Start menu shortcuts
+with the eye icon and an uninstaller. If the page does not appear within 12 s, Dragon offers safe graphics
+mode (GPU off), remembered in `%LOCALAPPDATA%\Dragon\safe-graphics`. Errors go to `%LOCALAPPDATA%\Dragon\dragon.log`.

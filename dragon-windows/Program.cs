@@ -16,6 +16,8 @@ namespace Dragon
         [STAThread]
         static void Main()
         {
+            Application.ThreadException += (s, e) => MainForm.Fail("Something went wrong", e.Exception);
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => MainForm.Fail("Something went wrong", e.ExceptionObject as Exception);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm());
@@ -37,11 +39,14 @@ namespace Dragon
         const string Host = "dragon.example";
         static readonly Color Bg = Color.FromArgb(7, 5, 5), Bar = Color.FromArgb(18, 9, 9), Ink = Color.FromArgb(240, 234, 234);
 
-        readonly string dataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Dragon");
+        readonly string dataDir = DataDir;
         readonly string stateFile;
         readonly JavaScriptSerializer json = new JavaScriptSerializer();
         WindowState state = new WindowState();
 
+        static readonly string DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Dragon");
+        static readonly string SafeGraphicsFlag = Path.Combine(DataDir, "safe-graphics");
+        bool pageLoaded;
         readonly SplitContainer split = new SplitContainer();
         readonly WebView2 dragon = new WebView2();
         readonly WebView2 training = new WebView2();
@@ -137,29 +142,47 @@ namespace Dragon
 
         async Task StartAsync()
         {
-            CoreWebView2Environment env;
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var appDir = Path.Combine(baseDir, "app");
+            if (!File.Exists(Path.Combine(appDir, "index.html")))
+            {
+                MessageBox.Show(this, "Dragon's files are missing next to Dragon.exe.\n\nRun Dragon-Setup.exe again to reinstall.", "Dragon", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                Close();
+                return;
+            }
+            bool safe = File.Exists(SafeGraphicsFlag);
             try
             {
-                Directory.CreateDirectory(dataDir);
-                env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(dataDir, "WebView2"));
+                Directory.CreateDirectory(DataDir);
+                // point WebView2 at its loader explicitly: next to the exe, or in runtimes\<arch>\native
+                var arch = Environment.Is64BitProcess ? "win-x64" : "win-x86";
+                foreach (var dir in new[] { baseDir, Path.Combine(baseDir, "runtimes", arch, "native") })
+                    if (File.Exists(Path.Combine(dir, "WebView2Loader.dll"))) { CoreWebView2Environment.SetLoaderDllFolderPath(dir); break; }
+                // safe graphics turns GPU drawing off, for laptops whose driver shows WebView2 as a black area
+                var options = new CoreWebView2EnvironmentOptions(safe ? "--disable-gpu --disable-gpu-compositing" : null);
+                var env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(DataDir, "WebView2"), options);
                 await dragon.EnsureCoreWebView2Async(env);
                 await training.EnsureCoreWebView2Async(env);
             }
             catch (WebView2RuntimeNotFoundException)
             {
-                MessageBox.Show(this, "Dragon needs the Microsoft Edge WebView2 Runtime, which is part of Windows 11 and most Windows 10 PCs.\n\nThe download page will open now. Install it, then start Dragon again.",
+                MessageBox.Show(this, "Dragon needs the Microsoft Edge WebView2 Runtime, which is part of Windows 11 and most Windows 10 PCs.\n\nThe download page will open now. Install the Evergreen Runtime, then start Dragon again.",
                     "Dragon", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 OpenExternal("https://developer.microsoft.com/microsoft-edge/webview2/");
                 Close();
                 return;
             }
+            catch (Exception ex)
+            {
+                Fail("Dragon could not start its browser engine", ex);
+                Close();
+                return;
+            }
 
             // the Dragon app: served from the app folder next to the exe, as a secure https origin so storage persists
-            var appDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app");
             var core = dragon.CoreWebView2;
             core.SetVirtualHostNameToFolderMapping(Host, appDir, CoreWebView2HostResourceAccessKind.Allow);
             core.Settings.IsStatusBarEnabled = false;
-            core.Settings.AreDefaultContextMenusEnabled = true;
             core.NewWindowRequested += (s, e) => { e.Handled = true; OpenTraining(e.Uri); };
             core.NavigationStarting += (s, e) =>
             {
@@ -167,6 +190,12 @@ namespace Dragon
                 e.Cancel = true;
                 OpenTraining(e.Uri);
             };
+            core.NavigationCompleted += (s, e) =>
+            {
+                if (e.IsSuccess) { pageLoaded = true; return; }
+                Log("Dragon page failed to load: " + e.WebErrorStatus);
+            };
+            core.ProcessFailed += (s, e) => { Log("Browser process failed: " + e.ProcessFailedKind); try { core.Reload(); } catch { } };
             core.Navigate("https://" + Host + "/index.html");
 
             // the training pane: new windows stay in the pane, and the page you are on is remembered
@@ -176,6 +205,32 @@ namespace Dragon
             tc.DocumentTitleChanged += (s, e) => title.Text = tc.DocumentTitle;
             if (IsWeb(state.TrainingUrl)) tc.Navigate(state.TrainingUrl);
             else tc.NavigateToString(WelcomePage);
+
+            // if the page has not appeared after a while, offer safe graphics
+            await Task.Delay(12000);
+            if (!pageLoaded && !IsDisposed)
+            {
+                var msg = safe ? "Dragon's page still did not load, even in safe graphics mode.\n\nThe details are in the log file. Open its folder?"
+                               : "Dragon's page did not load. Some graphics drivers show it as a black window.\n\nRestart Dragon in safe graphics mode?";
+                if (MessageBox.Show(this, msg, "Dragon", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    if (safe) OpenExternal(DataDir);
+                    else { File.WriteAllText(SafeGraphicsFlag, "on"); Application.Restart(); }
+                }
+            }
+        }
+
+        /* every failure is written to %LOCALAPPDATA%\Dragon\dragon.log and shown once */
+        public static void Log(string text)
+        {
+            try { Directory.CreateDirectory(DataDir); File.AppendAllText(Path.Combine(DataDir, "dragon.log"), DateTime.Now.ToString("s") + "  " + text + Environment.NewLine); } catch { }
+        }
+
+        public static void Fail(string what, Exception ex)
+        {
+            Log(what + ": " + ex);
+            MessageBox.Show(what + ".\n\n" + (ex?.Message ?? "Unknown error") + "\n\nDetails were saved to " + Path.Combine(DataDir, "dragon.log"),
+                "Dragon", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         void OpenTraining(string url)
