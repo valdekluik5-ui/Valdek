@@ -517,7 +517,8 @@ const PAGE_SKIN={today:'crimson',income:'steel',repairs:'ember',apps:'crimson',c
 /* pages in the order the user set in Settings; pages missing from the saved order go at the end */
 let VIEW=[];
 function orderPages(){ const ids=(S.order||[]).filter(id=>PAGES.some(p=>p.id===id)); PAGES.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); }); VIEW=ids.map(id=>PAGES.find(p=>p.id===id)); }
-const BOOT_LINES=['> dragon v4.0','> waking the dragon ...','> identity check'];
+const APP_VERSION='4.4';
+const BOOT_LINES=[`> dragon v${APP_VERSION}`,'> waking the dragon ...','> identity check'];
 const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#b3122e','#8a62b8','#3a9d5d'];
 let SK='crimson';
 const ACC=()=>S.accent||SKINS[SK].accent;
@@ -939,6 +940,8 @@ $('#lockNow').onclick=()=>lock(false);
 
 /* ---------- sync: phone and computer share progress through one file in the owner's private GitHub repository ---------- */
 const DESKTOP=!!(window.chrome&&window.chrome.webview);
+/* messages to the Windows app (it hides the training browser while Dragon is locked) */
+function hostSay(msg){ try{ if(DESKTOP) window.chrome.webview.postMessage(msg); }catch(e){} }
 const SYNC_KEYS=['checked','closed','notes','flips','earn','later','scores','order','accent'];
 const SYNC_FILE='dragon-sync.json', SYNC_CFG='dragon.sync';
 const syncPick=st=>{ const o={}; SYNC_KEYS.forEach(k=>o[k]=st[k]); return o; };
@@ -1086,7 +1089,7 @@ function typeGranted(){
 }
 /* full: replay the typing intro. Otherwise go straight to the PIN pad. */
 function lock(full,m){
-  clearTimeout(bootTimer); locked=true; sheet.hidden=true; clearPages(); setSkin('crimson',true);
+  hostSay('lock'); clearTimeout(bootTimer); locked=true; sheet.hidden=true; clearPages(); setSkin('crimson',true);
   bootEl.hidden=false; bootEl.classList.remove('out'); paintBoot(); enterBtn.hidden=true; lockEl.hidden=true; eye.close(); eye.open();
   afterUnlock=full?'tap':'enter';
   const ready=()=>{ lockEl.hidden=false; promptFor(m||(S.pinHash?'enter':'new')); paintBoot(); };
@@ -1098,7 +1101,7 @@ function unlock(){
   if(afterUnlock==='enter') setTimeout(enter,900);
 }
 function enter(){
-  if(!locked) return; clearTimeout(bootTimer); locked=false;
+  if(!locked) return; clearTimeout(bootTimer); locked=false; hostSay('unlock');
   build(); bootEl.classList.add('out'); setTimeout(()=>{ bootEl.hidden=true; },350);
   requestAnimationFrame(()=>go(DESKTOP?Math.max(0,VIEW.findIndex(p=>p.id===S.pageId)):0,false));
   syncNow();

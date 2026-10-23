@@ -51,6 +51,7 @@ namespace Dragon
         static readonly string DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Dragon");
         static readonly string SafeGraphicsFlag = Path.Combine(DataDir, "safe-graphics");
         bool pageLoaded;
+        bool locked = true, trainingStarted;  // the whole window stays locked until Dragon's PIN is entered
         readonly SplitContainer split = new SplitContainer();
         readonly WebView2 dragon = new WebView2();
         readonly WebView2 training = new WebView2();
@@ -105,7 +106,7 @@ namespace Dragon
             showTraining.BringToFront();
 
             Load += async (s, e) => await StartAsync();
-            Shown += (s, e) => { try { split.SplitterDistance = Math.Max(split.Panel1MinSize, Math.Min(state.Split, split.Width - 300)); } catch { } SetTrainingHidden(state.TrainingHidden); };
+            Shown += (s, e) => ApplyLock();
             Resize += (s, e) => PlaceShowButton();
             FormClosing += (s, e) => SaveState();
             KeyDown += OnKeys;
@@ -369,8 +370,12 @@ namespace Dragon
             if (state.PriceOpen) pricePanel.Visible = true;
             tc.SourceChanged += (s, e) => { var u = training.Source?.ToString(); if (IsWeb(u)) state.TrainingUrl = u; };
             tc.DocumentTitleChanged += (s, e) => title.Text = tc.DocumentTitle;
-            if (IsWeb(state.TrainingUrl)) tc.Navigate(state.TrainingUrl);
-            else tc.NavigateToString(WelcomePage);
+            core.WebMessageReceived += (s, e) =>
+            {
+                string msg; try { msg = e.TryGetWebMessageAsString(); } catch { return; }
+                if (msg == "lock") { locked = true; ApplyLock(); }
+                else if (msg == "unlock") { locked = false; ApplyLock(); }
+            };
 
             // if the page has not appeared after a while, offer safe graphics
             await Task.Delay(12000);
@@ -399,8 +404,23 @@ namespace Dragon
                 "Dragon", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
+        /* locked: Dragon's PIN screen fills the window and the training browser stays hidden (and unloaded until the first unlock) */
+        void ApplyLock()
+        {
+            if (locked) { split.Panel2Collapsed = true; showTraining.Visible = false; return; }
+            if (!trainingStarted && training.CoreWebView2 != null)
+            {
+                trainingStarted = true;
+                if (IsWeb(state.TrainingUrl)) training.CoreWebView2.Navigate(state.TrainingUrl);
+                else training.CoreWebView2.NavigateToString(WelcomePage);
+            }
+            SetTrainingHidden(state.TrainingHidden);
+            try { if (!split.Panel2Collapsed) split.SplitterDistance = Math.Max(split.Panel1MinSize, Math.Min(state.Split, split.Width - 300)); } catch { }
+        }
+
         void OpenTraining(string url)
         {
+            if (locked) return;
             if (!IsWeb(url)) { if (!string.IsNullOrEmpty(url) && !url.StartsWith("about:")) OpenExternal(url); return; }
             SetTrainingHidden(false);
             training.CoreWebView2?.Navigate(url);
@@ -409,6 +429,7 @@ namespace Dragon
         void SetTrainingHidden(bool hidden)
         {
             state.TrainingHidden = hidden;
+            if (locked) return;
             split.Panel2Collapsed = hidden;
             showTraining.Visible = hidden;
             PlaceShowButton();
@@ -421,7 +442,7 @@ namespace Dragon
 
         void OnKeys(object sender, KeyEventArgs e)
         {
-            if (e.Control && e.KeyCode == Keys.T) { SetTrainingHidden(!state.TrainingHidden); e.Handled = true; }
+            if (e.Control && e.KeyCode == Keys.T) { if (!locked) SetTrainingHidden(!state.TrainingHidden); e.Handled = true; }
             else if (e.Alt && e.KeyCode == Keys.Left && training.CoreWebView2?.CanGoBack == true) { training.CoreWebView2.GoBack(); e.Handled = true; }
             else if (e.Alt && e.KeyCode == Keys.Right && training.CoreWebView2?.CanGoForward == true) { training.CoreWebView2.GoForward(); e.Handled = true; }
         }

@@ -9,7 +9,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <Version>4.3.0</Version>
+    <Version>4.4.0</Version>
     <Product>Dragon</Product>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
