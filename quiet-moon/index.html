@@ -1637,8 +1637,8 @@ function bearShow(){
      thunder; then the clouds part and the sun shines from the top, they celebrate, climb back up, hug, he blows her (the viewer) a kiss,
      they wave, kiss and hug. The weather is painted over the whole screen from window.__wx (see the weather script). ===== */
   const stormEp=()=>{
-    const GS=92, XT=lx(STAND+8)-7, XB=lx(HS(GS)+8)-7, YT=HS(SH), YB=HS(GS), HX=92, SX=112, UA=[165,10], R={he:TRK(),she:TRK()}, ph={};
-    // under the line they stand on the baseline of the writing (GS), just below the line, not down by the menu
+    const GS=G, XT=lx(STAND+8)-7, XB=lx(HS(GS)+8)-7, YT=HS(SH), YB=HS(GS), HX=92, SX=112, UA=[165,10], R={he:TRK(),she:TRK()}, ph={};
+    // under the line they shelter down at the foot of the ladder (GS), where they usually play
     const gs=o=>o.y==null&&o.ground==null?{...o,ground:GS}:o;
     const both=(n,d,fh,fs)=>{ ph[n]=R.he.T; R.he.add(d,(u,t)=>gs(fh(u,t))); R.she.add(d,(u,t)=>gs(fs(u,t))); };
     const span=(a,b,m)=>Math.max(m,abs(b-a)/30);
