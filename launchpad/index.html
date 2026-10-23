@@ -7,8 +7,8 @@
 <title>Launchpad</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="robots" content="noindex,nofollow">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=eye">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#070505">
 <meta name="mobile-web-app-capable" content="yes">
@@ -745,7 +745,7 @@ const bootEl=$('#boot'), bootText=$('#bootText'), lockEl=$('#lock'), lockMsg=$('
 let locked=true, mode='enter', entry='', firstPin='', fails=0, coolUntil=0, bootTimer, afterUnlock='tap';
 $('#keypad').innerHTML=['1','2','3','4','5','6','7','8','9','⌫','0','OK'].map(k=>`<button data-k="${k}" class="${k==='OK'?'k-ok':k==='⌫'?'k-del':''}" aria-label="${k==='⌫'?'Delete':k}">${k}</button>`).join('');
 
-/* dragon eye (always its original gold and ember): closed line while locked, opens on success */
+/* dragon eye (always its original gold and ember): opens the moment the app starts, blinks at a wrong PIN */
 const eye=(()=>{
   const c=$('#eye'), x=c.getContext('2d'), W=c.width, H=c.height; let o=0, raf=0;
   function draw(){
@@ -765,7 +765,7 @@ const eye=(()=>{
   function to(target,ms,done){ cancelAnimationFrame(raf); const from=o, t0=performance.now();
     if(reduceMotion||!ms){ o=target; draw(); done&&done(); return; }
     const step=t=>{ const k=Math.min(1,(t-t0)/ms), e=1-Math.pow(1-k,3); o=from+(target-from)*e; draw(); if(k<1) raf=requestAnimationFrame(step); else done&&done(); }; raf=requestAnimationFrame(step); }
-  return {close(){ to(0,0); }, open(done){ to(1,750,done); }, redraw:draw};
+  return {close(){ to(0,0); }, open(done){ to(1,750,done); }, blink(){ to(0,110,()=>to(1,260)); }, redraw:draw};
 })();
 
 function showDots(){ const n=Math.max(4,entry.length); dotsPin.innerHTML=Array.from({length:n},(_,i)=>`<i class="${i<entry.length?'on':''}"></i>`).join(''); }
@@ -773,7 +773,7 @@ function setMsg(t,err){ lockMsg.textContent=t; lockMsg.classList.toggle('err',!!
 function promptFor(m){ mode=m; entry=''; showDots();
   setMsg({enter:'Enter your PIN',change:'Enter your current PIN',new:S.pinHash?'Choose a new PIN (4–8 digits)':'Choose a PIN to keep this private (4–8 digits)',confirm:'Type the same PIN again'}[m]);
   $('#forgot').hidden=!(m==='enter'||m==='change'); }
-function shake(t){ setMsg(t,true); dotsPin.classList.remove('shake'); void dotsPin.offsetWidth; dotsPin.classList.add('shake'); entry=''; setTimeout(showDots,350); }
+function shake(t){ eye.blink(); setMsg(t,true); dotsPin.classList.remove('shake'); void dotsPin.offsetWidth; dotsPin.classList.add('shake'); entry=''; setTimeout(showDots,350); }
 
 async function submitPin(){
   if(Date.now()<coolUntil){ shake(`Too many tries. Wait ${Math.ceil((coolUntil-Date.now())/1000)} s.`); return; }
@@ -819,14 +819,14 @@ function typeGranted(){
 /* full: replay the typing intro. Otherwise go straight to the PIN pad. */
 function lock(full,m){
   clearTimeout(bootTimer); locked=true; sheet.hidden=true; clearPages(); setSkin('crimson',true);
-  bootEl.hidden=false; bootEl.classList.remove('out'); paintBoot(); enterBtn.hidden=true; lockEl.hidden=true; eye.close();
+  bootEl.hidden=false; bootEl.classList.remove('out'); paintBoot(); enterBtn.hidden=true; lockEl.hidden=true; eye.close(); eye.open();
   afterUnlock=full?'tap':'enter';
   const ready=()=>{ lockEl.hidden=false; promptFor(m||(S.pinHash?'enter':'new')); paintBoot(); };
   if(full) typeLines(BOOT_LINES,ready); else { bootText.innerHTML=esc(BOOT_LINES.at(-1))+'\n'; ready(); }
 }
 function unlock(){
   lockEl.hidden=true; setMsg(''); paintBoot();
-  eye.open(); typeGranted();
+  typeGranted();
   if(afterUnlock==='enter') setTimeout(enter,900);
 }
 function enter(){
