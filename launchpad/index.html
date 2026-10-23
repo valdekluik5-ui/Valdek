@@ -278,6 +278,9 @@ details p{margin:6px 0 2px;color:var(--muted);font-size:14.5px}
 .item .del.armed,.linkbtn.armed{background:var(--danger);color:var(--white);border-color:var(--danger)}
 .projform{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}
 .projform input{grid-column:1/-1}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;z-index:40;pointer-events:none;
+  background:var(--panel-2);border:1px solid var(--acc-line);color:var(--ink);padding:10px 16px;border-radius:12px;font:600 13.5px var(--mono);max-width:min(520px,calc(100vw - 32px));transition:opacity .3s,transform .3s}
+#toast.on{opacity:1;transform:translate(-50%,0)}
 .rule{font:12.5px var(--mono);color:var(--muted);margin-top:4px}
 .empty{color:var(--muted);font:13px var(--mono);text-align:center;padding:16px}
 
@@ -554,7 +557,7 @@ function projectPage(pr){ return {id:'pj-'+pr.id,tab:pr.name,title:pr.name,sub:'
 const allPages=()=>[...PAGES,...(S.projects||[]).map(projectPage)];
 const skinFor=id=>(S.skins&&S.skins[id])||PAGE_SKIN[id]||'crimson';
 function orderPages(){ const all=allPages(), ids=(S.order||[]).filter(id=>all.some(p=>p.id===id)); all.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); }); VIEW=ids.map(id=>all.find(p=>p.id===id)); }
-const APP_VERSION='5.8';
+const APP_VERSION='5.9';
 const BOOT_LINES=[`> dragon v${APP_VERSION}`,'> waking the dragon ...','> identity check'];
 const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#2fbf6a','#b3122e','#8a62b8'];
 const SKIN_NAMES={crimson:'Crimson (red)',frost:'Frost (blue)',steel:'Steel (silver)',ember:'Ember (orange)',jade:'Jade (green)'};
@@ -1218,16 +1221,46 @@ $('#lockNow').onclick=()=>lock(false);
 
 /* ---------- sync: phone and computer share progress through one file in the owner's private GitHub repository ---------- */
 const DESKTOP=!!(window.chrome&&window.chrome.webview);
+/* the phone and computer apps tell the page about app updates */
+function showToast(text){ let t=document.getElementById('toast'); if(!t){ t=document.createElement('div'); t.id='toast'; t.setAttribute('role','status'); document.body.append(t); }
+  t.textContent=text; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),6000); }
+window.dragonUpdate=(state,version)=>showToast(state==='applied'?`Dragon updated to v${version}. Your data is untouched.`:`Dragon v${version} is downloaded. It starts the next time you open Dragon.`);
+try{ window.chrome&&window.chrome.webview&&window.chrome.webview.addEventListener('message',e=>{ const d=e.data||{}; if(d.type==='update') window.dragonUpdate(d.state,d.version); }); }catch(e){}
 /* messages to the Windows app (it hides the training browser while Dragon is locked) */
 function hostSay(msg){ try{ if(DESKTOP) window.chrome.webview.postMessage(msg); }catch(e){} }
 const SYNC_KEYS=['checked','closed','notes','flips','earn','later','scores','order','accent','projects','skins'];
 const SYNC_FILE='dragon-sync.json', SYNC_CFG='dragon.sync';
+/* the sync config (token, salts, keys) stays on this device only and is never synced */
 const syncPick=st=>{ const o={}; SYNC_KEYS.forEach(k=>o[k]=st[k]); return o; };
 const syncCfg=()=>{ try{ return JSON.parse(localStorage.getItem(SYNC_CFG)||'null'); }catch(e){ return null; } };  // device only, never synced
 const saveCfg=c=>{ try{ c?localStorage.setItem(SYNC_CFG,JSON.stringify(c)):localStorage.removeItem(SYNC_CFG); }catch(e){} };
 const b64e=str=>{ let bin=''; new TextEncoder().encode(str).forEach(b=>bin+=String.fromCharCode(b)); return btoa(bin); };
 const b64d=b=>new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\s/g,'')),c=>c.charCodeAt(0)));
 let syncBusy=false, syncTimer=0, syncMsg='', syncErr=false;
+/* ---- two-layer encryption: the backup is sealed with AES-256-GCM twice, with two keys made from the sync password
+   (PBKDF2-SHA256, 310 000 rounds, separate salts). GitHub only ever stores the sealed result. ---- */
+const ub64=u=>{ let s=''; new Uint8Array(u).forEach(b=>s+=String.fromCharCode(b)); return btoa(s); };
+const b64u=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));
+async function deriveKeys(password,s1,s2){
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+  const bits=async salt=>ub64(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:b64u(salt),iterations:310000},base,256));
+  return {k1:await bits(s1),k2:await bits(s2)};
+}
+const aesKey=raw=>crypto.subtle.importKey('raw',b64u(raw),'AES-GCM',false,['encrypt','decrypt']);
+async function seal(cfg,obj){
+  const i1=crypto.getRandomValues(new Uint8Array(12)), i2=crypto.getRandomValues(new Uint8Array(12));
+  const inner=await crypto.subtle.encrypt({name:'AES-GCM',iv:i1},await aesKey(cfg.keys.k1),new TextEncoder().encode(JSON.stringify(obj)));
+  const outer=await crypto.subtle.encrypt({name:'AES-GCM',iv:i2},await aesKey(cfg.keys.k2),inner);
+  return {v:2,app:'dragon',alg:'AES-256-GCM twice; keys from PBKDF2-SHA256, 310000 rounds',s1:cfg.salts.s1,s2:cfg.salts.s2,i1:ub64(i1),i2:ub64(i2),d:ub64(outer)};
+}
+async function unseal(cfg,file){
+  if(!file||file.v!==2) return file;   // an older unencrypted backup
+  try{
+    const inner=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64u(file.i2)},await aesKey(cfg.keys.k2),b64u(file.d));
+    const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64u(file.i1)},await aesKey(cfg.keys.k1),inner);
+    return JSON.parse(new TextDecoder().decode(plain));
+  }catch(e){ throw new Error('The sync password does not match this backup. Disconnect and connect again with the right password.'); }
+}
 async function ghFile(cfg,method,body){
   const r=await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${SYNC_FILE}`,{method,cache:'no-store',
     headers:{Authorization:`Bearer ${cfg.token}`,Accept:'application/vnd.github+json'},body:body?JSON.stringify(body):undefined});
@@ -1241,11 +1274,12 @@ async function syncNow(){
   const cfg=syncCfg(); if(!cfg||syncBusy) return; syncBusy=true; setSync('Syncing…');
   try{
     for(let attempt=0;;attempt++){
-      const remote=await ghFile(cfg,'GET'), data=remote?JSON.parse(b64d(remote.content)):null;
-      if(data&&(data.updated||0)>(S.updated||0)){ applyRemote(data); break; }
-      if(data&&data.updated===S.updated) break;
+      const remote=await ghFile(cfg,'GET'), data=remote?await unseal(cfg,JSON.parse(b64d(remote.content))):null;
+      const plainRemote=remote&&!JSON.parse(b64d(remote.content)).v;
+      if(data&&(data.updated||0)>(S.updated||0)){ applyRemote(data); if(!plainRemote) break; }   // an old unencrypted backup is sealed straight away
+      if(data&&data.updated===S.updated&&!plainRemote) break;
       if(!S.updated) S.updated=Date.now();
-      try{ await ghFile(cfg,'PUT',{message:`Dragon sync from ${DESKTOP?'computer':'phone'}`,content:b64e(JSON.stringify({...syncPick(S),updated:S.updated})),sha:remote?remote.sha:undefined}); break; }
+      try{ await ghFile(cfg,'PUT',{message:`Dragon sync from ${DESKTOP?'computer':'phone'}`,content:b64e(JSON.stringify(await seal(cfg,{...syncPick(S),updated:S.updated}))),sha:remote?remote.sha:undefined}); break; }
       catch(e){ if(e.message!=='conflict'||attempt) throw e; }
     }
     cfg.last=Date.now(); saveCfg(cfg); setSync(`Synced at ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`);
@@ -1257,26 +1291,63 @@ function applyRemote(d){
   lastSnap=JSON.stringify(syncPick(S)); try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){}
   if(!locked){ const here=VIEW[cur]?.id; applyTheme(); build(); go(Math.max(0,VIEW.findIndex(p=>p.id===here)),false); }
 }
+/* backups: every sync is a version of the file in the repository's history */
+async function listBackups(){
+  const cfg=syncCfg(), ul=$('#backupList'); if(!cfg||!ul) return; ul.innerHTML='<li><span></span><span>Loading backups…</span></li>';
+  try{
+    const r=await fetch(`https://api.github.com/repos/${cfg.repo}/commits?path=${SYNC_FILE}&per_page=20`,{cache:'no-store',headers:{Authorization:`Bearer ${cfg.token}`,Accept:'application/vnd.github+json'}});
+    if(!r.ok) throw new Error(`GitHub answered ${r.status}.`);
+    const list=await r.json();
+    ul.innerHTML=list.length?list.map(c=>{ const d=new Date(c.commit.committer.date); return `<li><span>${d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit'})}</span><span>${d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})} · ${esc((c.commit.message||'').replace('Dragon sync from ',''))}</span><b></b><button class="btn" data-restore="${c.sha}">Restore</button></li>`; }).join(''):'<li><span></span><span>No backups yet.</span></li>';
+  }catch(e){ ul.innerHTML=''; setSync(e.message==='Failed to fetch'?'No connection to GitHub.':e.message,true); }
+}
+/* restoring makes that version the newest one, so it also reaches the other device */
+async function restoreBackup(sha){
+  const cfg=syncCfg(); if(!cfg) return; setSync('Restoring…');
+  try{
+    const r=await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${SYNC_FILE}?ref=${sha}`,{cache:'no-store',headers:{Authorization:`Bearer ${cfg.token}`,Accept:'application/vnd.github+json'}});
+    if(!r.ok) throw new Error(`GitHub answered ${r.status}.`);
+    const data=await unseal(cfg,JSON.parse(b64d((await r.json()).content)));
+    applyRemote({...data,updated:Date.now()}); S.updated=Date.now(); save(); await syncNow(); setSync('Backup restored on this device and synced.');
+  }catch(e){ setSync(e.message==='Failed to fetch'?'No connection to GitHub.':e.message,true); }
+}
 const scheduleSync=()=>{ if(!syncCfg()) return; clearTimeout(syncTimer); syncTimer=setTimeout(syncNow,4000); };
 function renderSync(){
   const box=$('#syncBox'), cfg=syncCfg();
-  box.innerHTML=cfg?`<div class="row"><span class="hint" style="margin:0">Connected to <b>${esc(cfg.repo)}</b></span></div>
-      <div class="row"><button class="btn" id="syncNow">Sync now</button><button class="btn danger" id="syncOff">Disconnect</button></div>
-      <div class="hint" id="syncStatus"></div>`
+  box.innerHTML=cfg?`<div class="row"><span class="hint" style="margin:0">Connected to <b>${esc(cfg.repo)}</b> · ${cfg.keys?'🔒 encrypted twice (AES-256-GCM)':'⚠ not encrypted: disconnect and connect again with a sync password'}</span></div>
+      <div class="row"><button class="btn" id="syncNow">Back up and sync now</button><button class="btn" id="syncHistory">Backups</button><button class="btn danger" id="syncOff">Disconnect</button></div>
+      <div class="hint" id="syncStatus"></div><ul class="elog" id="backupList"></ul>`
     :`<div class="syncform"><input id="syncRepo" placeholder="owner/repository, e.g. valdekluik5-ui/dragon-data" autocomplete="off" aria-label="Repository">
       <input id="syncToken" type="password" placeholder="GitHub token" autocomplete="off" aria-label="GitHub token">
+      <input id="syncPass" type="password" placeholder="Sync password (8+ characters, the same on every device)" autocomplete="new-password" aria-label="Sync password">
       <button class="btn primary" id="syncOn">Connect</button></div><div class="hint" id="syncStatus"></div>
       <details><summary>How to set it up (once)</summary><ol class="steps"><li>On GitHub, create a new <b>private</b> repository, e.g. <b>dragon-data</b>.</li>
       <li>Create a fine-grained token: <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new ↗</a>. Repository access: only that repository. Permissions: <b>Contents → Read and write</b>.</li>
-      <li>Enter the repository and token here and tap Connect. Do the same on your other device.</li></ol>
+      <li>Enter the repository, the token and a <b>sync password</b> here and tap Connect. Do the same on your other device with the same password.</li></ol>
+      <p>Your data is encrypted twice on this device before it goes to GitHub; without the sync password nobody can read it, not even GitHub. Write the password down somewhere safe: it cannot be recovered. Every backup stays in the repository's history and can be restored from <b>Backups</b>.</p>
       <p>Each device keeps its own PIN. Progress, notes, earnings, devices and scores sync when the app opens and a few seconds after each change; the newest copy wins.</p></details>`;
   setSync(syncMsg,syncErr);
 }
 document.addEventListener('click',async e=>{
   if(e.target.id==='syncOn'){ const repo=$('#syncRepo').value.trim().replace(/^https:\/\/github\.com\//,'').replace(/\/$/,''), token=$('#syncToken').value.trim();
+    const pass=$('#syncPass').value;
     if(!/^[\w.-]+\/[\w.-]+$/.test(repo)||!token){ setSync('Enter the repository as owner/name and paste the token.',true); return; }
-    setSync('Checking…'); try{ await ghFile({repo,token},'GET'); }catch(err){ setSync(err.message==='Failed to fetch'?'No connection to GitHub.':err.message,true); return; }
-    saveCfg({repo,token}); syncMsg=''; renderSync(); syncNow(); }
+    if(pass.length<8){ setSync('Choose a sync password of at least 8 characters, and use the same one on every device.',true); return; }
+    setSync('Checking…');
+    try{
+      const remote=await ghFile({repo,token},'GET'), file=remote?JSON.parse(b64d(remote.content)):null;
+      // an existing encrypted backup brings its salts; otherwise this device makes new ones
+      const salts=file&&file.v===2?{s1:file.s1,s2:file.s2}:{s1:ub64(crypto.getRandomValues(new Uint8Array(16))),s2:ub64(crypto.getRandomValues(new Uint8Array(16)))};
+      setSync('Making encryption keys…');
+      const cfg={repo,token,salts,keys:await deriveKeys(pass,salts.s1,salts.s2)};
+      if(file&&file.v===2) await unseal(cfg,file);   // checks the password before saving anything
+      saveCfg(cfg);
+    }catch(err){ setSync(err.message==='Failed to fetch'?'No connection to GitHub.':err.message,true); return; }
+    syncMsg=''; renderSync(); syncNow(); }
+  if(e.target.id==='syncHistory') listBackups();
+  const rb=e.target.closest('[data-restore]'); if(rb){
+    if(!rb.classList.contains('armed')){ rb.classList.add('armed'); rb.textContent='Tap again'; setTimeout(()=>{ rb.classList.remove('armed'); rb.textContent='Restore'; },3000); return; }
+    restoreBackup(rb.dataset.restore); }
   if(e.target.id==='syncNow') syncNow();
   if(e.target.id==='syncOff'){ saveCfg(null); syncMsg=''; renderSync(); }
 });

@@ -54,13 +54,14 @@ namespace Dragon
         const string Host = "dragon.example";
         const int MaxTabs = 15;
         static readonly Color Bg = Color.FromArgb(7, 5, 5), Ink = Color.FromArgb(240, 234, 234);
-        static readonly string DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Dragon");
+        public static readonly string DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Dragon");
         static readonly string SafeGraphicsFlag = Path.Combine(DataDir, "safe-graphics");
         static readonly HttpClient http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
 
         readonly string stateFile = Path.Combine(DataDir, "window.json");
         readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 8 * 1024 * 1024 };
         WindowState state = new WindowState();
+        string appDir, updateApplied;                                   // where the pages are served from (installed or updated)
 
         readonly SplitContainer split = new SplitContainer();
         readonly WebView2 dragon = new WebView2();
@@ -138,13 +139,15 @@ namespace Dragon
         async Task StartAsync()
         {
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var appDir = Path.Combine(baseDir, "app");
+            appDir = Path.Combine(baseDir, "app");
+            var builtIn = appDir;
             if (!File.Exists(Path.Combine(appDir, "index.html")))
             {
                 MessageBox.Show(this, "Dragon's files are missing next to Dragon.exe.\n\nRun Dragon-Setup.exe again to reinstall.", "Dragon", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 Close();
                 return;
             }
+            appDir = Updater.PickAppDir(builtIn, out updateApplied);
             bool safe = File.Exists(SafeGraphicsFlag);
             try
             {
@@ -187,7 +190,10 @@ namespace Dragon
                 e.Cancel = true;
                 OpenFromDragon(e.Uri);
             };
-            core.NavigationCompleted += (s, e) => { if (e.IsSuccess) pageLoaded = true; else Log("Dragon page failed to load: " + e.WebErrorStatus); };
+            core.NavigationCompleted += (s, e) =>
+            {
+                if (e.IsSuccess && updateApplied != null) { Post(dragon, new { type = "update", state = "applied", version = updateApplied }); updateApplied = null; }
+                if (e.IsSuccess) pageLoaded = true; else Log("Dragon page failed to load: " + e.WebErrorStatus); };
             core.ProcessFailed += (s, e) => { Log("Browser process failed: " + e.ProcessFailedKind); try { core.Reload(); } catch { } };
             core.WebMessageReceived += (s, e) => OnDragonMessage(e);
             core.Navigate("https://" + Host + "/index.html");
@@ -201,6 +207,7 @@ namespace Dragon
             bc.Navigate("https://" + Host + "/browser.html");
 
             LoadRates();
+            _ = CheckForUpdate(builtIn);
 
             // if the page has not appeared after a while, offer safe graphics
             await Task.Delay(12000);
@@ -342,7 +349,7 @@ namespace Dragon
             if (activate) Activate(tab);
             await tab.View.EnsureCoreWebView2Async(env);
             var c = tab.View.CoreWebView2;
-            c.SetVirtualHostNameToFolderMapping(Host, Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app"), CoreWebView2HostResourceAccessKind.Allow);
+            c.SetVirtualHostNameToFolderMapping(Host, appDir, CoreWebView2HostResourceAccessKind.Allow);
             c.Settings.IsStatusBarEnabled = true;
             await c.AddScriptToExecuteOnDocumentCreatedAsync(TranslatorScript);
             c.NewWindowRequested += (s, e) => { e.Handled = true; if (IsWeb(e.Uri)) _ = AddTab(e.Uri, true); };
@@ -653,6 +660,17 @@ const m=(el.innerText||'').match(re);if(m){const v=+m[1].replace(/\D/g,'');if(v>
         }
 
         decimal ToUah(decimal v, string cur) => cur == "USD" && usdRate > 0 ? v * usdRate : cur == "EUR" && eurRate > 0 ? v * eurRate : v;
+
+        /* looks for a new version of Dragon's pages at start and then every 6 hours */
+        async Task CheckForUpdate(string builtIn)
+        {
+            while (!IsDisposed)
+            {
+                var ready = await Updater.CheckAsync(builtIn, Updater.CurrentVersion(appDir));
+                if (ready != null && !IsDisposed) Post(dragon, new { type = "update", state = "ready", version = ready });
+                await Task.Delay(TimeSpan.FromHours(6));
+            }
+        }
 
         /* hryvnia rates from the National Bank of Ukraine, for euros next to prices */
         async void LoadRates()
