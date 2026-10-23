@@ -1,8 +1,8 @@
 {
-  "version": "5.9",
-  "minNative": "5.9",
+  "version": "6.0",
+  "minNative": "6.0",
   "files": {
-    "index.html": "cae43a719c1f4e4eefc11ffb5bb68989e24a01a60797395de43268e83622716f",
+    "index.html": "a70d6a3f8064c6ea60ac820c099ad7c98ea05e812322e7bc583e0f9769d2eec4",
     "browser.html": "421b0a08f26af2bc25f08e482c87574c88d006edeb9f1d2b515b5427cf0bc733",
     "newtab.html": "fe5a8e7c5edfdba0ad400bb50f6412fc794044f9af8d95fe8967d5610ce243c7"
   }

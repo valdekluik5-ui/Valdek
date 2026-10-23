@@ -5,6 +5,10 @@ Both apps (Windows and Android) read `version.json` here from the **main** branc
 background, check each one against its SHA-256 sum, and switch to them at the next start. The pages keep the
 same address inside the app, so progress, notes, PIN and sync settings are untouched.
 
+When the Valdek repository is private, the apps (6.0 and newer) read the same files through the GitHub API with
+the sync token. The token then needs access to this repository too (Contents). The page checks each file's sum
+before handing it to the app.
+
 To publish an update:
 
 1. Change `launchpad/index.html` (and raise `APP_VERSION`) and/or `dragon-windows/browser.html`, `newtab.html`.

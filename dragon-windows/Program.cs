@@ -61,7 +61,7 @@ namespace Dragon
         readonly string stateFile = Path.Combine(DataDir, "window.json");
         readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 8 * 1024 * 1024 };
         WindowState state = new WindowState();
-        string appDir, updateApplied;                                   // where the pages are served from (installed or updated)
+        string appDir, builtInDir, updateApplied;                                   // where the pages are served from (installed or updated)
 
         readonly SplitContainer split = new SplitContainer();
         readonly WebView2 dragon = new WebView2();
@@ -140,7 +140,7 @@ namespace Dragon
         {
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
             appDir = Path.Combine(baseDir, "app");
-            var builtIn = appDir;
+            var builtIn = builtInDir = appDir;
             if (!File.Exists(Path.Combine(appDir, "index.html")))
             {
                 MessageBox.Show(this, "Dragon's files are missing next to Dragon.exe.\n\nRun Dragon-Setup.exe again to reinstall.", "Dragon", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -238,6 +238,13 @@ namespace Dragon
             if (text == "lock") { locked = true; ApplyLock(); return; }
             if (text == "unlock") { locked = false; ApplyLock(); return; }
             var m = Msg(e);
+            if (Str(m, "type") == "stage" && m.TryGetValue("files", out var fo) && fo is Dictionary<string, object> fd)
+            {
+                var files = fd.ToDictionary(kv => kv.Key, kv => System.Text.Encoding.UTF8.GetBytes(Convert.ToString(kv.Value)));
+                var ready = Updater.Offer(builtInDir, Updater.CurrentVersion(appDir), Str(m, "version"), Str(m, "minNative"), files);
+                if (ready != null) Post(dragon, new { type = "update", state = "ready", version = ready });
+                return;
+            }
             if (Str(m, "type") == "skin")
             {
                 skin = Str(m, "skin"); accent = Str(m, "accent");

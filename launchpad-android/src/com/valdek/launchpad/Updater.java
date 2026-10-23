@@ -62,16 +62,31 @@ final class Updater {
             String sum = m.getJSONObject("files").getString("index.html");
             byte[] page = get(CHANNEL + "index.html?v=" + version);
             if (!hex(MessageDigest.getInstance("SHA-256").digest(page)).equalsIgnoreCase(sum)) return null;
-            File tmp = new File(staged.getPath() + ".part");
-            deleteAll(tmp);
-            if (!tmp.mkdirs()) return null;
-            write(new File(tmp, "index.html"), page);
-            write(new File(tmp, "version.txt"), version.getBytes("UTF-8"));
-            deleteAll(staged);
-            return tmp.renameTo(staged) ? version : null;
+            return stage(version, page);
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /* a page the Dragon page fetched from the private repository with the sync token (it checked the sum) */
+    String offer(String version, String minNative, String page) {
+        try {
+            if (!newer(version, current()) || newer(minNative, installed) || page == null || page.isEmpty()) return null;
+            if (version.equals(read(new File(staged, "version.txt")))) return version;
+            return stage(version, page.getBytes("UTF-8"));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private synchronized String stage(String version, byte[] page) throws Exception {
+        File tmp = new File(staged.getPath() + ".part");
+        deleteAll(tmp);
+        if (!tmp.mkdirs()) return null;
+        write(new File(tmp, "index.html"), page);
+        write(new File(tmp, "version.txt"), version.getBytes("UTF-8"));
+        deleteAll(staged);
+        return tmp.renameTo(staged) ? version : null;
     }
 
     static boolean newer(String a, String b) {

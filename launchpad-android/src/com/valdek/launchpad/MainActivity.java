@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -84,6 +85,8 @@ public class MainActivity extends Activity {
             }
         });
 
+        web.addJavascriptInterface(new Bridge(), "DragonApp");
+
         if (state != null) web.restoreState(state);
         else web.loadUrl("file:///android_asset/index.html");
 
@@ -93,6 +96,14 @@ public class MainActivity extends Activity {
                 if (ready != null) runOnUiThread(new Runnable() { public void run() { tell("ready", ready); } });
             }
         }).start();
+    }
+
+    /* window.DragonApp in the page: hands over an update fetched with the sync token */
+    private class Bridge {
+        @JavascriptInterface
+        public boolean stage(String version, String minNative, String page) {
+            return updater.offer(version, minNative, page) != null;
+        }
     }
 
     private void tell(String what, String version) {

@@ -70,29 +70,53 @@ namespace Dragon
                 if (Parse(m.version) <= now) return null;
                 if (Parse(m.minNative) > Native) { MainForm.Log("Update " + m.version + " needs a new Dragon-Setup.exe (" + m.minNative + ")."); return null; }
                 if (ReadVersion(Staged) == Parse(m.version)) return m.version;
-
-                // start from a full copy of the installed pages, then lay the new files on top
-                var tmp = Staged + ".part";
-                if (Directory.Exists(tmp)) Directory.Delete(tmp, true);
-                Directory.CreateDirectory(tmp);
-                foreach (var f in Directory.GetFiles(builtIn)) File.Copy(f, Path.Combine(tmp, Path.GetFileName(f)));
+                var files = new Dictionary<string, byte[]>();
                 foreach (var kv in m.files)
                 {
-                    var name = Path.GetFileName(kv.Key);
-                    if (name != kv.Key || name.Length == 0) throw new Exception("bad file name in version.json: " + kv.Key);
-                    var bytes = await http.GetByteArrayAsync(Channel + Uri.EscapeDataString(name) + "?v=" + Uri.EscapeDataString(m.version));
-                    string sum;
-                    using (var sha = SHA256.Create()) sum = string.Concat(sha.ComputeHash(bytes).Select(b => b.ToString("x2")));
-                    if (!string.Equals(sum, kv.Value, StringComparison.OrdinalIgnoreCase)) throw new Exception(name + " did not match its checksum");
-                    File.WriteAllBytes(Path.Combine(tmp, name), bytes);
+                    var bytes = await http.GetByteArrayAsync(Channel + Uri.EscapeDataString(kv.Key) + "?v=" + Uri.EscapeDataString(m.version));
+                    if (!string.Equals(Sum(bytes), kv.Value, StringComparison.OrdinalIgnoreCase)) throw new Exception(kv.Key + " did not match its checksum");
+                    files[kv.Key] = bytes;
                 }
-                File.WriteAllText(Path.Combine(tmp, "version.txt"), m.version);
-                if (Directory.Exists(Staged)) Directory.Delete(Staged, true);
-                Directory.Move(tmp, Staged);
-                MainForm.Log("Update " + m.version + " downloaded; it starts next time.");
-                return m.version;
+                return Stage(builtIn, m.version, files);
             }
             catch (Exception ex) { MainForm.Log("Update check failed: " + ex.Message); return null; }
+        }
+
+        /* pages the Dragon page fetched from the private repository with the sync token (it checked their sums) */
+        public static string Offer(string builtIn, string current, string version, string minNative, Dictionary<string, byte[]> files)
+        {
+            try
+            {
+                if (Parse(version) <= Parse(current) || Parse(minNative) > Native || files.Count == 0) return null;
+                if (ReadVersion(Staged) == Parse(version)) return version;
+                return Stage(builtIn, version, files);
+            }
+            catch (Exception ex) { MainForm.Log("Update could not be saved: " + ex.Message); return null; }
+        }
+
+        static string Sum(byte[] bytes)
+        {
+            using (var sha = SHA256.Create()) return string.Concat(sha.ComputeHash(bytes).Select(b => b.ToString("x2")));
+        }
+
+        /* a full copy of the installed pages with the new files laid on top, switched in at the next start */
+        static string Stage(string builtIn, string version, Dictionary<string, byte[]> files)
+        {
+            var tmp = Staged + ".part";
+            if (Directory.Exists(tmp)) Directory.Delete(tmp, true);
+            Directory.CreateDirectory(tmp);
+            foreach (var f in Directory.GetFiles(builtIn)) File.Copy(f, Path.Combine(tmp, Path.GetFileName(f)));
+            foreach (var kv in files)
+            {
+                var name = Path.GetFileName(kv.Key);
+                if (name != kv.Key || name.Length == 0) throw new Exception("bad file name in update: " + kv.Key);
+                File.WriteAllBytes(Path.Combine(tmp, name), kv.Value);
+            }
+            File.WriteAllText(Path.Combine(tmp, "version.txt"), version);
+            if (Directory.Exists(Staged)) Directory.Delete(Staged, true);
+            Directory.Move(tmp, Staged);
+            MainForm.Log("Update " + version + " downloaded; it starts next time.");
+            return version;
         }
 
         public static string CurrentVersion(string appDir) =>

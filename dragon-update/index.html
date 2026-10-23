@@ -557,7 +557,7 @@ function projectPage(pr){ return {id:'pj-'+pr.id,tab:pr.name,title:pr.name,sub:'
 const allPages=()=>[...PAGES,...(S.projects||[]).map(projectPage)];
 const skinFor=id=>(S.skins&&S.skins[id])||PAGE_SKIN[id]||'crimson';
 function orderPages(){ const all=allPages(), ids=(S.order||[]).filter(id=>all.some(p=>p.id===id)); all.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); }); VIEW=ids.map(id=>all.find(p=>p.id===id)); }
-const APP_VERSION='5.9';
+const APP_VERSION='6.0';
 const BOOT_LINES=[`> dragon v${APP_VERSION}`,'> waking the dragon ...','> identity check'];
 const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#2fbf6a','#b3122e','#8a62b8'];
 const SKIN_NAMES={crimson:'Crimson (red)',frost:'Frost (blue)',steel:'Steel (silver)',ember:'Ember (orange)',jade:'Jade (green)'};
@@ -1311,6 +1311,24 @@ async function restoreBackup(sha){
     applyRemote({...data,updated:Date.now()}); S.updated=Date.now(); save(); await syncNow(); setSync('Backup restored on this device and synced.');
   }catch(e){ setSync(e.message==='Failed to fetch'?'No connection to GitHub.':e.message,true); }
 }
+/* updates from the private Dragon code repository, read with the sync token. The page checks each file's SHA-256
+   sum and hands the files to the phone or computer app, which switches to them at the next start. */
+const CODE_REPO='valdekluik5-ui/Valdek';
+const newerVer=(a,b)=>{ const x=String(a).split('.'), y=String(b).split('.'); for(let i=0;i<3;i++){ const p=+x[i]||0, q=+y[i]||0; if(p!==q) return p>q; } return false; };
+const sha256hex=async t=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,'0')).join('');
+let updateChecked=false;
+async function checkUpdate(){
+  const cfg=syncCfg(), android=!!window.DragonApp; if(!cfg||updateChecked||!(DESKTOP||android)) return; updateChecked=true;
+  const get=async name=>{ const r=await fetch(`https://api.github.com/repos/${CODE_REPO}/contents/dragon-update/${name}?ref=main`,{cache:'no-store',headers:{Authorization:`Bearer ${cfg.token}`,Accept:'application/vnd.github.raw+json'}});
+    if(!r.ok) throw new Error(`update ${name}: ${r.status}`); return r.text(); };
+  try{
+    const m=JSON.parse(await get('version.json')); if(!newerVer(m.version,APP_VERSION)) return;
+    const files={};
+    for(const name of android?['index.html']:Object.keys(m.files)){ const t=await get(name); if(await sha256hex(t)!==m.files[name]) return; files[name]=t; }
+    if(android){ if(DragonApp.stage(m.version,m.minNative||'0',files['index.html'])) window.dragonUpdate('ready',m.version); }
+    else hostSay({type:'stage',version:m.version,minNative:m.minNative||'0',files});
+  }catch(e){ console.warn(e.message); }
+}
 const scheduleSync=()=>{ if(!syncCfg()) return; clearTimeout(syncTimer); syncTimer=setTimeout(syncNow,4000); };
 function renderSync(){
   const box=$('#syncBox'), cfg=syncCfg();
@@ -1322,7 +1340,7 @@ function renderSync(){
       <input id="syncPass" type="password" placeholder="Sync password (8+ characters, the same on every device)" autocomplete="new-password" aria-label="Sync password">
       <button class="btn primary" id="syncOn">Connect</button></div><div class="hint" id="syncStatus"></div>
       <details><summary>How to set it up (once)</summary><ol class="steps"><li>On GitHub, create a new <b>private</b> repository, e.g. <b>dragon-data</b>.</li>
-      <li>Create a fine-grained token: <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new ↗</a>. Repository access: only that repository. Permissions: <b>Contents → Read and write</b>.</li>
+      <li>Create a fine-grained token: <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new ↗</a>. Repository access: <b>only select repositories</b> → your data repository and <b>Valdek</b> (Dragon's code, so the apps can fetch updates). Permissions: <b>Contents → Read and write</b>.</li>
       <li>Enter the repository, the token and a <b>sync password</b> here and tap Connect. Do the same on your other device with the same password.</li></ol>
       <p>Your data is encrypted twice on this device before it goes to GitHub; without the sync password nobody can read it, not even GitHub. Write the password down somewhere safe: it cannot be recovered. Every backup stays in the repository's history and can be restored from <b>Backups</b>.</p>
       <p>Each device keeps its own PIN. Progress, notes, earnings, devices and scores sync when the app opens and a few seconds after each change; the newest copy wins.</p></details>`;
@@ -1461,7 +1479,7 @@ function enter(){
   if(!locked) return; clearTimeout(bootTimer); locked=false; hostSay('unlock'); eye.stopBlinking();
   build(); bootEl.classList.add('out'); setTimeout(()=>{ bootEl.hidden=true; },350);
   requestAnimationFrame(()=>go(DESKTOP?Math.max(0,VIEW.findIndex(p=>p.id===S.pageId)):0,false));
-  syncNow();
+  syncNow(); setTimeout(checkUpdate,8000);
 }
 enterBtn.onclick=enter;
 bootEl.addEventListener('click',e=>{ if(!enterBtn.hidden&&!e.target.closest('#lock')) enter(); });
