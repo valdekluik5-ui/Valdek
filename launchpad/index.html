@@ -23,7 +23,7 @@ if('serviceWorker' in navigator&&location.protocol==='https:') addEventListener(
 </script>
 <style>
 /* Layout: one-screen phone app, swipeable pages between a tab bar and page dots.
-   Deliberately dark only. Two skins: "dragon" (obsidian, ember, gold scales) and "terminal" (green-black grid).
+   Deliberately dark only. Each page has its own skin: crimson, frost, steel or ember (terminal is kept but unused).
    The accent is the user's own pick; --gold is the dragon's fixed second colour. */
 :root{
   --accent:#d42a2a;
@@ -43,6 +43,11 @@ if('serviceWorker' in navigator&&location.protocol==='https:') addEventListener(
   --gold:#d5ebff;
   --bg:#060a14; --panel:rgba(9,15,30,.78); --panel-2:rgba(15,24,44,.9); --line:#1f2e4a;
   --ink:#e6eef8; --muted:#8fa2bb; --eye-core:#f4fbff;
+}
+:root[data-skin=steel]{
+  --gold:#d9dde3;
+  --bg:#080506; --panel:rgba(20,11,13,.8); --panel-2:rgba(32,16,19,.9); --line:#3c2329;
+  --ink:#f2eeee; --muted:#a99a9c; --eye-core:#ffffff;
 }
 :root[data-skin=ember]{
   --gold:#d6a548;
@@ -72,7 +77,9 @@ a{color:var(--accent)}
 #bgimg{position:fixed;inset:0;background:center/cover no-repeat;z-index:0}
 #bgdim{position:fixed;inset:0;background:var(--black);z-index:0;pointer-events:none}
 #pattern{position:fixed;inset:0;z-index:0;pointer-events:none}
-[data-skin=crimson] #pattern{background:radial-gradient(80% 55% at 50% 28%,color-mix(in srgb,var(--accent) 26%,transparent),transparent 70%),radial-gradient(120% 90% at 50% 40%,transparent 55%,var(--black) 100%)}
+/* crimson and steel: fine mesh, smoky top, glow behind the dragon, dark vignette */
+[data-skin=crimson] #pattern{background:radial-gradient(120% 90% at 50% 45%,transparent 50%,var(--black) 100%),radial-gradient(70% 45% at 45% 55%,color-mix(in srgb,var(--accent) 18%,transparent),transparent 70%),radial-gradient(circle,rgba(255,255,255,.07) .8px,transparent 1.3px) 0 0/5px 5px,linear-gradient(rgba(150,140,140,.12),transparent 55%)}
+[data-skin=steel] #pattern{background:radial-gradient(120% 90% at 50% 45%,transparent 50%,var(--black) 100%),radial-gradient(75% 50% at 45% 55%,rgba(150,20,28,.32),transparent 72%),radial-gradient(circle,rgba(255,255,255,.07) .8px,transparent 1.3px) 0 0/5px 5px,linear-gradient(rgba(170,165,170,.12),transparent 55%)}
 [data-skin=frost] #pattern{background:radial-gradient(90% 50% at 70% 0%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%),linear-gradient(#0c1934,var(--bg) 55%)}
 [data-skin=ember] #pattern{
   background:
@@ -85,6 +92,8 @@ a{color:var(--accent)}
   background-size:32px 32px;-webkit-mask-image:radial-gradient(ellipse at 50% 0%,#000 0%,transparent 75%);mask-image:radial-gradient(ellipse at 50% 0%,#000 0%,transparent 75%)}
 body.has-bg #pattern{display:none}
 #fx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+#fx,#pattern{transition:opacity .22s}
+body.swap #fx,body.swap #pattern{opacity:0}
 [data-style=terminal] #fx,[data-style=terminal] #bootfx{display:none}
 #bootfx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 
@@ -113,7 +122,7 @@ header{position:relative;z-index:2;padding-top:10px;padding-left:max(16px,env(sa
 .wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 h2{font:700 23px/1.15 var(--display);margin:4px 0 0;letter-spacing:.04em;text-wrap:balance}
 h2::before{content:var(--h-mark);color:var(--accent);font-size:.7em;vertical-align:.12em}
-[data-skin=crimson] h2,[data-skin=frost] h2{text-transform:uppercase;letter-spacing:.08em;font-size:21px}
+[data-skin=crimson] h2,[data-skin=frost] h2,[data-skin=steel] h2{text-transform:uppercase;letter-spacing:.08em;font-size:21px}
 [data-style=terminal] h2{font-size:20px;letter-spacing:.01em}
 [data-style=terminal] h2::before{font-size:1em;vertical-align:0}
 .sub{color:var(--muted);font-size:15px;margin:-8px 0 0}
@@ -297,13 +306,14 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
   <div class="in" role="dialog" aria-label="Settings">
     <h3>Settings <button class="iconbtn" id="closeSettings" aria-label="Close">✕</button></h3>
     <div>
-      <div class="label">Theme</div>
-      <div class="seg" id="skins"><button data-skin="crimson">Crimson</button><button data-skin="frost">Frost</button><button data-skin="ember">Ember</button><button data-skin="terminal">Terminal</button></div>
+      <div class="label">Page looks</div>
+      <div class="hint">Each page has its own look: Today and Flips crimson, Cyber path frost, Income steel, My apps ember.</div>
     </div>
     <div>
       <div class="label">Accent colour</div>
       <div class="swatches" id="swatches"></div>
-      <div class="hint">Tap the rainbow circle to pick any colour. Current: <span class="hex" id="hex"></span></div>
+      <div class="row"><button class="btn" id="pageColours">Use page colours</button></div>
+      <div class="hint">A colour here replaces every page's own colour. Tap the rainbow circle for any colour. Current: <span class="hex" id="hex"></span></div>
     </div>
     <div>
       <div class="label">Background picture</div>
@@ -413,26 +423,30 @@ const PAGES=[
 ];
 const STATUSES=['Bought','Repairing','Fixed','Listed','Sold'];
 const SKINS={
-  crimson:{style:'dragon',dragon:'chrome',accent:'#d42a2a',presets:['#d42a2a','#b3122e','#ff4d3d','#e0e0e0','#5fb4ea','#c99a3b','#3a9d5d'],
-    boot:['> launchpad v3.0','> waking the dragon ...','> identity check'],done:'Every task done. The dragon bows to you.'},
-  frost:{style:'dragon',dragon:'bolt',accent:'#5fb4ea',presets:['#5fb4ea','#3d8bff','#8fd3ff','#7a6cf0','#4fd1c5','#d42a2a','#e0e0e0'],
-    boot:['> launchpad v3.0','> storm over the peaks ...','> identity check'],done:'Every task done. The storm is yours.'},
-  ember:{style:'dragon',dragon:'gold',accent:'#c9532c',presets:['#c9532c','#c99a3b','#a8323a','#3f8f6b','#5b8fb0','#8a62b8','#3a9d5d'],
-    boot:['> launchpad v3.0','> the lair stirs ...','> identity check'],done:'Every task done. The hoard is yours.'},
-  terminal:{style:'terminal',accent:'#3a9d5d',presets:['#3a9d5d','#2f8f8a','#4a7fc1','#8a6cc9','#c0773a','#b8a23a','#c25b6e'],
-    boot:['> launchpad v3.0','> loading modules: cyber · income · apps · flips','> identity check'],done:'All tasks done. Access level: legend.'}
+  crimson:{style:'dragon',accent:'#d42a2a',done:'Every task done. The dragon bows to you.'},
+  frost:{style:'dragon',accent:'#4fb3f0',done:'Every task done. The storm is yours.'},
+  steel:{style:'dragon',accent:'#d9dde3',done:'Every task done. Forged.'},
+  ember:{style:'dragon',accent:'#d0592f',done:'Every task done. The hoard is yours.'},
+  terminal:{style:'terminal',accent:'#3a9d5d',done:'All tasks done. Access level: legend.'}
 };
+/* look for each page, in PAGES order; the start and lock screens always use crimson */
+const PAGE_SKINS=['crimson','frost','steel','ember','crimson'];
+const BOOT_LINES=['> launchpad v3.0','> waking the dragon ...','> identity check'];
+const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#b3122e','#8a62b8','#3a9d5d'];
+let SK='crimson';
+const ACC=()=>S.accent||SKINS[SK].accent;
 const RAINBOW='conic-gradient(red,yellow,lime,cyan,blue,magenta,red)';
 
 /* ---------- state ---------- */
 const KEY='launchpad.v1';
-const blank=()=>({checked:{},closed:{},notes:{},flips:[],skin:'crimson',accent:SKINS.crimson.accent,bg:'',dim:55,page:0,pinHash:'',pinSalt:'',v3:1});
+const blank=()=>({checked:{},closed:{},notes:{},flips:[],accent:'',bg:'',dim:55,page:0,pinHash:'',pinSalt:'',v3:1,v4:1});
 let S=blank();
 try{ const saved=JSON.parse(localStorage.getItem(KEY)||'{}');
   if(!saved.skin&&saved.accent==='#3a9d5d') delete saved.accent; // v1 default green → new default
   if(saved.skin==='dragon'){ saved.skin='crimson'; if(saved.accent==='#c9532c') delete saved.accent; } // v2 dragon → crimson
   if(saved.skin&&!SKINS[saved.skin]) delete saved.skin;
   if(!saved.v3){ saved.v3=1; if(saved.skin&&saved.skin!=='crimson'){ saved.skin='crimson'; delete saved.accent; } }
+  if(!saved.v4){ saved.v4=1; saved.accent=''; delete saved.skin; } // v4: each page has its own look
   Object.assign(S,saved); }catch(e){}
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); return true; }catch(e){ return false; } }
 
@@ -454,60 +468,79 @@ function flipTotals(){
 
 /* ---------- theme ---------- */
 function applyTheme(){
-  const root=document.documentElement, r=root.style; root.dataset.skin=S.skin; root.dataset.style=SKINS[S.skin].style; r.setProperty('--accent',S.accent);
-  const h=S.accent.replace('#',''); const [R,G,B]=[0,2,4].map(i=>parseInt(h.substr(i,2),16)/255).map(c=>c<=.03928?c/12.92:((c+.055)/1.055)**2.4);
+  const root=document.documentElement, r=root.style, acc=ACC(); root.dataset.skin=SK; root.dataset.style=SKINS[SK].style; r.setProperty('--accent',acc);
+  const [R,G,B]=[1,3,5].map(i=>parseInt(acc.slice(i,i+2),16)/255).map(c=>c<=.03928?c/12.92:((c+.055)/1.055)**2.4);
   const L=.2126*R+.7152*G+.0722*B; r.setProperty('--on-accent',L>.18?'#140806':'#ffffff');
   $('#bgimg').style.backgroundImage=S.bg?`url("${S.bg}")`:'none';
   $('#bgdim').style.opacity=S.bg?S.dim/100:0;
   document.body.classList.toggle('has-bg',!!S.bg);
-  fx.toggle(SKINS[S.skin].style==='dragon');
+  fx.toggle(SKINS[SK].style==='dragon');
   if(!$('#boot').hidden) paintBoot();
+}
+/* switch look with a short fade of the backdrop */
+let swapT;
+function setSkin(name,instant){
+  if(name===SK&&!instant) return; clearTimeout(swapT);
+  if(instant||reduceMotion){ SK=name; applyTheme(); document.body.classList.remove('swap'); return; }
+  document.body.classList.add('swap'); swapT=setTimeout(()=>{ SK=name; applyTheme(); requestAnimationFrame(()=>document.body.classList.remove('swap')); },180);
 }
 const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
 /* backdrop scene: glowing tribal dragon, frost mountains, sparks or snow */
-/* tribal dragon in a 100×160 box: a glowing S-shaped spine with blade spikes, a bladed head and mane, clawed arms and a coiled tail */
-function tcub(c,n=40){ const p=[]; for(let i=0;i<=n;i++){ const t=i/n,u=1-t; p.push([u*u*u*c[0]+3*u*u*t*c[2]+3*u*t*t*c[4]+t*t*t*c[6], u*u*u*c[1]+3*u*u*t*c[3]+3*u*t*t*c[5]+t*t*t*c[7]]); } return p; }
+/* tribal dragon in a 100×160 box: upright S body coiling at the bottom, head top right, flowing flame mane,
+   white-hot core with coloured glow, bloom at chest and coil, scattered sparks */
+function tcub(c,n=36){ const p=[]; for(let i=0;i<=n;i++){ const t=i/n,u=1-t; p.push([u*u*u*c[0]+3*u*u*t*c[2]+3*u*t*t*c[4]+t*t*t*c[6], u*u*u*c[1]+3*u*u*t*c[3]+3*u*t*t*c[5]+t*t*t*c[7]]); } return p; }
 function tchain(cs){ let p=[]; cs.forEach((c,i)=>{ const q=tcub(c); p=p.concat(i?q.slice(1):q); }); return p; }
-const TPROF={ out:(t,w)=>w*Math.pow(1-t,.75), swell:(t,w)=>w*Math.min(1,.55+t*4)*(.22+.78*Math.pow(1-t,.8)), blade:(t,w)=>w*Math.pow(Math.sin(Math.PI*t),.55)*(1-t*.3) };
-const SPINE=tchain([[58,30,50,34,38,44,44,58],[44,58,50,72,70,72,66,90],[66,90,62,106,38,102,36,120],[36,120,34,138,60,146,72,134],[72,134,82,124,72,110,60,116],[60,116,50,122,58,138,86,150]]);
-function tangent(p,i){ const a=p[Math.max(0,i-1)], b=p[Math.min(p.length-1,i+1)], dx=b[0]-a[0], dy=b[1]-a[1], m=Math.hypot(dx,dy)||1; return [dx/m,dy/m]; }
-/* blades growing off the spine, swept back toward the tail, alternating sides */
-function spineBlades(){ const out=[], n=SPINE.length-1;
-  for(let k=0;k<13;k++){ const t=.05+k/13*.6, i=Math.round(t*n), [px,py]=SPINE[i], [tx,ty]=tangent(SPINE,i), dorsal=k%4!==3, side=dorsal?-1:1, nx=-ty*side, ny=tx*side;
-    const len=(dorsal?22-10*t:10-4*t)*(1+.15*Math.sin(k*2.1)), w=dorsal?10-5*t:5-2*t;
-    out.push([tcub([px,py, px+nx*len*.5,py+ny*len*.5, px+nx*len*.95+tx*len*.4,py+ny*len*.95+ty*len*.4, px+nx*len*.6+tx*len*1.15,py+ny*len*.6+ty*len*1.15]),w,'out']); }
-  /* small flames on the outside of the tail coil */
-  for(let k=0;k<5;k++){ const i=Math.round((.68+k*.05)*n), [px,py]=SPINE[i], [tx,ty]=tangent(SPINE,i), nx=-ty, ny=tx, len=9;
-    out.push([tcub([px,py, px+nx*len*.5,py+ny*len*.5, px+nx*len*.9+tx*len*.4,py+ny*len*.9+ty*len*.4, px+nx*len*.5+tx*len*1.1,py+ny*len*.5+ty*len*1.1]),4.5,'out']); }
-  return out; }
-const TRIBAL=[
-  ...spineBlades(),
-  [SPINE,12,'swell'],
-  /* head: mane flames and horn behind, then jaws */
-  [tcub([58,24,56,14,50,6,40,0]),9,'out'],[tcub([56,26,50,18,42,14,30,13]),8.5,'out'],[tcub([55,30,46,26,36,27,26,31]),8,'out'],
-  [tcub([54,34,46,35,39,39,33,47]),7,'out'],[tcub([61,22,63,12,63,4,59,-4]),6,'out'],
-  [tcub([56,31,64,20,74,12,89,6]),8.5,'out'],[tcub([58,33,66,31,74,29,86,27]),4.8,'out'],
-  [tcub([61,22,65,16,71,13,79,12]),3,'out'],
-  [tcub([87,7,94,3,97,11,100,4]),1.8,'out'],[tcub([84,27,90,31,92,37,98,38]),1.6,'out'],
-  /* front arm with claws */
-  [tcub([46,60,56,58,62,54,68,56]),5.5,'out'],[tcub([66,55,72,50,75,49,79,44]),2.6,'out'],[tcub([67,56,73,56,77,58,82,56]),2.6,'out'],[tcub([66,57,70,61,72,64,74,68]),2.2,'out'],
-  /* hind arm with claws */
-  [tcub([40,108,30,108,24,104,17,106]),5,'out'],[tcub([19,105,15,100,12,98,9,93]),2.4,'out'],[tcub([19,106,13,107,10,109,5,108]),2.4,'out'],[tcub([19,107,16,111,15,114,14,119]),2,'out'],
-  /* tail fin */
-  [tcub([82,148,88,144,93,139,97,131]),4.5,'out'],[tcub([82,149,89,152,94,156,100,157]),4,'out'],[tcub([84,150,90,149,96,148,100,145]),3,'out']
-];
+function ttan(p,i){ const a=p[Math.max(0,i-1)], b=p[Math.min(p.length-1,i+1)], dx=b[0]-a[0], dy=b[1]-a[1], m=Math.hypot(dx,dy)||1; return [dx/m,dy/m]; }
+const TPROF={ out:(t,w)=>w*Math.pow(1-t,.7), body:(t,w)=>w*Math.min(1,.6+t*5)*(.2+.8*Math.pow(1-t,.85)) };
+/* an S-shaped flame from base, heading at angle a (degrees), with curl flipping the bend halfway */
+function flame(bx,by,a,len,curl,w){ const r=a*Math.PI/180, dx=Math.cos(r), dy=Math.sin(r), nx=-dy, ny=dx;
+  return [tcub([bx,by, bx+dx*len*.35+nx*curl*len*.22,by+dy*len*.35+ny*curl*len*.22, bx+dx*len*.72-nx*curl*len*.18,by+dy*len*.72-ny*curl*len*.18, bx+dx*len+nx*curl*len*.12,by+dy*len+ny*curl*len*.12]),w,'out']; }
+const TSPINE=tchain([[60,33,52,38,41,44,39,56],[39,56,37,68,61,70,64,84],[64,84,67,100,45,103,37,116],[37,116,31,134,52,147,67,138],[67,138,81,128,73,108,57,112],[57,112,45,115,44,130,26,142]]);
+function tribalShapes(){
+  const S=[], n=TSPINE.length-1;
+  /* mane: long flowing flames from the back of the head and neck, sweeping up and back */
+  [[61,26,-118,40,1,7],[59,28,-132,38,-1,7],[57,31,-146,34,1,6.5],[54,34,-158,30,-1,6],[50,37,-168,27,1,5.5],[46,41,-178,24,-1,5],[43,46,172,21,1,4.5],[63,25,-100,30,-1,5.5]]
+    .forEach(([x,y,a,l,c,w])=>S.push(flame(x,y,a,l,c,w)));
+  /* back and coil flames: flowing, swept toward the tail, on the outer side */
+  for(let k=0;k<12;k++){ const t=.1+k/12*.36, i=Math.round(t*n), [px,py]=TSPINE[i], [tx,ty]=ttan(TSPINE,i), nx=ty, ny=-tx;
+    const a=Math.atan2(ny*.6+ty*.8,nx*.6+tx*.8)*180/Math.PI, len=(28-20*(t-.1)/.36)*(1+.22*Math.sin(k*2.7));
+    S.push(flame(px,py,a,len,k%2?1:-1,9.5-4*(t-.1)/.36)); }
+  for(let k=0;k<9;k++){ const t=.5+k/9*.33, i=Math.round(t*n), [px,py]=TSPINE[i], [tx,ty]=ttan(TSPINE,i), nx=-ty, ny=tx;
+    const a=Math.atan2(ny*.45+ty*.9,nx*.45+tx*.9)*180/Math.PI, len=11+9*Math.abs(Math.sin(k*1.9));
+    S.push(flame(px,py,a,len,k%2?1:-1,5.5)); }
+  S.push([TSPINE,16,'body']);
+  /* head: horn, jaws, brow, whiskers */
+  S.push([tcub([60,31,68,22,79,17,94,14]),10,'out'],[tcub([62,34,70,33,79,32,91,31]),5.5,'out'],[tcub([63,25,68,19,74,16,82,15]),3,'out'],
+    [tcub([62,24,62,14,59,6,54,-3]),5,'out'],[tcub([92,15,97,10,95,4,100,0]),1.6,'out'],[tcub([88,31,94,35,94,42,99,45]),1.5,'out']);
+  /* front arm and claws */
+  S.push([tcub([41,60,51,58,59,54,67,55]),5.5,'out'],[tcub([65,54,70,49,73,48,77,43]),2.6,'out'],[tcub([66,55,72,55,76,57,81,55]),2.6,'out'],[tcub([65,56,69,60,71,63,73,67]),2.2,'out']);
+  /* rear arm and claws reaching left out of the coil */
+  S.push([tcub([40,110,30,110,23,106,16,108]),5,'out'],[tcub([18,107,14,102,11,100,8,95]),2.4,'out'],[tcub([18,108,12,109,9,111,4,110]),2.4,'out'],[tcub([18,109,15,113,14,116,13,121]),2,'out']);
+  /* tail flames */
+  S.push(flame(27,141,200,14,1,4.5),flame(27,142,165,12,-1,4),flame(28,141,230,10,1,3));
+  return S;
+}
+const TSHAPES=tribalShapes();
 function drawTribal(x,ox,oy,h,look){
   const k=h/160; x.save(); x.translate(ox,oy); x.scale(k,k);
-  const shape=(pts,w,prof,wk)=>{ const L=[],R=[],n=pts.length-1;
-    for(let i=0;i<=n;i++){ const [tx,ty]=tangent(pts,i), hw=TPROF[prof](i/n,w)/2*wk; L.push([pts[i][0]-ty*hw,pts[i][1]+tx*hw]); R.push([pts[i][0]+ty*hw,pts[i][1]-tx*hw]); }
+  const fillShape=(pts,w,prof,wk)=>{ const L=[],R=[],n=pts.length-1;
+    for(let i=0;i<=n;i++){ const [tx,ty]=ttan(pts,i), hw=TPROF[prof](i/n,w)/2*wk; L.push([pts[i][0]-ty*hw,pts[i][1]+tx*hw]); R.push([pts[i][0]+ty*hw,pts[i][1]-tx*hw]); }
     x.beginPath(); L.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])); R.reverse().forEach(p=>x.lineTo(p[0],p[1])); x.closePath(); x.fill(); };
-  for(const ps of [{blur:30,col:look.glow,wk:1.1,a:.6},{blur:8,col:look.mid,wk:1,a:1},{blur:2,col:look.core,wk:.42,a:.95}]){
+  for(const ps of [{blur:34,col:look.glow,wk:1.15,a:.5},{blur:9,col:look.mid,wk:1,a:1},{blur:3,col:look.core,wk:.45,a:.95}]){
     x.save(); x.globalAlpha*=ps.a; x.shadowBlur=ps.blur*k; x.shadowColor=look.glow; x.fillStyle=ps.col;
-    for(const [pts,w,prof] of TRIBAL) shape(pts,w,prof,ps.wk);
-    x.restore(); }
+    for(const [pts,w,prof] of TSHAPES) fillShape(pts,w,prof,ps.wk); x.restore(); }
+  /* bloom where the light bursts: chest, coil, head */
+  x.save(); x.globalCompositeOperation='lighter';
+  for(const [bx,by,r,a] of [[44,64,26,.55],[40,122,22,.5],[70,24,14,.3]]){ const g=x.createRadialGradient(bx,by,0,bx,by,r); g.addColorStop(0,`rgba(255,255,255,${a})`); g.addColorStop(.35,look.glowA(a*.8)); g.addColorStop(1,look.glowA(0)); x.fillStyle=g; x.fillRect(bx-r,by-r,r*2,r*2); }
+  /* sparks scattering out from the coil */
+  let s=29; const rnd=()=>(s=(s*16807)%2147483647)/2147483647;
+  x.lineCap='round';
+  for(let i=0;i<70;i++){ const left=i%3===0, cx=left?30:62, cy=left?122:96, a=(left?Math.PI*(.75+rnd()*.6):-Math.PI*(.35-rnd()*.6)), d=12+rnd()*30, l=.8+rnd()*3.2, px=cx+Math.cos(a)*d, py=cy+Math.sin(a)*d*.7;
+    x.strokeStyle=rnd()<.5?'rgba(255,255,255,.8)':look.glowA(.9); x.lineWidth=.35+rnd()*.5; x.beginPath(); x.moveTo(px,py); x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l*.7); x.stroke(); }
+  x.restore();
   /* eye */
-  x.save(); x.shadowBlur=10*k; x.shadowColor='#fff'; x.fillStyle='#000'; x.beginPath(); x.ellipse(70,19,2.6,1.1,-.55,0,6.283); x.fill(); x.restore();
+  x.fillStyle='#000'; x.beginPath(); x.ellipse(72,22.5,2.6,1.1,-.5,0,6.283); x.fill();
   x.restore();
 }
 function drawMountains(x,W,H){
@@ -522,21 +555,25 @@ function drawMountains(x,W,H){
   const g=x.createLinearGradient(0,H*.88,0,H); g.addColorStop(0,'#070c18'); g.addColorStop(1,'#16233b'); x.fillStyle=g; x.fillRect(0,H*.88,W,H*.12);
 }
 /* glow in the accent colour, a lighter middle and a near-white core */
+/* glow in the accent colour, a lighter middle and a near-white core */
 function sceneLook(){ const acc=cssVar('--accent'), c=[1,3,5].map(i=>parseInt(acc.slice(i,i+2),16)), mix=k=>`rgb(${c.map(v=>Math.round(v+(255-v)*k)).join(',')})`;
-  return {glow:acc,mid:mix(.25),core:mix(.88)}; }
-/* where: 'bg' = behind the pages (dragon fills the page height, centred), 'boot' = start screen (no dragon) */
+  return {glow:acc,mid:mix(.25),core:mix(.88),glowA:a=>`rgba(${c.join(',')},${a})`}; }
+/* where: 'bg' = behind the pages (dragon fills the page height, centred), 'boot' = start screen (nothing) */
 function paintScene(x,W,H,where){
   x.clearRect(0,0,W,H);
-  if(SKINS[S.skin].style!=='dragon'||(where==='bg'&&S.bg)) return;
-  if(S.skin==='frost') drawMountains(x,W,H);
-  if(where==='boot') return;
+  if(where==='boot'||SKINS[SK].style!=='dragon'||S.bg) return;
+  if(SK==='frost') drawMountains(x,W,H);
+  /* faint smoke drifting at the top */
+  let s=5; const rnd=()=>(s=(s*16807)%2147483647)/2147483647;
+  for(let i=0;i<7;i++){ const cx=W*(.2+rnd()*.7), cy=H*(.05+rnd()*.35), r=W*(.18+rnd()*.25), g=x.createRadialGradient(cx,cy,0,cx,cy,r);
+    g.addColorStop(0,`rgba(200,200,205,${.035+rnd()*.03})`); g.addColorStop(1,'rgba(200,200,205,0)'); x.fillStyle=g; x.fillRect(cx-r,cy-r,r*2,r*2); }
   const h=Math.min(H*.96,W*1.08/.625);
-  x.globalAlpha=S.skin==='frost'?.34:.38; drawTribal(x,(W-h*.625)/2,(H-h)/2,h,sceneLook()); x.globalAlpha=1;
+  x.globalAlpha=.5; drawTribal(x,(W-h*.625)/2,(H-h)/2,h,sceneLook()); x.globalAlpha=1;
 }
 function fitCanvas(c){ const d=Math.min(2,devicePixelRatio||1), W=c.clientWidth, H=c.clientHeight; c.width=W*d; c.height=H*d; const x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); return [x,W,H]; }
 
 const fx=(()=>{
-  const c=$('#fx'), still=document.createElement('canvas'); let x, W=0, H=0, ps=[], raf=0, on=false, snow=false, col='#fff', gold='#fff';
+  const c=$('#fx'), cache=new Map(); let still, x, W=0, H=0, ps=[], raf=0, on=false, snow=false, col='#fff', gold='#fff';
   function spawn(y){ return {x:Math.random()*W,y:y??(snow?-10:H+10),r:(snow?.6:.8)+Math.random()*1.8,v:(snow?.35:.25)+Math.random()*.6,ph:Math.random()*6.28,g:Math.random()<.35}; }
   function frame(){ x.clearRect(0,0,W,H); x.drawImage(still,0,0,W,H);
     for(const p of ps){ p.ph+=.03; p.x+=Math.sin(p.ph)*(snow?.5:.3); p.y+=snow?p.v:-p.v;
@@ -545,8 +582,10 @@ const fx=(()=>{
       x.fillStyle=snow?'#eaf4ff':p.g?gold:col; x.beginPath(); x.arc(p.x,p.y,p.r,0,6.283); x.fill(); }
     x.globalAlpha=1; if(!reduceMotion) raf=requestAnimationFrame(frame); }
   function start(){ cancelAnimationFrame(raf); [x,W,H]=fitCanvas(c);
-    const d=Math.min(2,devicePixelRatio||1); still.width=W*d; still.height=H*d; const sx=still.getContext('2d'); sx.setTransform(d,0,0,d,0,0); paintScene(sx,W,H,'bg');
-    snow=S.skin==='frost'; col=cssVar('--accent'); gold=cssVar('--gold');
+    const key=[SK,ACC(),W,H,!!S.bg].join('|'); still=cache.get(key);
+    if(!still){ const d=Math.min(2,devicePixelRatio||1); still=document.createElement('canvas'); still.width=W*d; still.height=H*d; const sx=still.getContext('2d'); sx.setTransform(d,0,0,d,0,0); paintScene(sx,W,H,'bg');
+      if(cache.size>8) cache.delete(cache.keys().next().value); cache.set(key,still); }
+    snow=SK==='frost'; col=cssVar('--accent'); gold=cssVar('--gold');
     ps=Array.from({length:Math.round(W*H/(snow?9000:22000))+10},()=>spawn(Math.random()*H)); frame(); }
   addEventListener('resize',()=>{ if(on) start(); if(!$('#boot').hidden) paintBoot(); });
   document.addEventListener('visibilitychange',()=>{ if(!on) return; if(document.hidden) cancelAnimationFrame(raf); else start(); });
@@ -577,7 +616,7 @@ function todayHtml(){
       <div class="from">${esc(next.page.tab)} · ${esc(next.group.title)}</div>
       <div class="t">${esc(next.t)}</div>${next.d?`<div class="d">${esc(next.d)}</div>`:''}
       <div class="row"><button class="btn primary" data-done="${next.id}">✓ Done</button>${linkHtml(next.url)}</div>`
-      :`<div class="alldone">${esc(SKINS[S.skin].done)}</div>`}
+      :`<div class="alldone">${esc(SKINS[SK].done)}</div>`}
     </section>
     ${after.length?`<section class="card"><div class="label">Up next</div><ol class="upnext">${after.map((t,i)=>`<li><span>0${i+2}</span><span>${esc(t.t)}<br><small>${esc(t.page.tab)}</small></span></li>`).join('')}</ol></section>`:''}
     <section class="card"><div class="label">Progress · ${done}/${all}</div><div class="prog">
@@ -657,7 +696,7 @@ const renderToday=()=>renderPage(PAGES[0]);
 /* ---------- navigation ---------- */
 let cur=-1;
 function setActive(i){
-  if(i===cur) return; cur=i; S.page=i; save();
+  if(i===cur) return; cur=i; S.page=i; save(); if(!locked) setSkin(PAGE_SKINS[i]||'crimson');
   tabsEl.querySelectorAll('.tab').forEach((t,j)=>{ t.setAttribute('aria-selected',j===i); if(j===i) t.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'}); });
   dotsEl.querySelectorAll('.dot').forEach((d,j)=>d.classList.toggle('on',j===i));
 }
@@ -708,11 +747,10 @@ document.addEventListener('submit',e=>{
 /* ---------- settings ---------- */
 const sheet=$('#sheet');
 function renderSettings(){
-  const presets=SKINS[S.skin].presets;
-  $('#skins').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.skin===S.skin));
-  $('#swatches').innerHTML=presets.map(c=>`<button class="sw${c===S.accent?' on':''}" style="background:${c}" data-c="${c}" aria-label="Accent ${c}"></button>`).join('')+
-    `<span class="picker" style="background:${presets.includes(S.accent)?RAINBOW:S.accent}"><input type="color" id="custom" value="${S.accent}" aria-label="Pick any colour"></span>`;
-  $('#hex').textContent=S.accent; $('#dim').value=S.dim; $('#dimVal').textContent=S.dim+'%';
+  $('#swatches').innerHTML=PRESETS.map(c=>`<button class="sw${c===S.accent?' on':''}" style="background:${c}" data-c="${c}" aria-label="Accent ${c}"></button>`).join('')+
+    `<span class="picker" style="background:${!S.accent||PRESETS.includes(S.accent)?RAINBOW:S.accent}"><input type="color" id="custom" value="${ACC()}" aria-label="Pick any colour"></span>`;
+  $('#pageColours').setAttribute('aria-pressed',!S.accent); $('#pageColours').disabled=!S.accent;
+  $('#hex').textContent=S.accent||'page colours'; $('#dim').value=S.dim; $('#dimVal').textContent=S.dim+'%';
   $('#thumb').style.backgroundImage=S.bg?`url("${S.bg}")`:'none'; $('#bgRemove').disabled=!S.bg;
 }
 function bgMsg(text){ const m=$('#bgMsg'); m.textContent=text; m.hidden=!text; }
@@ -721,7 +759,7 @@ $('#openSettings').onclick=()=>{ renderSettings(); bgMsg(''); sheet.hidden=false
 $('#closeSettings').onclick=()=>sheet.hidden=true;
 sheet.addEventListener('click',e=>{ if(e.target===sheet) sheet.hidden=true;
   const c=e.target.closest('[data-c]'); if(c){ S.accent=c.dataset.c; save(); applyTheme(); renderSettings(); }
-  const sk=e.target.closest('[data-skin]'); if(sk&&sk.dataset.skin!==S.skin){ S.skin=sk.dataset.skin; S.accent=SKINS[S.skin].accent; save(); applyTheme(); renderSettings(); rerenderAll(); } });
+  if(e.target.closest('#pageColours')){ S.accent=''; save(); applyTheme(); renderSettings(); } });
 sheet.addEventListener('input',e=>{
   if(e.target.id==='custom'){ S.accent=e.target.value; save(); applyTheme(); $('#hex').textContent=S.accent; e.target.parentElement.style.background=S.accent; sheet.querySelectorAll('.sw').forEach(s=>s.classList.remove('on')); }
   if(e.target.id==='dim'){ S.dim=+e.target.value; save(); applyTheme(); $('#dimVal').textContent=S.dim+'%'; }
@@ -744,7 +782,7 @@ $('#bgRemove').onclick=()=>{ S.bg=''; save(); applyTheme(); renderSettings(); };
 const resetBtn=$('#reset'); let rt;
 resetBtn.onclick=()=>{
   if(!resetBtn.classList.contains('armed')){ resetBtn.classList.add('armed'); resetBtn.textContent='Tap again to erase'; rt=setTimeout(()=>{ resetBtn.classList.remove('armed'); resetBtn.textContent='Reset all progress'; },3000); return; }
-  clearTimeout(rt); const keep={skin:S.skin,accent:S.accent,bg:S.bg,dim:S.dim,pinHash:S.pinHash,pinSalt:S.pinSalt}; S=Object.assign(blank(),keep); save();
+  clearTimeout(rt); const keep={accent:S.accent,bg:S.bg,dim:S.dim,pinHash:S.pinHash,pinSalt:S.pinSalt}; S=Object.assign(blank(),keep); save();
   resetBtn.classList.remove('armed'); resetBtn.textContent='Done – progress cleared';
   setTimeout(()=>resetBtn.textContent='Reset all progress',1800);
   build(); go(0,false);
@@ -839,11 +877,11 @@ function typeGranted(){
 }
 /* full: replay the typing intro. Otherwise go straight to the PIN pad. */
 function lock(full,m){
-  clearTimeout(bootTimer); locked=true; sheet.hidden=true; clearPages();
+  clearTimeout(bootTimer); locked=true; sheet.hidden=true; clearPages(); setSkin('crimson',true);
   bootEl.hidden=false; bootEl.classList.remove('out'); paintBoot(); enterBtn.hidden=true; lockEl.hidden=true; eye.close();
   afterUnlock=full?'tap':'enter';
   const ready=()=>{ lockEl.hidden=false; promptFor(m||(S.pinHash?'enter':'new')); paintBoot(); };
-  if(full) typeLines(SKINS[S.skin].boot,ready); else { bootText.innerHTML=esc(SKINS[S.skin].boot.at(-1))+'\n'; ready(); }
+  if(full) typeLines(BOOT_LINES,ready); else { bootText.innerHTML=esc(BOOT_LINES.at(-1))+'\n'; ready(); }
 }
 function unlock(){
   lockEl.hidden=true; setMsg(''); paintBoot();
