@@ -1,5 +1,5 @@
 // Network first: always ask the server for the newest version (skipping the browser's 10-minute cache), fall back to the last copy when offline.
-const CACHE='launchpad-v1';
+const CACHE='launchpad-v2';
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
