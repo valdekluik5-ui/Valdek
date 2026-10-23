@@ -1637,7 +1637,7 @@ function bearShow(){
      thunder; then the clouds part and the sun shines from the top, they celebrate, climb back up, hug, he blows her (the viewer) a kiss,
      they wave, kiss and hug. The weather is painted over the whole screen from window.__wx (see the weather script). ===== */
   const stormEp=()=>{
-    const GS=92, XT=lx(STAND+8)-7, XB=lx(HS(GS)+8)-7, YT=HS(SH), YB=HS(GS), HX=79, SX=91, UA=[165,10], R={he:TRK(),she:TRK()}, ph={};
+    const GS=92, XT=lx(STAND+8)-7, XB=lx(HS(GS)+8)-7, YT=HS(SH), YB=HS(GS), HX=92, SX=112, UA=[165,10], R={he:TRK(),she:TRK()}, ph={};
     // under the line they stand on the baseline of the writing (GS), just below the line, not down by the menu
     const gs=o=>o.y==null&&o.ground==null?{...o,ground:GS}:o;
     const both=(n,d,fh,fs)=>{ ph[n]=R.he.T; R.he.add(d,(u,t)=>gs(fh(u,t))); R.she.add(d,(u,t)=>gs(fs(u,t))); };
@@ -1668,11 +1668,11 @@ function bearShow(){
     both('inn',1.4,(u,t)=>hold({x:lerp(XB,HX,ease(u)),dir:1,...(u<.8?W(t*8,14):{}),head:-4},[lerp(165,20,ease(cl((u-.55)/.45))),10]),
       (u,t)=>({x:SX,dir:-1,lean:7*sin(t*30)*(1-u),head:-2,eyes:'closed',arms:[[30+20*sin(t*30),40],[20,20]]}));
     // 8. shelter: he hugs her close and rubs her back to warm her while the storm roars; they jump at the thunder
-    both('hug',16,(u,t)=>{ const T0=ph.hug+t, f=flinch(T0), w=sin(t*1.6)*2; return {x:HX+1,dir:1,face:.45,lean:6+w-6*f,head:10+w*.6-10*f,lift:2*f,arms:[[58+6*sin(t*5),96+10*sin(t*5)],[50,96]],eyes:f>.3?'open':t%5<3.6?'closed':'heart'}; },
-      (u,t)=>{ const T0=ph.hug+t, f=flinch(T0), w=sin(t*1.6+1)*2, sh=1.3*(1-cl(t/6)); return {x:SX-1,dir:-1,face:.45,lean:6-w-6*f+sh*sin(t*42),head:10-w*.6-12*f+(t%5>3.6?-8:0),lift:2.5*f,arms:[[58,96],[50,96]],eyes:f>.3?'open':t%5<3.6?'closed':'heart'}; });
+    both('hug',16,(u,t)=>{ const T0=ph.hug+t, f=flinch(T0), w=sin(t*1.6)*2; return {x:HX+1,dir:1,face:.8,lean:4+w-6*f,head:12+w*.6-10*f,lift:2*f,arms:[[70+5*sin(t*4),40+8*sin(t*4)],[20,20]],eyes:f>.3?'open':t%5<3.6?'closed':'heart'}; },
+      (u,t)=>{ const T0=ph.hug+t, f=flinch(T0), w=sin(t*1.6+1)*2, sh=1.3*(1-cl(t/6)); return {x:SX-1,dir:-1,face:.8,lean:8-w-6*f+sh*sin(t*42),head:14-w*.6-12*f+(t%5>3.6?-8:0),lift:2.5*f,arms:[[60,96],[30,40]],eyes:f>.3?'open':t%5<3.6?'closed':'heart'}; });
     // 9. the rain stops, the clouds part, the sun comes out: they let go and look up, then at each other
-    both('clear',9,(u,t)=>u<.3?{x:HX+1,dir:1,face:.4,lean:4,head:8,arms:[[58,96],[50,96]],eyes:'closed'}:u<.65?{x:HX,dir:1,face:.6,head:-16,arms:[[20,20],[10,15]],eyes:'open'}:{x:HX,dir:1,head:2,arms:[[40,40],[30,30]],eyes:'heart'},
-      (u,t)=>u<.3?{x:SX-1,dir:-1,face:.4,lean:4,head:8,arms:[[58,96],[50,96]],eyes:'closed'}:u<.65?{x:SX,dir:-1,face:.6,head:-18,arms:[[20,20],[10,15]],eyes:'open'}:{x:SX,dir:-1,head:2,lift:abs(sin(t*6))*2,arms:[[150,30],[140,30]],eyes:'heart'});
+    both('clear',9,(u,t)=>u<.3?{x:HX+1,dir:1,face:.8,lean:4,head:10,arms:[[70,40],[20,20]],eyes:'closed'}:u<.65?{x:HX,dir:1,face:.6,head:-16,arms:[[20,20],[10,15]],eyes:'open'}:{x:HX,dir:1,head:2,arms:[[40,40],[30,30]],eyes:'heart'},
+      (u,t)=>u<.3?{x:SX-1,dir:-1,face:.8,lean:8,head:12,arms:[[60,96],[30,40]],eyes:'closed'}:u<.65?{x:SX,dir:-1,face:.6,head:-18,arms:[[20,20],[10,15]],eyes:'open'}:{x:SX,dir:-1,head:2,lift:abs(sin(t*6))*2,arms:[[150,30],[140,30]],eyes:'heart'});
     // 10. sunshine party: jumps, arms up, a twirl each
     both('party',3.6,(u,t)=>({x:HX,dir:1,lift:abs(sin(t*PI*1.4))*5,spin:t>1.2&&t<2.2?ease(t-1.2)*2*PI:0,arms:[[165+12*sin(t*10),20],[160,20]],eyes:'heart'}),
       (u,t)=>({x:SX,dir:-1,lift:abs(sin(t*PI*1.4+.6))*5,spin:t>2.3&&t<3.3?-ease(t-2.3)*2*PI:0,arms:[[165+12*sin(t*10+1),20],[160,20]],eyes:'heart'}));
@@ -2804,7 +2804,7 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
       [['bsShe','she'],['bsHe','he']].forEach(([id,w])=>{ const n=g(id); if(!n) return; if(front.includes(w)) fs.insertBefore(n,g('bsFront')); else mark.parentNode.insertBefore(n,mark); }); };
   };
   let EVON=null, last=null;
-  const clearEv=()=>{ document.querySelectorAll('svg[data-ev]').forEach(n=>n.remove()); EVON=null; window.__wx=null; };
+  const clearEv=()=>{ if(window.__hsLayer) window.__hsLayer(null); document.querySelectorAll('svg[data-ev]').forEach(n=>n.remove()); EVON=null; window.__wx=null; };
   const _go=go; go=function(v){ if(EVON&&!(EVON==='ev_run'&&v!=='now')) clearEv(); return _go(v); };
   function evStart(kind){ if(EVON||current!=='now') return; const svg=document.getElementById('bstage'); if(!svg) return;
     const r=svg.getBoundingClientRect(); if(!r.width||r.bottom<0||r.top>innerHeight) return;
@@ -2881,7 +2881,7 @@ const STAGE_SVG=`<svg class="bearstage" id="bstage" viewBox="0 0 380 120" aria-h
   const OPENERS='.v-now .grid2 .big[data-go], .v-play .grid2 .big[data-go]';
   window.__qmWhoosh=()=>{ if(!ensure()) return; const t=ctx.currentTime+.01, n=Math.floor(ctx.sampleRate*.5), b=ctx.createBuffer(1,n,ctx.sampleRate), d=b.getChannelData(0); for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
     const s=ctx.createBufferSource(); s.buffer=b; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.Q.value=1.3; f.frequency.setValueAtTime(450,t); f.frequency.exponentialRampToValueAtTime(2400,t+.3);
-    const g=ctx.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.05,t+.1); g.gain.exponentialRampToValueAtTime(.0001,t+.42); s.connect(f); f.connect(g); g.connect(dry); g.connect(sparkle); s.start(t); s.stop(t+.5); };
+    const g=ctx.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.016,t+.1); g.gain.exponentialRampToValueAtTime(.0001,t+.42); s.connect(f); f.connect(g); g.connect(dry); s.start(t); s.stop(t+.5); };
   addEventListener('pointerdown',()=>{ ensure(); },{capture:true,passive:true});
   addEventListener('click',e=>{ const isOpen=!!(e.target.closest&&e.target.closest(OPENERS)); setTimeout(()=>{ isOpen?open():touch(); },0); },true);
 })();
@@ -3482,7 +3482,7 @@ svg.ev-run>text,svg.ev-run>path,svg.ev-run #bsLad{display:none}
   // While the page moves, the bears and their 3D drawing pause (window.__qmPause) so the phone only has to slide the page.
   const idx=()=>IDS.indexOf(current), W=()=>innerWidth, pause=v=>{ window.__qmPause=v; };
   let on=false, lock=0, id=-1, sx=0, sy=0, dx=0, busy=false, dragEnd=0, raf=0, lx=0, lt=0, vel=0, px=0, py=0, unp=0;
-  const ok=e=>{ if(busy||idx()<0) return false; if(window.__evOn&&window.__evOn()) return false;
+  const ok=e=>{ if(busy||idx()<0) return false;
     if(document.querySelector('.overlay,.sheet-wrap,.showmsg')) return false;
     if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable],.bodymap,.field,.stirzone,canvas,[data-noswipe],.mm-wrap,.lang')) return false;
     return e.clientX>14&&e.clientX<innerWidth-14; };   // leave the screen edges to the phone's own gestures
