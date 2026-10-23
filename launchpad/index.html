@@ -426,12 +426,13 @@ const RAINBOW='conic-gradient(red,yellow,lime,cyan,blue,magenta,red)';
 
 /* ---------- state ---------- */
 const KEY='launchpad.v1';
-const blank=()=>({checked:{},closed:{},notes:{},flips:[],skin:'crimson',accent:SKINS.crimson.accent,bg:'',dim:55,page:0,pinHash:'',pinSalt:''});
+const blank=()=>({checked:{},closed:{},notes:{},flips:[],skin:'crimson',accent:SKINS.crimson.accent,bg:'',dim:55,page:0,pinHash:'',pinSalt:'',v3:1});
 let S=blank();
 try{ const saved=JSON.parse(localStorage.getItem(KEY)||'{}');
   if(!saved.skin&&saved.accent==='#3a9d5d') delete saved.accent; // v1 default green → new default
   if(saved.skin==='dragon'){ saved.skin='crimson'; if(saved.accent==='#c9532c') delete saved.accent; } // v2 dragon → crimson
   if(saved.skin&&!SKINS[saved.skin]) delete saved.skin;
+  if(!saved.v3){ saved.v3=1; if(saved.skin&&saved.skin!=='crimson'){ saved.skin='crimson'; delete saved.accent; } }
   Object.assign(S,saved); }catch(e){}
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); return true; }catch(e){ return false; } }
 
@@ -464,38 +465,78 @@ function applyTheme(){
 }
 const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
-/* backdrop scene: line-art dragon (tapered cubic strokes in a 100×100 box), frost mountains, sparks or snow */
-const DRAGON=[
- [[55,32,52,22,49,16,46,11],2.2,1.6],
- [[46,11,32,4,16,3,0,6],1.6,.2],[[46,11,32,9,18,12,4,18],1.4,.2],[[46,11,34,15,22,22,12,30],1.3,.2],[[46,11,38,20,30,30,24,40],1.2,.2],
- [[0,6,6,12,2,15,4,18],.45,.3],[[4,18,10,24,8,27,12,30],.45,.3],[[12,30,18,34,18,37,24,40],.45,.35],[[24,40,34,40,42,38,52,40],.45,.9],
- [[55,32,58,22,64,18,70,22],2.4,1.8],
- [[70,22,74,22,79,25,84,30],1.8,.3],[[70,24,74,28,77,30,81,32],1.2,.2],
- [[70,21,68,17,67,14,64,10],1.2,.1],[[72,21,72,17,73,14,72,11],1,.1],
- [[62,20,60,16,59,14,56,13],.9,.1],[[58,25,55,22,53,21,50,21],.8,.1],
- [[55,32,42,46,44,66,60,72],3,2.6],[[58,36,48,48,50,63,62,68],1,.6],
- [[60,72,74,76,84,72,90,80],2.6,1.2],[[90,80,95,87,97,93,100,100],1.2,.1],[[62,68,78,72,88,66,94,74],.8,.1],
- [[50,56,56,58,60,60,64,58],1.2,.4],[[64,58,66,57,67,58,68,60],.5,.1]
+/* backdrop scene: line-art dragon, frost mountains, sparks or snow */
+/* detailed line-art dragon in a 100×100 box: tapered cubic strokes, membrane panels, veins, spikes, scales, teeth */
+const DC={
+  arm:[52,34,48,28,44,23,40,20], fore:[40,20,37,15,34,11,30,8], thumb:[30,8,31,5,33,4,36,2],
+  f1:[30,8,20,2,10,1,2,4], f2:[30,8,18,8,8,10,0,16], f3:[30,8,20,14,10,20,4,28], f4:[30,8,24,18,18,28,14,38], f5:[30,8,29,22,28,34,27,44],
+  s1:[2,4,6,8,3,12,0,16], s2:[0,16,5,20,3,24,4,28], s3:[4,28,10,31,10,35,14,38], s4:[14,38,19,40,23,42,27,44], s5:[27,44,34,44,40,46,47,50],
+  warm:[54,30,52,20,48,8,44,-2], wf1:[44,-2,36,-6,26,-8,16,-7], wf2:[44,-2,34,-3,24,-1,14,2], wf3:[44,-2,38,2,30,6,24,10],
+  ws1:[16,-7,18,-4,15,-1,14,2], ws2:[14,2,18,4,20,7,24,10],
+  neck:[52,34,54,26,58,20,66,20], neck2:[55,35,57,29,61,24,67,23],
+  skull:[66,19,70,16,76,16,82,20], snout:[82,20,85,21,87,22,90,25], jawU:[68,23,74,24,81,25,90,26], jawL:[68,24,72,28,78,30,86,31],
+  horn1:[68,18,64,13,62,9,56,5], horn2:[71,17,69,12,69,8,66,3], horn3:[75,16,75,13,77,11,79,9], frill:[67,24,63,27,61,28,57,28], brow:[73,18,75,17,78,17,80,18],
+  body:[52,34,40,46,42,64,56,70], belly:[55,38,46,48,48,62,58,66],
+  legF:[47,46,53,50,56,52,60,50], legH:[51,65,57,70,59,75,65,78],
+  tail:[56,70,70,74,80,70,86,78], tail2:[86,78,92,86,92,93,97,97], tailB:[58,66,72,70,82,66,88,74]
+};
+const DEYE=[77,19.6];
+(()=>{ const k=1.35, px=66, py=22; for(const n of ['skull','snout','jawU','jawL','horn1','horn2','horn3','frill','brow']) DC[n]=DC[n].map((v,i)=>i%2?py+(v-py)*k:px+(v-px)*k);
+  DEYE[0]=px+(DEYE[0]-px)*k; DEYE[1]=py+(DEYE[1]-py)*k; })();
+const DSTROKES=[
+  ['arm',2.8,2.1],['fore',2.1,1.6],['thumb',1,.1],['f1',1.5,.25],['f2',1.4,.25],['f3',1.3,.25],['f4',1.2,.25],['f5',1.1,.3],
+  ['s1',.5,.4],['s2',.5,.4],['s3',.5,.4],['s4',.5,.45],['s5',.5,1],
+  ['neck',3.2,2.3],['neck2',.7,.4],['skull',1.9,.8],['snout',.9,.2],['jawU',1,.3],['jawL',1.3,.2],
+  ['horn1',1.7,.1],['horn2',1.4,.1],['horn3',.8,.1],['frill',.9,.1],['brow',.7,.4],
+  ['body',3.8,3],['belly',1,.6],['legF',1.8,1],['legH',2.2,1.1],['tail',3,1.8],['tail2',1.8,.4],['tailB',.8,.1]
 ];
+const DPANELS=[['f1','s1','f2'],['f2','s2','f3'],['f3','s3','f4'],['f4','s4','f5']];
+const DFAR={strokes:[['warm',1.6,1.2],['wf1',1,.2],['wf2',.9,.2],['wf3',.8,.2],['ws1',.4,.3],['ws2',.4,.3]],panels:[['wf1','ws1','wf2'],['wf2','ws2','wf3']]};
+const DSPIKES=[/* curve, t0, t1, count, length, side, lean */
+  ['neck',.15,.9,5,2.6,1,.6],['body',.05,.95,9,3.2,1,.5],['tail',0,1,6,2.6,-1,.6],['tail2',0,.8,4,2,-1,.6],['skull',.1,.5,2,1.4,1,.8]];
+const DTEETH=[['jawU',.45,.95,6,1.2,-1,0],['jawL',.5,.95,5,1,1,0]];
+const DCLAWS=[[60,50,[[62,49],[63,51],[62,53]]],[65,78,[[67,77],[68,79],[67,81]]]];
+function bz(c,t){ const u=1-t; return [u*u*u*c[0]+3*u*u*t*c[2]+3*u*t*t*c[4]+t*t*t*c[6], u*u*u*c[1]+3*u*u*t*c[3]+3*u*t*t*c[5]+t*t*t*c[7]]; }
+function bzd(c,t){ const u=1-t, dx=3*u*u*(c[2]-c[0])+6*u*t*(c[4]-c[2])+3*t*t*(c[6]-c[4]), dy=3*u*u*(c[3]-c[1])+6*u*t*(c[5]-c[3])+3*t*t*(c[7]-c[5]), m=Math.hypot(dx,dy)||1; return [dx/m,dy/m]; }
 function drawDragon(x,ox,oy,size,look){
-  let s=7; const rnd=()=>((s=(s*16807)%2147483647)/2147483647-.5);
-  x.save(); x.translate(ox,oy); x.scale(size/100,size/100);
+  let seed=7; const rnd=()=>((seed=(seed*16807)%2147483647)/2147483647-.5), bolt=look.kind==='bolt';
+  x.save(); x.translate(ox,oy); x.scale(size/100,size/100); x.translate(4,7.5); x.scale(.92,.92);
   let fill=look.a;
-  if(look.kind==='chrome'){ fill=x.createLinearGradient(0,0,100,100); ['#ffffff','#8d939c','#eef0f3','#5f646c','#d9dce1'].forEach((c,i)=>fill.addColorStop(i/4,c)); }
+  if(look.kind==='chrome'){ fill=x.createLinearGradient(0,0,100,100); ['#ffffff','#8d939c','#eef0f3','#5f646c','#d9dce1','#7d828a'].forEach((c,i)=>fill.addColorStop(i/5,c)); }
   if(look.kind==='gold'){ fill=x.createLinearGradient(0,0,100,100); fill.addColorStop(0,look.b); fill.addColorStop(.5,look.a); fill.addColorStop(1,look.b); }
-  const passes=look.kind==='bolt'?[{blur:14,col:look.glow,w:1.6},{blur:0,col:look.a,w:1}]:[{blur:0,col:fill,w:1}];
+  const taper=(c,w0,w1,wk)=>{ const L=[],R=[],n=30;
+    for(let i=0;i<=n;i++){ const t=i/n, [px,py]=bz(c,t), [tx,ty]=bzd(c,t), j=bolt&&i%3===0&&i&&i<n?rnd()*1.2:0, w=(w0+(w1-w0)*t)/2*wk;
+      L.push([px-ty*(w+j),py+tx*(w+j)]); R.push([px+ty*(w-j),py-tx*(w-j)]); }
+    x.beginPath(); L.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])); R.reverse().forEach(p=>x.lineTo(p[0],p[1])); x.closePath(); x.fill(); };
+  const spikes=(c,t0,t1,n,len,side,lean,wk)=>{ for(let i=0;i<n;i++){ const t=t0+(t1-t0)*(n===1?.5:i/(n-1)), [px,py]=bz(c,t), [tx,ty]=bzd(c,t), nx=-ty*side, ny=tx*side, b=Math.max(.5,len*.32)*wk, l=len*(.75+.5*Math.abs(Math.sin(i*1.7)));
+      x.beginPath(); x.moveTo(px-tx*b,py-ty*b); x.lineTo(px+nx*l-tx*l*lean,py+ny*l-ty*l*lean); x.lineTo(px+tx*b,py+ty*b); x.closePath(); x.fill(); } };
+  const membranes=panels=>{ for(const [a,s,b] of panels){ const pts=[]; for(let i=0;i<=20;i++) pts.push(bz(DC[a],i/20)); for(let i=0;i<=12;i++) pts.push(bz(DC[s],i/12)); for(let i=20;i>=0;i--) pts.push(bz(DC[b],i/20));
+    const g=x.createLinearGradient(30,8,10,40); g.addColorStop(0,look.membrane[0]); g.addColorStop(1,look.membrane[1]);
+    x.fillStyle=g; x.beginPath(); pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])); x.closePath(); x.fill(); } };
+  const passes=bolt?[{blur:14,col:look.glow,w:1.6},{blur:0,col:look.a,w:1}]:[{blur:10,col:look.glow,w:1.25,alpha:.55},{blur:0,col:fill,w:1}];
+  const veins=(panels,w)=>{ for(const [a,,b] of panels) for(const t of [.35,.6,.82]){ const [p0x,p0y]=bz(DC[a],t), [p1x,p1y]=bz(DC[b],Math.min(1,t+.12)), mx=(p0x+p1x)/2+(p1y-p0y)*.12, my=(p0y+p1y)/2-(p1x-p0x)*.12;
+      taper([p0x,p0y,mx,my,mx,my,p1x,p1y],.32,.18,w); } };
+  /* far wing, behind and dimmer */
+  x.save(); x.globalAlpha*=.55; membranes(DFAR.panels);
+  for(const ps of passes){ x.save(); x.shadowBlur=ps.blur*size/400; x.shadowColor=look.glow; x.fillStyle=ps.col; x.globalAlpha*=ps.alpha||1; veins(DFAR.panels,ps.w); for(const [k,w0,w1] of DFAR.strokes) taper(DC[k],w0,w1,ps.w); x.restore(); }
+  x.restore();
+  membranes(DPANELS);
   for(const ps of passes){
-    x.shadowBlur=ps.blur*size/400; x.shadowColor=look.glow||'transparent'; x.fillStyle=ps.col;
-    for(const [c,w0,w1] of DRAGON){
-      const L=[],R=[],n=28;
-      for(let i=0;i<=n;i++){ const t=i/n,u=1-t;
-        const px=u*u*u*c[0]+3*u*u*t*c[2]+3*u*t*t*c[4]+t*t*t*c[6], py=u*u*u*c[1]+3*u*u*t*c[3]+3*u*t*t*c[5]+t*t*t*c[7];
-        const dx=3*u*u*(c[2]-c[0])+6*u*t*(c[4]-c[2])+3*t*t*(c[6]-c[4]), dy=3*u*u*(c[3]-c[1])+6*u*t*(c[5]-c[3])+3*t*t*(c[7]-c[5]);
-        const m=Math.hypot(dx,dy)||1, nx=-dy/m, ny=dx/m, j=look.kind==='bolt'&&i%3===0&&i&&i<n?rnd()*1.4:0, w=(w0+(w1-w0)*t)/2*ps.w;
-        L.push([px+nx*(w+j),py+ny*(w+j)]); R.push([px-nx*(w-j),py-ny*(w-j)]); }
-      x.beginPath(); L.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])); R.reverse().forEach(p=>x.lineTo(p[0],p[1])); x.closePath(); x.fill();
-    }
+    x.save(); x.globalAlpha*=ps.alpha||1; x.shadowBlur=ps.blur*size/400; x.shadowColor=look.glow; x.fillStyle=ps.col; seed=7;
+    veins(DPANELS,ps.w);
+    for(const [k,w0,w1] of DSTROKES) taper(DC[k],w0,w1,ps.w);
+    for(const sp of DSPIKES) spikes(DC[sp[0]],sp[1],sp[2],sp[3],sp[4],sp[5],sp[6],ps.w);
+    for(const sp of DTEETH) spikes(DC[sp[0]],sp[1],sp[2],sp[3],sp[4],sp[5],sp[6],ps.w*.7);
+    /* belly scales: short bars between body and belly line */
+    for(let i=1;i<10;i++){ const t=i/10, [ax,ay]=bz(DC.body,t), [bx,by]=bz(DC.belly,Math.min(1,t*1.04)); taper([ax,ay,ax,ay,bx,by,bx,by],.45,.25,ps.w); }
+    for(const [cx,cy,cl] of DCLAWS) for(const [ex,ey] of cl){ taper([cx,cy,(cx+ex)/2+.6,(cy+ey)/2-.6,ex,ey,ex+.6,ey+.8],.8,.1,ps.w); }
+    /* tail spade */
+    const [ex,ey]=bz(DC.tail2,1), [tx,ty]=bzd(DC.tail2,1);
+    x.beginPath(); x.moveTo(ex+tx*3.6,ey+ty*3.6); x.lineTo(ex-ty*2,ey+tx*2); x.lineTo(ex-tx*.6,ey-ty*.6); x.lineTo(ex+ty*2,ey-tx*2); x.closePath(); x.fill();
+    x.restore();
   }
+  /* glowing eye */
+  x.save(); x.shadowBlur=8*size/400; x.shadowColor=look.eye; x.fillStyle=look.eye; x.beginPath(); x.ellipse(DEYE[0],DEYE[1],1.9,.9,.25,0,6.283); x.fill(); x.restore();
   x.restore();
 }
 function drawMountains(x,W,H){
@@ -510,14 +551,17 @@ function drawMountains(x,W,H){
   const g=x.createLinearGradient(0,H*.88,0,H); g.addColorStop(0,'#070c18'); g.addColorStop(1,'#16233b'); x.fillStyle=g; x.fillRect(0,H*.88,W,H*.12);
 }
 function sceneLook(){ const sk=SKINS[S.skin], acc=cssVar('--accent'), gold=cssVar('--gold');
-  return sk.dragon==='chrome'?{kind:'chrome'}:sk.dragon==='bolt'?{kind:'bolt',a:'#e8f6ff',glow:acc}:{kind:'gold',a:gold,b:acc}; }
+  const rgb=[1,3,5].map(i=>parseInt(acc.slice(i,i+2),16)).join(','), mem=a=>[`rgba(${rgb},${a/100})`,'rgba(0,0,0,.05)'];
+  return sk.dragon==='chrome'?{kind:'chrome',glow:acc,eye:acc,membrane:mem(30)}
+    :sk.dragon==='bolt'?{kind:'bolt',a:'#e8f6ff',glow:acc,eye:'#d9f2ff',membrane:mem(22)}
+    :{kind:'gold',a:gold,b:acc,glow:acc,eye:'#ffcf6b',membrane:mem(28)}; }
 /* where: 'bg' = behind the pages (dragon top right, faint), 'boot' = start screen (dragon centred) */
 function paintScene(x,W,H,where){
   x.clearRect(0,0,W,H);
   if(SKINS[S.skin].style!=='dragon'||(where==='bg'&&S.bg)) return;
   if(S.skin==='frost') drawMountains(x,W,H);
   const D=where==='bg'?Math.min(W*.92,560):Math.min(W*.86,420);
-  x.globalAlpha=where==='bg'?(S.skin==='frost'?.26:.28):.6;
+  x.globalAlpha=where==='bg'?(S.skin==='frost'?.26:.3):.75;
   drawDragon(x,where==='bg'?W-D*.98:(W-D)/2,where==='bg'?Math.max(60,H*.07):H*.04,D,sceneLook());
   x.globalAlpha=1;
 }
@@ -754,15 +798,15 @@ const bootEl=$('#boot'), bootText=$('#bootText'), lockEl=$('#lock'), lockMsg=$('
 let locked=true, mode='enter', entry='', firstPin='', fails=0, coolUntil=0, bootTimer, afterUnlock='tap';
 $('#keypad').innerHTML=['1','2','3','4','5','6','7','8','9','⌫','0','OK'].map(k=>`<button data-k="${k}" class="${k==='OK'?'k-ok':k==='⌫'?'k-del':''}" aria-label="${k==='⌫'?'Delete':k}">${k}</button>`).join('');
 
-/* dragon eye: closed line while locked, opens on success */
+/* dragon eye (always its original gold and ember): closed line while locked, opens on success */
 const eye=(()=>{
   const c=$('#eye'), x=c.getContext('2d'), W=c.width, H=c.height; let o=0, raf=0;
   function draw(){
-    const acc=cssVar('--accent'), gold=cssVar('--gold'), cx=W/2, cy=H/2, hw=W*.46, hh=H*.46*o;
+    const acc='#c9532c', gold='#d6a548', cx=W/2, cy=H/2, hw=W*.46, hh=H*.46*o;
     x.clearRect(0,0,W,H); x.lineWidth=4; x.strokeStyle=acc; x.lineCap='round';
     if(o<.03){ x.beginPath(); x.moveTo(cx-hw,cy); x.quadraticCurveTo(cx,cy+H*.06,cx+hw,cy); x.stroke(); return; }
     x.save(); x.beginPath(); x.moveTo(cx-hw,cy); x.quadraticCurveTo(cx,cy-hh*2,cx+hw,cy); x.quadraticCurveTo(cx,cy+hh*2,cx-hw,cy); x.closePath(); x.clip();
-    const g=x.createRadialGradient(cx,cy,4,cx,cy,hw*.62); g.addColorStop(0,cssVar('--eye-core')); g.addColorStop(.35,gold); g.addColorStop(.75,acc); g.addColorStop(1,cssVar('--bg'));
+    const g=x.createRadialGradient(cx,cy,4,cx,cy,hw*.62); g.addColorStop(0,'#ffe9a8'); g.addColorStop(.35,gold); g.addColorStop(.75,acc); g.addColorStop(1,'#1a0805');
     x.fillStyle=g; x.fillRect(0,0,W,H);
     x.strokeStyle='rgba(60,20,5,.35)'; x.lineWidth=1.5;
     for(let i=0;i<36;i++){ const a=i/36*6.283; x.beginPath(); x.moveTo(cx+Math.cos(a)*14,cy+Math.sin(a)*14); x.lineTo(cx+Math.cos(a)*hw*.6,cy+Math.sin(a)*hw*.6); x.stroke(); }
