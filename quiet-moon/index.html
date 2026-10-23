@@ -3201,6 +3201,8 @@ requestAnimationFrame(frame);
    everything away when the story stops writing. ===== */
 (function(){
   const PI=Math.PI, sin=Math.sin, cos=Math.cos, abs=Math.abs, rnd=Math.random, cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)), lerp=(a,b,t)=>a+(b-a)*t, ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+  let RB=0, WND=.16, G01=0; // cloud base height, wind slant now, gust strength 0..1
+  const base=x=>RB*(.86+.1*sin(x*.013+tm*.05)+.06*sin(x*.041+1));   // the lumpy underside of the clouds, where the rain starts
   let top=null, g=null, dim=null, dg=null, W=0, H=0, clouds=null, last=0, run=false, seenStrike=0, tm=0;
   const S={cloud:0,dark:0,rain:0,sun:0,flash:0,warm:0}, drops=[], bits=[], rings=[], bolts=[], motes=[];
   const mk=z=>{ const c=document.createElement('canvas'); c.setAttribute('aria-hidden','true'); c.style.cssText=`position:fixed;left:0;top:0;pointer-events:none;z-index:${z}`; document.body.appendChild(c); return c; };
@@ -3225,15 +3227,16 @@ requestAnimationFrame(frame);
     x.globalCompositeOperation='source-atop';
     const sh=x.createLinearGradient(0,0,0,h); sh.addColorStop(0,'rgba(0,0,0,0)'); sh.addColorStop(1,storm?'rgba(8,8,18,.55)':'rgba(90,88,120,.35)'); x.fillStyle=sh; x.fillRect(0,0,w,h);
     return c; }
-  function build(){ const n=W>700?11:8, ch=Math.max(W*.62,H*.3); clouds=[];
+  function build(){ const n=W>700?11:8, ch=Math.max(W*.62,H*.3); clouds=[]; RB=ch*.48;
     for(let i=0;i<n;i++){ const row=i%2, w=W*(.55+.3*((i*37)%10)/10)*(row?1.1:1), h=ch*(row?1.12:1), seed=1+i*7919;
       clouds.push({w,h,row,light:sprite(w,h,seed,false),dark:sprite(w,h,seed,true),tx:-W*.25+(W*1.25)*(i/(n-1))-w*.25,ty:-h*(row?.26:.12),side:i%2?1:-1,d:(i%4)*.05,ph:i*1.7}); } }
   const CTM=()=>{ const s=document.getElementById('bstage'); return s&&s.getScreenCTM(); };
   const P=(m,x,y)=>({x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f});
-  function umbLocal(u,m,x,y){ const h=P(m,u.x,u.y), k=u.s*m.a, dx=x-h.x, dy=y-h.y, r=-u.r*PI/180; return {x:(dx*cos(r)-dy*sin(r))/k,y:(dx*sin(r)+dy*cos(r))/k}; }
+  const uRot=u=>u.r+(G01-.35)*14+sin(tm*7)*2.5*G01;
+  function umbLocal(u,m,x,y){ const h=P(m,u.x,u.y), k=u.s*m.a, dx=x-h.x, dy=y-h.y, r=-uRot(u)*PI/180; return {x:(dx*cos(r)-dy*sin(r))/k,y:(dx*sin(r)+dy*cos(r))/k}; }
   const canopy=x=>-18-10*(1-(x/17)*(x/17));
   function splash(x,y,n,big){ for(let j=0;j<n;j++) bits.length<500&&bits.push({x,y,vx:(rnd()-.5)*(big?110:70),vy:-(40+rnd()*(big?110:70)),l:0,m:.25+rnd()*.25}); rings.length<200&&rings.push({x,y,l:0,m:.3}); }
-  function newDrop(d,fresh){ const near=rnd()<.35; d.near=near; d.v=(near?1250:850)+rnd()*350; d.len=(near?22:13)+rnd()*10; d.x=rnd()*(W+H*.2)-H*.1; d.y=fresh?H*(.06+.12*rnd()):-d.len-rnd()*H*.25; d.pu=null; d.drip=false; return d; }
+  function newDrop(d,fresh){ const near=rnd()<.35; d.near=near; d.v=(near?1250:850)+rnd()*350; d.len=(near?22:13)+rnd()*10; d.x=rnd()*(W*1.35)-W*.35; d.y0=base(d.x)-2; d.y=d.y0+(fresh?rnd()*H*.12:-rnd()*30); d.pu=null; d.drip=false; d.wf=.8+rnd()*.4; return d; }
   // a lightning channel: a jagged walk that keeps its heading and forks into thinner, shorter branches (which fork again)
   function channel(x,y,ang,len,w,depth,out){ const p=[[x,y]], step=Math.max(4,H*.011); let d=0;
     while(d<len){ const a=ang+(rnd()-.5)*1.4, st=step*(.35+rnd()*1.2); x+=cos(a)*st; y+=sin(a)*st; d+=st; p.push([x,y]);
@@ -3244,7 +3247,7 @@ requestAnimationFrame(frame);
     bolts.push({segs:channel(x0,y0,PI/2+(rnd()-.5)*.45,y1-y0,2.4,0,[]),x0,y0,t:0,pulses:[0,.09+.05*rnd(),.21+.07*rnd()].concat(rnd()<.6?[.36+.1*rnd()]:[])}); }
   // light inside the clouds, with or without a bolt
   const glows=[];
-  function drawUmb(u,m){ const h=P(m,u.x,u.y), k=u.s*m.a; g.save(); g.translate(h.x,h.y); g.rotate(u.r*PI/180); g.scale(k,k);
+  function drawUmb(u,m){ const h=P(m,u.x,u.y), k=u.s*m.a; g.save(); g.translate(h.x,h.y); g.rotate(uRot(u)*PI/180); g.scale(k,k);
     g.lineCap='round'; g.strokeStyle='#5b3b2a'; g.lineWidth=1.1; g.beginPath(); g.moveTo(0,0); g.lineTo(0,-24); g.stroke(); g.beginPath(); g.moveTo(0,0); g.quadraticCurveTo(0,3,-2.6,2.6); g.stroke();
     const path=()=>{ g.beginPath(); g.moveTo(-17,-18); g.quadraticCurveTo(0,-38,17,-18); g.quadraticCurveTo(11.3,-21.2,5.7,-18); g.quadraticCurveTo(0,-21.2,-5.7,-18); g.quadraticCurveTo(-11.3,-21.2,-17,-18); g.closePath(); };
     const gr=g.createRadialGradient(-4,-30,1,0,-22,22); gr.addColorStop(0,'#ffe0ec'); gr.addColorStop(.45,'#f47ba0'); gr.addColorStop(1,'#9c2148');
@@ -3260,7 +3263,7 @@ requestAnimationFrame(frame);
     const tgt=live?wx:{cloud:0,dark:0,rain:0,sun:0,flash:0}; ['cloud','dark','rain','sun','flash'].forEach(k=>{ S[k]=live?tgt[k]:Math.max(0,S[k]-dt*.8); });
     S.warm=lerp(S.warm,live&&wx.warm?wx.warm.a:0,cl(dt*4));
     if(live&&wx.msg>0&&!msgDone){ msgDone=true; showMsg(); } if(!live) msgDone=false;
-    if(live&&wx.strike>seenStrike){ seenStrike=wx.strike; bolt(); thunder(); } if(!live) seenStrike=0;
+    if(live&&wx.strike>seenStrike){ seenStrike=wx.strike; if(S.sun<.1){ bolt(); thunder(); } } if(!live) seenStrike=0;
     const busy=S.cloud+S.dark+S.rain+S.sun+S.flash+S.warm>.002||drops.length||bits.length||bolts.length||glows.length||msgEl||birds.length||flies.length;
     if(!busy){ top.remove(); dim.remove(); top=dim=null; run=false; drops.length=0; motes.length=0; return; }
     requestAnimationFrame(frame);
@@ -3285,7 +3288,7 @@ requestAnimationFrame(frame);
     g.restore();
     // clouds drift in from both sides, darken, flash, then part and drift away
     if(S.cloud>.001) clouds.forEach((c,i)=>{ const p=ease(cl((S.cloud-c.d)/(1-c.d))); if(p<=.001) return;
-      const sx=c.side<0?-c.w-W*.15:W*1.15, x=lerp(sx,c.tx,p)+sin(tm*.08+c.ph)*W*.02, y=c.ty-(1-p)*c.h*.25;
+      const sx=c.side<0?-c.w-W*.15:W*1.15, x=lerp(sx,c.tx,p)+sin(tm*.08+c.ph)*W*.02+(G01-.5)*W*.05*(c.row?1.3:1), y=c.ty-(1-p)*c.h*.25;
       const dk=cl(S.dark/.6); g.globalAlpha=cl(p*1.4); g.drawImage(c.light,x,y,c.w,c.h);
       if(dk>.01){ g.globalAlpha=cl(p*1.4)*dk; g.drawImage(c.dark,x,y,c.w,c.h); }
       if(S.flash>.02){ g.globalAlpha=cl(p*1.4)*S.flash*.75; g.globalCompositeOperation='lighter'; g.drawImage(c.light,x,y,c.w,c.h); g.globalCompositeOperation='source-over'; } });
@@ -3295,34 +3298,47 @@ requestAnimationFrame(frame);
       for(let i=glows.length-1;i>=0;i--){ const o=glows[i]; o.t+=dt; if(o.t>o.m){ glows.splice(i,1); continue; } const f=(1-o.t/o.m)*(.6+.4*sin(o.t*90)), r=W*.42*o.big;
         const cg=g.createRadialGradient(o.x,o.y,0,o.x,o.y,r); cg.addColorStop(0,`rgba(215,215,255,${(.55*f*o.big).toFixed(3)})`); cg.addColorStop(.5,`rgba(170,170,240,${(.18*f*o.big).toFixed(3)})`); cg.addColorStop(1,'rgba(150,150,230,0)'); g.fillStyle=cg; g.fillRect(o.x-r,o.y-r,2*r,2*r); }
       g.restore(); }
-    // the sun at the very top: glow, slow rays, golden motes in the light
-    if(S.sun>.001){ const sx=W/2, sy=H*.035, sr=Math.min(W,H)*.075; g.save(); g.globalCompositeOperation='lighter';
-      const gl=g.createRadialGradient(sx,sy,0,sx,sy,Math.max(W,H)*.6); gl.addColorStop(0,`rgba(255,240,200,${(.5*S.sun).toFixed(3)})`); gl.addColorStop(.22,`rgba(255,214,150,${(.1*S.sun).toFixed(3)})`); gl.addColorStop(1,'rgba(255,200,120,0)'); g.fillStyle=gl; g.fillRect(0,0,W,H);
-      for(let j=0;j<16;j++){ const a=PI*(.08+.84*j/15)+sin(tm*.15+j)*.03, L=H*(.55+.25*sin(j*2.3+tm*.3)), wd=.035+.02*sin(j*1.7);
-        const rg=g.createLinearGradient(sx,sy,sx+cos(a)*L,sy+sin(a)*L); rg.addColorStop(0,`rgba(255,236,190,${(.11*S.sun).toFixed(3)})`); rg.addColorStop(1,'rgba(255,220,160,0)'); g.fillStyle=rg;
-        g.beginPath(); g.moveTo(sx,sy); g.lineTo(sx+cos(a-wd)*L,sy+sin(a-wd)*L); g.lineTo(sx+cos(a+wd)*L,sy+sin(a+wd)*L); g.closePath(); g.fill(); }
-      const dc=g.createRadialGradient(sx,sy,0,sx,sy,sr*1.6); dc.addColorStop(0,`rgba(255,255,245,${S.sun.toFixed(3)})`); dc.addColorStop(.45,`rgba(255,240,190,${(.9*S.sun).toFixed(3)})`); dc.addColorStop(1,'rgba(255,210,130,0)'); g.fillStyle=dc; g.beginPath(); g.arc(sx,sy,sr*1.6,0,2*PI); g.fill();
+    // the living sun at the very top: it breathes, its rays slowly turn and pulse one by one, a soft corona shimmers,
+    // gentle lens flares float across the screen and golden specks drift in the light
+    if(S.sun>.001){ const sx=W/2, sy=H*.035, br=1+.05*sin(tm*1.3)+.02*sin(tm*3.1), sr=Math.min(W,H)*.075*br, A=S.sun; g.save(); g.globalCompositeOperation='lighter';
+      const gl=g.createRadialGradient(sx,sy,0,sx,sy,Math.max(W,H)*.6); gl.addColorStop(0,`rgba(255,240,200,${(.48*A*(.92+.08*sin(tm*.9))).toFixed(3)})`); gl.addColorStop(.22,`rgba(255,214,150,${(.1*A).toFixed(3)})`); gl.addColorStop(1,'rgba(255,200,120,0)'); g.fillStyle=gl; g.fillRect(0,0,W,H);
+      [[18,.012,.12,1],[11,-.008,.08,1.2]].forEach(([n,spd,al,wm],set)=>{ for(let j=0;j<n;j++){ const f=((j+set*.5)/n+tm*spd)%1, a=PI*(f<0?f+1:f), fade=sin(a);
+          if(fade<.05) continue;
+          const L=H*(.42+.3*(.5+.5*sin(tm*.7+j*2.1+set)))*wm, wd=(.022+.018*(.5+.5*sin(tm*.5+j*1.3)))*(set?1.5:1), al2=al*A*fade*(.5+.5*sin(tm*1.1+j*1.7+set*2));
+          const rg=g.createLinearGradient(sx,sy,sx+cos(a)*L,sy+sin(a)*L); rg.addColorStop(0,`rgba(255,236,190,${al2.toFixed(3)})`); rg.addColorStop(1,'rgba(255,220,160,0)'); g.fillStyle=rg;
+          g.beginPath(); g.moveTo(sx,sy); g.lineTo(sx+cos(a-wd)*L,sy+sin(a-wd)*L); g.lineTo(sx+cos(a+wd)*L,sy+sin(a+wd)*L); g.closePath(); g.fill(); } });
+      { const cr=sr*(2.3+.15*sin(tm*1.7)), co=g.createRadialGradient(sx,sy,sr*1.2,sx,sy,cr); co.addColorStop(0,'rgba(255,230,170,0)'); co.addColorStop(.55,`rgba(255,220,160,${(.16*A*(.7+.3*sin(tm*2.3))).toFixed(3)})`); co.addColorStop(1,'rgba(255,200,140,0)'); g.fillStyle=co; g.beginPath(); g.arc(sx,sy,cr,0,2*PI); g.fill(); }
+      const dc=g.createRadialGradient(sx,sy,0,sx,sy,sr*1.6); dc.addColorStop(0,`rgba(255,255,245,${A.toFixed(3)})`); dc.addColorStop(.45,`rgba(255,240,190,${(.9*A).toFixed(3)})`); dc.addColorStop(1,'rgba(255,210,130,0)'); g.fillStyle=dc; g.beginPath(); g.arc(sx,sy,sr*1.6,0,2*PI); g.fill();
+      // little glints running round the sun
+      for(let j=0;j<3;j++){ const a=tm*.6+j*2.1, gx=sx+cos(a)*sr*1.05, gy=sy+sin(a)*sr*1.05, gs=sr*(.25+.15*sin(tm*3+j)), ga=A*(.5+.5*sin(tm*2.2+j*2));
+        g.fillStyle=`rgba(255,255,240,${(.7*ga).toFixed(3)})`; g.beginPath(); g.moveTo(gx,gy-gs); g.quadraticCurveTo(gx,gy,gx+gs,gy); g.quadraticCurveTo(gx,gy,gx,gy+gs); g.quadraticCurveTo(gx,gy,gx-gs,gy); g.quadraticCurveTo(gx,gy,gx,gy-gs); g.fill(); }
+      // lens flares along a line from the sun across the screen
+      { const fx=W*(.5+.18*sin(tm*.12)), fy=H*.92, FL=[[.32,.06,'255,200,230'],[.5,.035,'255,236,170'],[.7,.09,'210,190,255'],[.86,.045,'255,214,180']];
+        FL.forEach(([t2,r2,c2],j)=>{ const x=sx+(fx-sx)*t2, y=sy+(fy-sy)*t2, r=Math.min(W,H)*r2*(1+.1*sin(tm*.8+j)), fg=g.createRadialGradient(x,y,0,x,y,r);
+          fg.addColorStop(0,`rgba(${c2},${(.07*A).toFixed(3)})`); fg.addColorStop(.7,`rgba(${c2},${(.05*A).toFixed(3)})`); fg.addColorStop(1,`rgba(${c2},0)`); g.fillStyle=fg; g.beginPath(); g.arc(x,y,r,0,2*PI); g.fill(); }); }
       while(motes.length<40) motes.push({x:rnd()*W,y:rnd()*H*.7,p:rnd()*6,s:.6+rnd()*1.4});
-      motes.forEach(o=>{ o.y-=dt*6*o.s; o.x+=sin(tm*.6+o.p)*dt*8; if(o.y<0) o.y=H*.7; const a=S.sun*(.25+.25*sin(tm*2+o.p)); g.fillStyle=`rgba(255,236,180,${a.toFixed(3)})`; g.beginPath(); g.arc(o.x,o.y,o.s,0,2*PI); g.fill(); });
+      motes.forEach(o=>{ o.y-=dt*6*o.s; o.x+=sin(tm*.6+o.p)*dt*8; if(o.y<0) o.y=H*.7; const a=A*(.25+.25*sin(tm*2+o.p)); g.fillStyle=`rgba(255,236,180,${a.toFixed(3)})`; g.beginPath(); g.arc(o.x,o.y,o.s,0,2*PI); g.fill(); });
       g.restore(); }
     // warmth while he holds her
     if(S.warm>.01&&m&&live&&wx.warm){ const p=P(m,wx.warm.x,wx.warm.y), r=34*m.a*(1+.06*sin(tm*2.2)); g.save(); g.globalCompositeOperation='lighter';
       const wg=g.createRadialGradient(p.x,p.y,0,p.x,p.y,r); wg.addColorStop(0,`rgba(255,170,90,${(.32*S.warm).toFixed(3)})`); wg.addColorStop(.6,`rgba(255,140,80,${(.12*S.warm).toFixed(3)})`); wg.addColorStop(1,'rgba(255,120,60,0)'); g.fillStyle=wg; g.beginPath(); g.arc(p.x,p.y,r,0,2*PI); g.fill(); g.restore(); }
     // rain: light at first, then pouring over the whole screen; it stops on the umbrella and on the line and splashes
-    const want=Math.round(S.rain*Math.min(1400,W*H/430/900*900)), wind=.16, u=live&&wx.umb&&m?wx.umb:null;
+    { const gu=sin(tm*.37)+.6*sin(tm*.83+1)+.25*sin(tm*1.9+2); G01=cl(.5+gu*.36)*cl(S.rain*1.3); WND=.06+.36*G01; }   // wind gusts
+    const want=Math.round(S.rain*Math.min(1400,W*H/430/900*900)), wind=WND, u=live&&wx.umb&&m?wx.umb:null;
     let ln=null; if(live&&wx.line&&m){ const a=P(m,wx.line.x0,wx.line.y), b=P(m,wx.line.x1,wx.line.y); ln={x0:a.x,x1:b.x,y:a.y}; }
     while(drops.length<want) drops.push(newDrop({},rnd()<.5));
     if(drops.length>want) drops.length=Math.max(want,drops.length-Math.ceil(dt*400));
-    if(u&&S.rain>.25&&rnd()<dt*14*S.rain){ const side=rnd()<.5?-17:17, r=u.r*PI/180, k=u.s*m.a, h=P(m,u.x,u.y), lx=side, ly=-18.4;
+    if(u&&S.rain>.25&&rnd()<dt*14*S.rain){ const side=rnd()<.5?-17:17, r=uRot(u)*PI/180, k=u.s*m.a, h=P(m,u.x,u.y), lx=side, ly=-18.4;
       drops.push({x:h.x+(lx*cos(r)-ly*sin(r))*k,y:h.y+(lx*sin(r)+ly*cos(r))*k,v:240,len:5,near:true,drip:true,pu:null}); }
     const far=new Path2D(), nr=new Path2D();
-    for(let i=drops.length-1;i>=0;i--){ const d=drops[i], py=d.y; if(d.drip) d.v+=900*dt; d.y+=d.v*dt; d.x+=d.v*dt*wind;
+    for(let i=drops.length-1;i>=0;i--){ const d=drops[i], py=d.y, wd=wind*(d.wf||1); if(d.drip) d.v+=900*dt; d.y+=d.v*dt; d.x+=d.v*dt*wd;
       let hit=false;
       if(u&&!d.drip){ const q=umbLocal(u,m,d.x,d.y); if(abs(q.x)<17&&q.y>canopy(q.x)&&q.y<-12&&d.pu!=null&&d.pu<=canopy(q.x)+.5){ hit=true; splash(d.x,d.y,2,false); } d.pu=q.y; }
       if(!hit&&ln&&d.x>ln.x0&&d.x<ln.x1&&py<ln.y&&d.y>=ln.y){ hit=true; splash(d.x,ln.y,d.near?3:2,d.near); }
       if(!hit&&d.y>H){ hit=true; if(rnd()<.5) splash(d.x,H-2,2,false); }
       if(hit){ if(d.drip||drops.length>want) drops.splice(i,1); else newDrop(d,false); continue; }
-      const p=d.near?nr:far, k=d.len/d.v; p.moveTo(d.x,d.y); p.lineTo(d.x-d.v*k*wind,d.y-d.len); }
+      if(d.y0!=null&&d.y<=d.y0) continue; // still inside the cloud
+      const p=d.near?nr:far, tl=d.y0!=null?Math.min(d.len,d.y-d.y0):d.len; p.moveTo(d.x,d.y); p.lineTo(d.x-tl*wd,d.y-tl); }
     g.lineCap='round'; g.strokeStyle='rgba(185,200,235,.22)'; g.lineWidth=.8; g.stroke(far); g.strokeStyle='rgba(215,225,255,.42)'; g.lineWidth=1.25; g.stroke(nr);
     if(u) drawUmb(u,m);
     // splashes
@@ -3395,11 +3411,13 @@ requestAnimationFrame(frame);
       g.fillStyle='#3b2433'; g.beginPath(); g.ellipse(0,0,s*.1,s*.5,0,0,2*PI); g.fill(); g.strokeStyle='#3b2433'; g.lineWidth=.7; g.beginPath(); g.moveTo(0,-s*.45); g.lineTo(-s*.2,-s*.85); g.moveTo(0,-s*.45); g.lineTo(s*.2,-s*.85); g.stroke();
       g.restore(); } }
   /* --- sound: soft rain, rolling thunder after each flash, and birdsong when the sun comes out (Web Audio, no files) --- */
+  let windG=null, windF=null;
   let ac=null, master=null, rainG=null, noiseB=null, songT=0;
   function audio(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); const cp=ac.createDynamicsCompressor(); master=ac.createGain(); master.gain.value=.9; master.connect(cp); cp.connect(ac.destination);
         const n=ac.sampleRate*4; noiseB=ac.createBuffer(2,n,ac.sampleRate); for(let c=0;c<2;c++){ const d=noiseB.getChannelData(c); let br=0; for(let i=0;i<n;i++){ const w=Math.random()*2-1; br=(br+.02*w)/1.02; d[i]=w*.35+br*2.6; } }
         const src=ac.createBufferSource(); src.buffer=noiseB; src.loop=true; const hp=ac.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=500; const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=4200;
-        rainG=ac.createGain(); rainG.gain.value=0; src.connect(hp); hp.connect(lp); lp.connect(rainG); rainG.connect(master); src.start(); }catch(e){ ac=null; } }
+        rainG=ac.createGain(); rainG.gain.value=0; src.connect(hp); hp.connect(lp); lp.connect(rainG); rainG.connect(master); src.start();
+        const ws=ac.createBufferSource(); ws.buffer=noiseB; ws.loop=true; windF=ac.createBiquadFilter(); windF.type='bandpass'; windF.frequency.value=420; windF.Q.value=.7; windG=ac.createGain(); windG.gain.value=0; ws.connect(windF); windF.connect(windG); windG.connect(master); ws.start(); }catch(e){ ac=null; } }
     if(ac&&ac.state==='suspended') ac.resume().catch(()=>{}); return ac&&ac.state==='running'?ac:null; }
   addEventListener('pointerdown',()=>{ if(run) audio(); },{capture:true,passive:true});
   function noise(t0,dur){ const s=ac.createBufferSource(); s.buffer=noiseB; s.loop=true; s.start(t0,Math.random()*3); s.stop(t0+dur); return s; }
@@ -3425,6 +3443,7 @@ requestAnimationFrame(frame);
     else { for(let i=0;i<2;i++) chirp(t+i*.14,f,f*1.4,.09,v,b.p); chirp(t+.34,f*1.3,f*.8,.2,v,b.p); } }            // chip-chip-cheer
   function snd(w){ if(!ac&&!w) return; const a=w?audio():ac; if(!a||!rainG) return; const t=a.currentTime;
     rainG.gain.setTargetAtTime(w?.16*Math.pow(w.rain,.8):0,t,.4);
+    if(windG){ windG.gain.setTargetAtTime(w?.22*Math.pow(G01,1.6):0,t,.5); windF.frequency.setTargetAtTime(300+520*G01,t,.6); }
     songT-=1/60; if(w&&w.sun>.5&&songT<=0){ song(); songT=.8+Math.random()*2.2; } }
   function start(){ if(run) return; run=true; dim=mk(7); top=mk(9); dg=dim.getContext('2d'); g=top.getContext('2d'); size(); last=0; requestAnimationFrame(frame); }
   addEventListener('resize',()=>{ if(run) size(); });
