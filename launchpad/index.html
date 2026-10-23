@@ -554,7 +554,7 @@ function projectPage(pr){ return {id:'pj-'+pr.id,tab:pr.name,title:pr.name,sub:'
 const allPages=()=>[...PAGES,...(S.projects||[]).map(projectPage)];
 const skinFor=id=>(S.skins&&S.skins[id])||PAGE_SKIN[id]||'crimson';
 function orderPages(){ const all=allPages(), ids=(S.order||[]).filter(id=>all.some(p=>p.id===id)); all.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); }); VIEW=ids.map(id=>all.find(p=>p.id===id)); }
-const APP_VERSION='5.0';
+const APP_VERSION='5.1';
 const BOOT_LINES=[`> dragon v${APP_VERSION}`,'> waking the dragon ...','> identity check'];
 const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#2fbf6a','#b3122e','#8a62b8'];
 const SKIN_NAMES={crimson:'Crimson (red)',frost:'Frost (blue)',steel:'Steel (silver)',ember:'Ember (orange)',jade:'Jade (green)'};

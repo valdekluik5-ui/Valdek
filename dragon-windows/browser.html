@@ -22,7 +22,7 @@ body{background:
   radial-gradient(60% 140% at 0% 0%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%),
   radial-gradient(circle,rgba(255,255,255,.05) .8px,transparent 1.3px) 0 0/5px 5px,
   linear-gradient(var(--panel),var(--bg));
-  border-bottom:1px solid color-mix(in srgb,var(--accent) 40%,var(--line))}
+  padding-bottom:6px}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
@@ -48,7 +48,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .tool.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 10px color-mix(in srgb,var(--accent) 60%,transparent)}
 
 /* row 2: navigation and address */
-#nav{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--panel)}
+#nav{display:flex;align-items:center;gap:6px;margin:0 8px;padding:5px 6px;border-radius:12px;background:color-mix(in srgb,var(--panel) 80%,transparent);border:1px solid var(--line)}
 .nb{width:30px;height:28px;border:1px solid transparent;border-radius:8px;background:none;color:var(--muted);font-size:14px}
 .nb:hover:not(:disabled){background:var(--panel-2);border-color:var(--line);color:var(--ink)}
 .nb:disabled{opacity:.35;cursor:default}
@@ -57,7 +57,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .lock{color:var(--muted);font-size:12px;margin-right:-2px}
 
 /* row 3: price bar (only on listing pages) */
-#price{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:7px 10px 8px;border-top:1px solid var(--line);background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 12%,var(--panel)),var(--panel))}
+#price{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:6px 8px 0;padding:8px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 14%,var(--panel)),var(--panel))}
 #price[hidden]{display:none}
 .pc{display:flex;flex-direction:column;line-height:1.25;min-width:0}
 .pc .k{font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -154,7 +154,8 @@ function renderMenu(){
 }
 
 /* the host sizes this bar to its content */
-let lastH=0; function fit(){ const h=document.body.scrollHeight; if(h!==lastH){ lastH=h; send({type:'height',h}); } }
+let lastH=0; const px=css=>Math.ceil(css*(window.devicePixelRatio||1));
+function fit(){ const h=px(document.body.scrollHeight); if(h!==lastH){ lastH=h; send({type:'height',h}); } }
 
 chrome.webview.addEventListener('message',e=>{
   const d=e.data||{};
@@ -176,7 +177,7 @@ document.addEventListener('click',e=>{
   if(t.id==='back') send({type:'back'}); if(t.id==='fwd') send({type:'fwd'}); if(t.id==='reload') send({type:'reload'});
   if(t.id==='ext') send({type:'external'}); if(t.id==='en') send({type:'en'}); if(t.id==='hide') send({type:'hide'});
   if(t.id==='full') send({type:'fullscreen'});
-  if(t.id==='more'){ renderMenu(); $('#menu').hidden=!$('#menu').hidden; send({type:'height',h:$('#menu').hidden?lastH:Math.max(lastH,200)}); return; }
+  if(t.id==='more'){ renderMenu(); $('#menu').hidden=!$('#menu').hidden; send({type:'height',h:$('#menu').hidden?lastH:Math.max(lastH,px(200))}); return; }
   if(!t.closest('#menu')&&!$('#menu').hidden){ $('#menu').hidden=true; send({type:'height',h:lastH}); }
 });
 document.addEventListener('auxclick',e=>{ const tab=e.target.closest('.tab'); if(tab&&e.button===1) send({type:'close',id:+tab.dataset.id}); });

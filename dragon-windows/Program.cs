@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -107,8 +108,9 @@ namespace Dragon
 
             content.Dock = DockStyle.Fill;
             content.BackColor = Bg;
+            content.Padding = new Padding(Px(8), 0, Px(8), Px(8));   // the page sits in a frame with rounded corners
             bar.Dock = DockStyle.Top;
-            bar.Height = 80;
+            bar.Height = Px(80);
             bar.DefaultBackgroundColor = Bg;
             split.Panel2.Controls.Add(content);
             split.Panel2.Controls.Add(bar);
@@ -233,6 +235,7 @@ namespace Dragon
             {
                 skin = Str(m, "skin"); accent = Str(m, "accent");
                 Post(bar, new { type = "theme", skin, accent });
+                ApplyFrameColours();
             }
         }
 
@@ -249,7 +252,7 @@ namespace Dragon
                     PushTabs();
                     Post(bar, new { type = "price", price = lastPrice });
                     break;
-                case "height": if (int.TryParse(Str(m, "h"), out var h)) bar.Height = Math.Max(76, Math.Min(400, h)); break;
+                case "height": if (int.TryParse(Str(m, "h"), out var h)) bar.Height = Math.Max(Px(76), Math.Min(Px(600), h)); break;  // already in screen pixels
                 case "newtab": _ = AddTab(null, true); break;
                 case "close": if (int.TryParse(Str(m, "id"), out var c)) CloseTab(tabs.FirstOrDefault(t => t.Id == c)); break;
                 case "select": if (int.TryParse(Str(m, "id"), out var sId)) Activate(tabs.FirstOrDefault(t => t.Id == sId)); break;
@@ -333,6 +336,7 @@ namespace Dragon
         {
             if (env == null) return null;
             var tab = new Tab { Id = nextTabId++, View = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Bg, Visible = false } };
+            tab.View.SizeChanged += (s, e) => RoundCorners(tab.View);
             tabs.Add(tab);
             content.Controls.Add(tab.View);
             if (activate) Activate(tab);
@@ -351,6 +355,40 @@ namespace Dragon
             c.WebMessageReceived += (s, e) => OnTabMessage(tab, e);
             c.Navigate(IsWeb(url) ? url : NewTabUrl());
             return tab;
+        }
+
+        /* screen pixels for a size in 100%-scale pixels (Windows display scaling) */
+        int Px(int v) => (int)Math.Round(v * DeviceDpi / 96.0);
+
+        /* frame and divider take the colours of the current Dragon look, so the browser blends in */
+        static readonly Dictionary<string, Color> SkinBg = new Dictionary<string, Color>
+        {
+            ["crimson"] = Color.FromArgb(7, 5, 5), ["frost"] = Color.FromArgb(5, 8, 15), ["steel"] = Color.FromArgb(8, 5, 6),
+            ["ember"] = Color.FromArgb(13, 9, 8), ["jade"] = Color.FromArgb(4, 8, 6)
+        };
+        void ApplyFrameColours()
+        {
+            var bg = SkinBg.TryGetValue(skin, out var c) ? c : Bg;
+            Color acc;
+            try { acc = ColorTranslator.FromHtml(accent); } catch { acc = Color.FromArgb(212, 42, 42); }
+            content.BackColor = bg;
+            split.Panel2.BackColor = bg;
+            split.BackColor = Color.FromArgb(bg.R + (acc.R - bg.R) * 35 / 100, bg.G + (acc.G - bg.G) * 35 / 100, bg.B + (acc.B - bg.B) * 35 / 100);
+            bar.DefaultBackgroundColor = bg;
+        }
+
+        /* rounded corners for a tab page */
+        void RoundCorners(Control c)
+        {
+            var r = Px(12); var w = c.Width; var h = c.Height;
+            if (w < r * 2 || h < r * 2) return;
+            var path = new GraphicsPath();
+            path.AddArc(0, 0, r * 2, r * 2, 180, 90);
+            path.AddArc(w - r * 2, 0, r * 2, r * 2, 270, 90);
+            path.AddArc(w - r * 2, h - r * 2, r * 2, r * 2, 0, 90);
+            path.AddArc(0, h - r * 2, r * 2, r * 2, 90, 90);
+            path.CloseFigure();
+            var old = c.Region; c.Region = new Region(path); old?.Dispose();
         }
 
         void Activate(Tab tab)
