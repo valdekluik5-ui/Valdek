@@ -126,6 +126,7 @@ h2::before{content:var(--h-mark);color:var(--accent);font-size:.7em;vertical-ali
 [data-style=terminal] h2{font-size:20px;letter-spacing:.01em}
 [data-style=terminal] h2::before{font-size:1em;vertical-align:0}
 .sub{color:var(--muted);font-size:15px;margin:-8px 0 0}
+h2,.sub,.date{text-shadow:0 0 3px var(--black),0 1px 10px var(--black),0 0 18px var(--black)}
 
 /* dots */
 #dots{position:relative;z-index:2;display:flex;justify-content:center;gap:8px;padding:8px 0 10px}
@@ -316,6 +317,18 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
 .linkbtn.armed{color:var(--danger)}
 
 @media (min-width:700px){ .totals{grid-template-columns:repeat(4,1fr)} }
+/* big screen: every page is a column side by side, each scrolling on its own; tabs jump to a column */
+@media (min-width:1100px){
+  .bar,.tabs{max-width:none}
+  #pages{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(340px,1fr);gap:14px;scroll-snap-type:x proximity;
+    padding-bottom:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .page{padding:0 2px 24px;scroll-snap-stop:normal;border-radius:16px}
+  .page .wrap{max-width:none}
+  .page.focus{animation:focuscol 1.2s ease-out}
+  .totals{grid-template-columns:repeat(2,1fr)}
+  #dots{display:none}
+}
+@keyframes focuscol{from{box-shadow:inset 0 0 0 2px var(--accent)}to{box-shadow:inset 0 0 0 2px transparent}}
 @media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
 </style>
 </head>
@@ -806,8 +819,14 @@ function setActive(i){
   tabsEl.querySelectorAll('.tab').forEach((t,j)=>{ t.setAttribute('aria-selected',j===i); if(j===i) t.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'}); });
   dotsEl.querySelectorAll('.dot').forEach((d,j)=>d.classList.toggle('on',j===i));
 }
-function go(i,smooth=true){ pagesEl.scrollTo({left:i*pagesEl.clientWidth,behavior:smooth?'smooth':'auto'}); setActive(i); }
-let st; pagesEl.addEventListener('scroll',()=>{ clearTimeout(st); st=setTimeout(()=>setActive(Math.round(pagesEl.scrollLeft/pagesEl.clientWidth)),60); },{passive:true});
+const WIDE=matchMedia('(min-width:1100px)');
+function go(i,smooth=true){
+  if(WIDE.matches){ const el=document.getElementById('pg-'+VIEW[i]?.id); if(el){ el.scrollIntoView({inline:'nearest',block:'nearest',behavior:smooth?'smooth':'auto'}); if(smooth){ el.classList.remove('focus'); void el.offsetWidth; el.classList.add('focus'); } } }
+  else pagesEl.scrollTo({left:i*pagesEl.clientWidth,behavior:smooth?'smooth':'auto'});
+  setActive(i); }
+let st; pagesEl.addEventListener('scroll',()=>{ if(WIDE.matches) return; clearTimeout(st); st=setTimeout(()=>setActive(Math.round(pagesEl.scrollLeft/pagesEl.clientWidth)),60); },{passive:true});
+/* on a big screen, clicking into a column gives the window that page's look */
+pagesEl.addEventListener('pointerdown',e=>{ if(!WIDE.matches) return; const pg=e.target.closest('.page'); if(pg){ const i=VIEW.findIndex(p=>'pg-'+p.id===pg.id); if(i>=0) setActive(i); } });
 addEventListener('resize',()=>{ if(cur>=0) go(cur,false); });
 
 /* ---------- events ---------- */
