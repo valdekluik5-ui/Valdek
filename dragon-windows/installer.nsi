@@ -5,7 +5,7 @@ Unicode true
 !include "MUI2.nsh"
 
 !define APP "Dragon"
-!define VERSION "5.2.0"
+!define VERSION "5.3.0"
 !define UNINST "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP}"
 
 Name "${APP}"
