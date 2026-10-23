@@ -228,6 +228,11 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:var(--accent)}
 .elog .del{border:1px solid var(--line);background:transparent;border-radius:8px;width:34px;height:30px;color:var(--muted)}
 .elog .del.armed{background:var(--danger);color:var(--white);border-color:var(--danger)}
 #flipTotals>.hint{display:inline-block;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+.taborder{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.taborder li{display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:6px 6px 6px 12px;font:600 14px var(--mono)}
+.taborder li span{flex:1}
+.taborder button{width:36px;height:34px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:16px}
+.taborder button:disabled{opacity:.3;cursor:default}
 .rule{font:12.5px var(--mono);color:var(--muted);margin-top:4px}
 .empty{color:var(--muted);font:13px var(--mono);text-align:center;padding:16px}
 
@@ -315,6 +320,11 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
 <div id="sheet" hidden>
   <div class="in" role="dialog" aria-label="Settings">
     <h3>Settings <button class="iconbtn" id="closeSettings" aria-label="Close">✕</button></h3>
+    <div>
+      <div class="label">Tab order</div>
+      <ol class="taborder" id="tabOrder"></ol>
+      <div class="hint">The first tab is where the app opens after the PIN.</div>
+    </div>
     <div>
       <div class="label">Page looks</div>
       <div class="hint">Each page has its own look: Today and My apps crimson, Income steel, Fix &amp; sell ember, Cyber frost.</div>
@@ -460,7 +470,10 @@ const SKINS={
   terminal:{style:'terminal',accent:'#3a9d5d',done:'All tasks done. Access level: legend.'}
 };
 /* look for each page, in PAGES order; the start and lock screens always use crimson */
-const PAGE_SKINS=['crimson','steel','ember','crimson','frost'];
+const PAGE_SKIN={today:'crimson',income:'steel',repairs:'ember',apps:'crimson',cyber:'frost'};
+/* pages in the order the user set in Settings; pages missing from the saved order go at the end */
+let VIEW=[];
+function orderPages(){ const ids=(S.order||[]).filter(id=>PAGES.some(p=>p.id===id)); PAGES.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); }); VIEW=ids.map(id=>PAGES.find(p=>p.id===id)); }
 const BOOT_LINES=['> launchpad v3.0','> waking the dragon ...','> identity check'];
 const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#b3122e','#8a62b8','#3a9d5d'];
 let SK='crimson';
@@ -493,7 +506,7 @@ const pageById=id=>PAGES.find(p=>p.id===id);
 function allTasks(){ const out=[]; let n=0; PAGES.forEach((p,pi)=>(p.groups||[]).forEach(g=>g.items.forEach(it=>out.push({...it,page:p,pi,group:g,n:n++}))));
   const t=todayKey(), rank=x=>(S.later[x.id]===t?100:0)+(x.group.prio||9);
   return out.sort((a,b)=>rank(a)-rank(b)||a.n-b.n); }
-function prioProgress(k){ let n=0,d=0,pi=0; PAGES.forEach((p,i)=>(p.groups||[]).forEach(g=>{ if(g.prio!==k) return; pi=i; g.items.forEach(it=>{n++; if(S.checked[it.id]) d++;}); })); return {n,d,pi}; }
+function prioProgress(k){ let n=0,d=0,pi=''; PAGES.forEach(p=>(p.groups||[]).forEach(g=>{ if(g.prio!==k) return; pi=p.id; g.items.forEach(it=>{n++; if(S.checked[it.id]) d++;}); })); return {n,d,pi}; }
 const monthKey=()=>todayKey().slice(0,7);
 /* this month's earnings: logged entries plus profit of flips sold this month */
 function monthEarnings(key=monthKey()){
@@ -616,7 +629,7 @@ function todayHtml(){
       ${earnFormHtml()}
     </section>
     <section class="card"><div class="label">Priorities</div><div class="prog">
-      ${Object.entries(PRIORITIES).map(([k,title])=>{const q=prioProgress(+k);return `<button data-go="${q.pi}"><div class="top"><span>${k}. ${esc(title)}</span><span>${q.d}/${q.n}</span></div><div class="meter"><i style="width:${q.n?q.d/q.n*100:0}%"></i></div></button>`;}).join('')}
+      ${Object.entries(PRIORITIES).map(([k,title])=>{const q=prioProgress(+k);return `<button data-goid="${q.pi}"><div class="top"><span>${k}. ${esc(title)}</span><span>${q.d}/${q.n}</span></div><div class="meter"><i style="width:${q.n?q.d/q.n*100:0}%"></i></div></button>`;}).join('')}
     </div></section>
   </div>`;
 }
@@ -689,9 +702,10 @@ function pageHtml(p){
 
 const pagesEl=$('#pages'), tabsEl=$('#tabs'), dotsEl=$('#dots');
 function build(){
-  tabsEl.innerHTML=PAGES.map((p,i)=>`<button class="tab" role="tab" data-go="${i}">${esc(p.tab)}</button>`).join('');
-  dotsEl.innerHTML=PAGES.map((p,i)=>`<button class="dot" data-go="${i}" tabindex="-1"></button>`).join('');
-  pagesEl.innerHTML=PAGES.map(p=>`<section class="page" id="pg-${p.id}" role="tabpanel" aria-label="${esc(p.tab)}"></section>`).join('');
+  orderPages();
+  tabsEl.innerHTML=VIEW.map((p,i)=>`<button class="tab" role="tab" data-go="${i}">${esc(p.tab)}</button>`).join('');
+  dotsEl.innerHTML=VIEW.map((p,i)=>`<button class="dot" data-go="${i}" tabindex="-1"></button>`).join('');
+  pagesEl.innerHTML=VIEW.map(p=>`<section class="page" id="pg-${p.id}" role="tabpanel" aria-label="${esc(p.tab)}"></section>`).join('');
   PAGES.forEach(renderPage); cur=-1;
 }
 /* while locked nothing is in the page at all */
@@ -702,12 +716,12 @@ function renderPage(p){
   if(focus&&el.contains(focus)&&focus.matches('textarea,input:not([type=checkbox]),select')) return; // don't wipe what is being typed
   el.innerHTML=pageHtml(p); el.scrollTop=top;
 }
-const renderToday=()=>renderPage(PAGES[0]);
+const renderToday=()=>renderPage(PAGES.find(p=>p.id==='today'));
 
 /* ---------- navigation ---------- */
 let cur=-1;
 function setActive(i){
-  if(i===cur) return; cur=i; S.page=i; save(); if(!locked) setSkin(PAGE_SKINS[i]||'crimson');
+  if(i===cur||!VIEW[i]) return; cur=i; S.pageId=VIEW[i].id; save(); if(!locked) setSkin(PAGE_SKIN[VIEW[i].id]||'crimson');
   tabsEl.querySelectorAll('.tab').forEach((t,j)=>{ t.setAttribute('aria-selected',j===i); if(j===i) t.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'}); });
   dotsEl.querySelectorAll('.dot').forEach((d,j)=>d.classList.toggle('on',j===i));
 }
@@ -720,6 +734,7 @@ document.addEventListener('click',e=>{
   const t=e.target;
   if(t.closest('#boot,#sheet')) return;
   const g=t.closest('[data-go]'); if(g){ go(+g.dataset.go); return; }
+  const gi=t.closest('[data-goid]'); if(gi){ go(Math.max(0,VIEW.findIndex(p=>p.id===gi.dataset.goid))); return; }
   const gh=t.closest('.ghead'); if(gh){ const sec=gh.parentElement, id=sec.dataset.g; S.closed[id]=!S.closed[id]; save(); sec.classList.toggle('closed',S.closed[id]); gh.setAttribute('aria-expanded',!S.closed[id]); return; }
   const dn=t.closest('[data-done]'); if(dn){ S.checked[dn.dataset.done]=true; save(); PAGES.forEach(renderPage); return; }
   const lt=t.closest('[data-later]'); if(lt){ S.later[lt.dataset.later]=todayKey(); save(); renderToday(); return; }
@@ -765,7 +780,9 @@ document.addEventListener('submit',e=>{
 
 /* ---------- settings ---------- */
 const sheet=$('#sheet');
-function renderSettings(){
+function renderTabOrder(){ orderPages();
+  $('#tabOrder').innerHTML=VIEW.map((p,i)=>`<li><span>${esc(p.tab)}</span><button data-move="${p.id}" data-dir="-1" aria-label="Move ${esc(p.tab)} up"${i?'':' disabled'}>↑</button><button data-move="${p.id}" data-dir="1" aria-label="Move ${esc(p.tab)} down"${i<VIEW.length-1?'':' disabled'}>↓</button></li>`).join(''); }
+function renderSettings(){ renderTabOrder();
   $('#swatches').innerHTML=PRESETS.map(c=>`<button class="sw${c===S.accent?' on':''}" style="background:${c}" data-c="${c}" aria-label="Accent ${c}"></button>`).join('')+
     `<span class="picker" style="background:${!S.accent||PRESETS.includes(S.accent)?RAINBOW:S.accent}"><input type="color" id="custom" value="${ACC()}" aria-label="Pick any colour"></span>`;
   $('#pageColours').setAttribute('aria-pressed',!S.accent); $('#pageColours').disabled=!S.accent;
@@ -777,6 +794,10 @@ function rerenderAll(){ if(!locked){ PAGES.forEach(renderPage); } }
 $('#openSettings').onclick=()=>{ renderSettings(); bgMsg(''); sheet.hidden=false; };
 $('#closeSettings').onclick=()=>sheet.hidden=true;
 sheet.addEventListener('click',e=>{ if(e.target===sheet) sheet.hidden=true;
+  const mv=e.target.closest('[data-move]'); if(mv){ const ids=VIEW.map(p=>p.id), i=ids.indexOf(mv.dataset.move), j=i+ +mv.dataset.dir;
+    if(j<0||j>=ids.length) return; [ids[i],ids[j]]=[ids[j],ids[i]]; S.order=ids; save();
+    const here=VIEW[cur]?.id; if(!locked){ build(); go(Math.max(0,VIEW.findIndex(p=>p.id===here)),false); }
+    renderTabOrder(); $('#tabOrder').querySelector(`[data-move="${mv.dataset.move}"][data-dir="${mv.dataset.dir}"]`)?.focus(); return; }
   const c=e.target.closest('[data-c]'); if(c){ S.accent=c.dataset.c; save(); applyTheme(); renderSettings(); }
   if(e.target.closest('#pageColours')){ S.accent=''; save(); applyTheme(); renderSettings(); } });
 sheet.addEventListener('input',e=>{
@@ -801,7 +822,7 @@ $('#bgRemove').onclick=()=>{ S.bg=''; save(); applyTheme(); renderSettings(); };
 const resetBtn=$('#reset'); let rt;
 resetBtn.onclick=()=>{
   if(!resetBtn.classList.contains('armed')){ resetBtn.classList.add('armed'); resetBtn.textContent='Tap again to erase'; rt=setTimeout(()=>{ resetBtn.classList.remove('armed'); resetBtn.textContent='Reset all progress'; },3000); return; }
-  clearTimeout(rt); const keep={accent:S.accent,bg:S.bg,dim:S.dim,pinHash:S.pinHash,pinSalt:S.pinSalt}; S=Object.assign(blank(),keep); save();
+  clearTimeout(rt); const keep={order:S.order,accent:S.accent,bg:S.bg,dim:S.dim,pinHash:S.pinHash,pinSalt:S.pinSalt}; S=Object.assign(blank(),keep); save();
   resetBtn.classList.remove('armed'); resetBtn.textContent='Done – progress cleared';
   setTimeout(()=>resetBtn.textContent='Reset all progress',1800);
   build(); go(0,false);
@@ -910,7 +931,7 @@ function unlock(){
 function enter(){
   if(!locked) return; clearTimeout(bootTimer); locked=false;
   build(); bootEl.classList.add('out'); setTimeout(()=>{ bootEl.hidden=true; },350);
-  requestAnimationFrame(()=>go(Math.min(S.page||0,PAGES.length-1),false));
+  requestAnimationFrame(()=>go(0,false));
 }
 enterBtn.onclick=enter;
 bootEl.addEventListener('click',e=>{ if(!enterBtn.hidden&&!e.target.closest('#lock')) enter(); });
