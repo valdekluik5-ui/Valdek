@@ -5,6 +5,9 @@ A small Windows app (C#, WinForms, Edge WebView2, .NET Framework 4.8; all built 
 - left: the Dragon app from `../launchpad/index.html`, served as `https://dragon.example` so its storage persists
 - right: a training browser. Links from Dragon open here, sign-ins persist, and it reopens the last page
   on the next start. Ctrl+T hides or shows it.
+- EN: shows a site in English through Google Translate; the choice is remembered per site.
+- Price ₴: a price-check panel. It reads the product name from the page and searches new prices
+  (Hotline.ua, Rozetka) and used ones (OLX, eBay sold items); a 60% rule calculator gives the max buy price.
 
 Window size, split position and the last training page are saved in `%LOCALAPPDATA%\Dragon\window.json`.
 
