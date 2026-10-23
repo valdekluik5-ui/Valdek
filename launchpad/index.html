@@ -135,7 +135,7 @@ h2::before{content:var(--h-mark);color:var(--accent);font-size:.7em;vertical-ali
 /* cards */
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .label{font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.note{border:1px solid var(--acc-line);background:var(--acc-soft);border-radius:12px;padding:10px 12px;font-size:15px}
+.note{border:1px solid var(--acc-line);background:linear-gradient(var(--acc-soft),var(--acc-soft)),var(--panel);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border-radius:12px;padding:10px 12px;font-size:15px}
 .note b{color:var(--gold)}
 .hint{color:var(--muted);font-size:13.5px;margin-top:6px}
 
@@ -219,6 +219,14 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:var(--accent)}
 .pill{font:600 11px var(--mono);border-radius:999px;padding:2px 8px;border:1px solid var(--line);color:var(--muted)}
 .pill.s-Sold{color:var(--on-accent);background:var(--accent);border-color:var(--accent)}
 .pill.s-Listed,.pill.s-Fixed{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
+.goal{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:4px}
+.earnform{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:12px}
+.earnform input,.earnform select{min-width:0;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:9px;padding:9px 10px;font:14px var(--mono);color:var(--ink)}
+.elog{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column}
+.elog li{display:grid;grid-template-columns:3.4em 1fr auto 34px;gap:10px;align-items:center;padding:7px 0;border-top:1px dashed var(--line);font:14px var(--mono);font-variant-numeric:tabular-nums}
+.elog li span:first-child{color:var(--muted)}
+.elog .del{border:1px solid var(--line);background:transparent;border-radius:8px;width:34px;height:30px;color:var(--muted)}
+.elog .del.armed{background:var(--danger);color:var(--white);border-color:var(--danger)}
 .empty{color:var(--muted);font:13px var(--mono);text-align:center;padding:16px}
 
 /* settings sheet */
@@ -307,7 +315,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
     <h3>Settings <button class="iconbtn" id="closeSettings" aria-label="Close">✕</button></h3>
     <div>
       <div class="label">Page looks</div>
-      <div class="hint">Each page has its own look: Today and Flips crimson, Cyber path frost, Income steel, My apps ember.</div>
+      <div class="hint">Each page has its own look: Today and My apps crimson, Income steel, Repairs &amp; flips ember, Cyber frost.</div>
     </div>
     <div>
       <div class="label">Accent colour</div>
@@ -348,79 +356,96 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
 <script>
 /* ---------- content ---------- */
 const THM='https://tryhackme.com';
+/* groups with prio feed Today's next task in that order (1 first); the rest follow in page order */
+const PRIORITIES={1:'Apply to AI language platforms',2:'Repair & flip listings in Kyiv',3:'Cyber fit test this weekend',4:'Teleprompter public version',5:'Grow EV diagnostics'};
 const PAGES=[
  {id:'today',tab:'Today'},
- {id:'cyber',tab:'Cyber path',title:'Cyber path',sub:'From EV technician to car & EV security.',
-  note:'<b>Skip the €600 bootcamp.</b> Self-study plus Security+ is cheaper and more recognised by employers.',
+ {id:'income',tab:'Income',title:'Income',sub:'AI language and expert work, then EV diagnostics.',earnings:true,
+  note:'<b>~$45/hr × 5–6 h a week ≈ €1,000/month.</b> Estonian and Finnish listings pay about $35–55/hr. Apply only to worldwide roles and never misstate your location.',
   groups:[
-   {id:'p0',title:'Phase 0 · this weekend',sub:'Free',items:[
-     {id:'thm-acc',t:'Make a TryHackMe account',url:THM+'/signup'},
-     {id:'thm-intro',t:'Do the intro room',d:'"Tutorial" – learn how rooms and the attack box work',url:THM+'/room/tutorial'},
-     {id:'thm-box1',t:'First beginner box',d:'e.g. "Blue"',url:THM+'/room/blue'},
-     {id:'thm-box2',t:'A harder box',d:'e.g. "Kenobi"',url:THM+'/room/kenobi'},
-     {id:'can-intro',t:'Short CAN bus intro',d:'CSS Electronics simple intro',url:'https://www.csselectronics.com/pages/can-bus-simple-intro-tutorial'}]},
-   {id:'p1',title:'Phase 1 · weeks 1–8',sub:'Foundations',items:[
-     {id:'net',t:'Networking basics',d:'Pre Security path – network fundamentals',url:THM+'/path/outline/presecurity'},
-     {id:'linux',t:'Linux fundamentals',d:'Parts 1–3',url:THM+'/room/linuxfundamentalspart1'},
-     {id:'web',t:'Web basics',d:'How the web works',url:THM+'/module/how-the-web-works'},
-     {id:'jrpt',t:'Jr Penetration Tester path',url:THM+'/path/outline/jrpenetrationtester'}]},
-   {id:'p2',title:'Phase 2 · months 2–4',sub:'CompTIA Security+',items:[
-     {id:'messer',t:'Watch Professor Messer\'s free Security+ videos',url:'https://www.professormesser.com/security-plus/sy0-701/sy0-701-video/sy0-701-comptia-security-plus-course/'},
-     {id:'practice',t:'Do one practice-exam set',d:'About €20',url:'https://www.udemy.com/courses/search/?q=security%2B%20practice%20exams'},
-     {id:'isc2cc',t:'(ISC)² CC exam',d:'Optional, free',url:'https://www.isc2.org/certifications/cc'},
-     {id:'secplus',t:'Pass Security+',url:'https://www.comptia.org/certifications/security'}]},
-   {id:'p3',title:'Phase 3 · months 4–12',sub:'Job + specialisation',items:[
-     {id:'apply',t:'Apply to remote junior / SOC roles',url:'https://www.linkedin.com/jobs/search/?keywords=junior%20SOC%20analyst&f_WT=2'},
-     {id:'canspec',t:'Specialise in CAN bus',d:'The Car Hacker\'s Handbook (free)',url:'http://opengarages.org/handbook/'},
-     {id:'evse',t:'Learn EV-charger security',d:'OCPP, charger firmware, back-end APIs'},
-     {id:'r155',t:'Learn UNECE R155',d:'Vehicle cyber security regulation',url:'https://unece.org/transport/documents/2021/03/standards/un-regulation-no-155-cyber-security-and-cyber-security'},
-     {id:'oscp',t:'Work toward OSCP',d:'Long term',url:'https://www.offsec.com/courses/pen-200/'}]}]},
- {id:'income',tab:'Income',title:'Income',sub:'Target: €1,000 / month.',
-  groups:[
-   {id:'ai',title:'AI language platforms',sub:'Apply to all of them',items:[
+   {id:'ai',prio:1,title:'Apply to AI platforms',sub:'This week · the fastest way to €1,000',items:[
+     {id:'ai-profile',t:'Write your profile text once',d:'Native Finnish + Estonian + English first, then the Tesla / Renault HV background'},
      {id:'opentrain',t:'OpenTrain AI',url:'https://www.opentrain.ai'},
-     {id:'sme',t:'SME Careers',url:'https://smecareers.com'},
-     {id:'mercor',t:'Mercor',url:'https://work.mercor.com'},
-     {id:'dataann',t:'DataAnnotation',url:'https://www.dataannotation.tech'},
-     {id:'sovrano',t:'Sovrano'},
+     {id:'sme',t:'SME Careers (SuperAnnotate)',url:'https://smecareers.com'},
+     {id:'mercor',t:'Mercor',d:'Language roles, plus engineering-expert roles at $60–125/hr',url:'https://work.mercor.com'},
+     {id:'dataann',t:'DataAnnotation.tech',url:'https://www.dataannotation.tech'},
+     {id:'sovrano',t:'Sovrano AI'},
      {id:'welo',t:'Welo Data',url:'https://welodata.ai'},
-     {id:'turing',t:'Turing',url:'https://www.turing.com'}]},
-   {id:'strong',title:'Make applications strong',items:[
-     {id:'lead',t:'Lead with native Finnish and Estonian'},
-     {id:'hv',t:'Add the HV / EV background',d:'Tesla senior tech, Renault red-level certified'},
-     {id:'tests',t:'Take the screening tests carefully',d:'No rushing – they decide your pay tier'}]},
-   {id:'diag',title:'Remote EV diagnostics',items:[
-     {id:'diag-offer',t:'Write a short offer post',d:'What you diagnose, price, how a remote session works'},
-     {id:'diag-fi',t:'Post in Finnish EV groups',url:'https://www.facebook.com/search/groups/?q=s%C3%A4hk%C3%B6auto'},
-     {id:'diag-ee',t:'Post in Estonian EV groups',url:'https://www.facebook.com/search/groups/?q=elektriauto'}]}]},
- {id:'apps',tab:'My apps',title:'My apps',sub:'Teleprompter first, Quiet Moon later.',
+     {id:'turing',t:'Turing',url:'https://www.turing.com'},
+     {id:'ai-more',t:'Find 3 more platforms to reach 10+'},
+     {id:'tests',t:'Take the screening tests slowly and carefully'}]},
+   {id:'diag',prio:5,title:'Remote EV diagnostics',sub:'Finnish and Estonian, for the Nordic and Baltic markets',items:[
+     {id:'diag-offer',t:'Write the offer',d:'Price per case · client sends scan data or joins a video call · their local tech does the HV work'},
+     {id:'diag-fi',t:'Post in Finnish EV and Tesla groups',url:'https://www.facebook.com/search/groups/?q=s%C3%A4hk%C3%B6auto'},
+     {id:'diag-ee',t:'Post in Estonian EV and Tesla groups',url:'https://www.facebook.com/search/groups/?q=elektriauto'},
+     {id:'diag-first',t:'Get the first paid case'}]},
+   {id:'diag-later',title:'Later ideas',sub:'Once diagnostics runs',items:[
+     {id:'diag-ppi',t:'Pre-purchase battery-check reports'},
+     {id:'diag-kyiv',t:'Freelance hard HV jobs for Kyiv EV shops'},
+     {id:'diag-train',t:'Training for technicians'}]}]},
+ {id:'repairs',tab:'Repairs & flips',title:'Repairs & flips',sub:'Kyiv. Customers drop devices off, so little talking is needed.',flips:true,
+  note:'<b>10–15 repairs at €70–100 ≈ €1,000.</b> Outage gear is in demand: power stations, UPS units, inverters, e-bike and scooter batteries.',
+  rules:'<b>Flip rules.</b> Best: iPhones (screen or battery) and ThinkPad / Dell laptops. Avoid water damage, unknown boot loops and Mac logic-board faults. Buy only if buy + parts is under ~60% of the resale price.',
   groups:[
-   {id:'tp',title:'Teleprompter',sub:'Launch first',items:[
-     {id:'tp-public',t:'Public version',url:'https://valdekluik5-ui.github.io/V/'},
-     {id:'tp-android',t:'Android voice-following fix with Capacitor',url:'https://capacitorjs.com/docs'},
-     {id:'tp-ai',t:'Paid AI script help'},
-     {id:'tp-web',t:'Web app for iPhone'},
-     {id:'tp-play',t:'Google Play for Android'},
-     {id:'tp-testers',t:'Get 12 testers'}]},
-   {id:'qm',title:'Quiet Moon',sub:'Later',items:[
-     {id:'qm-themes',t:'Multiple themes',url:'https://valdekluik5-ui.github.io/Valdek/quiet-moon/'},
-     {id:'qm-words',t:'Wellbeing wording, not medical'},
-     {id:'qm-ai',t:'AI helper behind a subscription'},
-     {id:'qm-wait',t:'Waitlist test'}]},
-   {id:'gp',title:'Google Play setup',items:[
-     {id:'gp-console',t:'Developer account',url:'https://play.google.com/console'},
-     {id:'gp-merchant',t:'Merchant (payments) account',url:'https://support.google.com/googleplay/android-developer/answer/7161426'},
-     {id:'gp-rule',t:'12 testers for 14 days rule',d:'Closed test must run 14 days with 12+ opted-in testers before production',url:'https://support.google.com/googleplay/android-developer/answer/14151465'}]}]},
- {id:'flips',tab:'Flips',title:'Flips',sub:'Buy broken phones & laptops, repair, sell.',
-  groups:[
-   {id:'src',title:'Sourcing guide',items:[
+   {id:'rep',prio:2,title:'Outage-gear repairs',sub:'Power stations, UPS, inverters, e-bike and scooter batteries',items:[
+     {id:'rep-prices',t:'Set your prices and drop-off process',d:'Aim for €70–100 a repair'},
+     {id:'rep-olx',t:'Post the repair listing on OLX',url:'https://www.olx.ua/uk/'},
+     {id:'rep-tg',t:'Post in Kyiv Telegram groups'},
+     {id:'rep-first',t:'Finish the first paid repair'}]},
+   {id:'src',prio:2,title:'Find flip devices',items:[
      {id:'src-olx',t:'Check OLX "на запчастини"',url:'https://www.olx.ua/uk/list/q-%D0%BD%D0%B0-%D0%B7%D0%B0%D0%BF%D1%87%D0%B0%D1%81%D1%82%D0%B8%D0%BD%D0%B8/'},
      {id:'src-prom',t:'Check Prom.ua',url:'https://prom.ua/ua/search?search_term=%D0%BD%D0%B0%20%D0%B7%D0%B0%D0%BF%D1%87%D0%B0%D1%81%D1%82%D0%B8%D0%BD%D0%B8'},
-     {id:'src-shops',t:'Ask repair shops for old stock'},
-     {id:'src-best',t:'Focus on what flips best',d:'iPhones and ThinkPad / Dell laptops'},
-     {id:'src-avoid',t:'Avoid water damage and unknown faults'},
-     {id:'src-60',t:'60% rule',d:'Only buy if buy price + parts is under ~60% of resale value'}]}]}
+     {id:'src-shops',t:'Ask repair shops for dead stock'}]}]},
+ {id:'apps',tab:'My apps',title:'My apps',sub:'Teleprompter first, Quiet Moon later.',
+  note:'<b>About 3% of active users pay ~$5/month:</b> roughly $135/month at 1,000 users, $675 at 5,000. No marketing: $0–50/month. Steady demo videos: $100–700/month.',
+  groups:[
+   {id:'tp',prio:4,title:'Teleprompter',sub:'Launch first · the category already has paying customers',items:[
+     {id:'tp-public',t:'Make a public version, separate from your own',url:'https://valdekluik5-ui.github.io/V/'},
+     {id:'tp-android',t:'Fix Android voice-following with Capacitor',url:'https://capacitorjs.com/docs'},
+     {id:'tp-ai',t:'Put AI script help behind a paywall',d:'About 3 free tries; AI costs ~0.1¢ per script'},
+     {id:'tp-web',t:'iPhone web app with your own payments',d:'Paddle or Lemon Squeezy (Stripe does not serve Ukraine directly)'},
+     {id:'tp-play',t:'Release on Google Play'},
+     {id:'tp-testers',t:'Get 12 testers using it for 14 days'},
+     {id:'tp-demo',t:'Post a demo video every week'},
+     {id:'tp-appstore',t:'App Store ($99/year) once it pays'}]},
+   {id:'gp',title:'Google Play account',items:[
+     {id:'gp-console',t:'Create the developer account',url:'https://play.google.com/console'},
+     {id:'gp-merchant',t:'Set up payments (payouts in hryvnia by wire)',url:'https://support.google.com/googleplay/android-developer/answer/7161426'},
+     {id:'gp-rule',t:'Plan the 12-testers-for-14-days rule for each app',url:'https://support.google.com/googleplay/android-developer/answer/14151465'}]},
+   {id:'qm',title:'Quiet Moon',sub:'Later · bigger bet, a mood and self-care app with a character',items:[
+     {id:'qm-wait',t:'Run a waitlist test first',url:'https://valdekluik5-ui.github.io/Valdek/quiet-moon/'},
+     {id:'qm-themes',t:'Multiple themes'},
+     {id:'qm-words',t:'Wellbeing wording, not medical'},
+     {id:'qm-privacy',t:'Write a privacy policy'},
+     {id:'qm-ai',t:'AI helper behind a subscription'}]}]},
+ {id:'cyber',tab:'Cyber',title:'Cyber path',sub:'Long game: automotive security (UNECE R155 / R156).',
+  note:'<b>Skip the €600 GoIT bootcamp.</b> It ends in a school certificate, not an industry one. Certificates that count: Security+, (ISC)² CC, CEH, OSCP. A paid course can come later, from earnings.',
+  groups:[
+   {id:'p0',prio:3,title:'Phase 0 · fit test this weekend',sub:'Free · two hands-on sessions',items:[
+     {id:'thm-acc',t:'Make a TryHackMe account',url:THM+'/signup'},
+     {id:'thm-intro',t:'Session 1: intro room and a first beginner box',url:THM+'/room/tutorial'},
+     {id:'thm-box2',t:'Session 2: a harder box or HackTheBox Starting Point',url:'https://www.hackthebox.com/'},
+     {id:'can-intro',t:'Short CAN bus intro',url:'https://www.csselectronics.com/pages/can-bus-simple-intro-tutorial'},
+     {id:'fit-decide',t:'Decide: did you enjoy it? Then start Phase 1'}]},
+   {id:'p1',title:'Phase 1 · weeks 1–8',sub:'Free study while language work pays',items:[
+     {id:'net',t:'Networking basics',url:THM+'/path/outline/presecurity'},
+     {id:'linux',t:'Linux fundamentals',url:THM+'/room/linuxfundamentalspart1'},
+     {id:'web',t:'Web basics',url:THM+'/module/how-the-web-works'},
+     {id:'jrpt',t:'Jr Penetration Tester path',url:THM+'/path/outline/jrpenetrationtester'}]},
+   {id:'p2',title:'Phase 2 · months 2–4',sub:'CompTIA Security+',items:[
+     {id:'messer',t:'Professor Messer\'s free Security+ videos',url:'https://www.professormesser.com/security-plus/sy0-701/sy0-701-video/sy0-701-comptia-security-plus-course/'},
+     {id:'practice',t:'One practice-exam set (~€20)',url:'https://www.udemy.com/courses/search/?q=security%2B%20practice%20exams'},
+     {id:'isc2cc',t:'(ISC)² CC exam (optional, free)',url:'https://www.isc2.org/certifications/cc'},
+     {id:'secplus',t:'Pass Security+',url:'https://www.comptia.org/certifications/security'}]},
+   {id:'p3',title:'Phase 3 · months 4–12',sub:'Job + specialisation; team-lead roles later',items:[
+     {id:'apply',t:'Apply to remote junior / SOC roles',url:'https://www.linkedin.com/jobs/search/?keywords=junior%20SOC%20analyst&f_WT=2'},
+     {id:'canspec',t:'Specialise in CAN bus',url:'http://opengarages.org/handbook/'},
+     {id:'evse',t:'Learn EV-charger security'},
+     {id:'r155',t:'Learn UNECE R155 / R156',url:'https://unece.org/transport/documents/2021/03/standards/un-regulation-no-155-cyber-security-and-cyber-security'},
+     {id:'oscp',t:'Work toward OSCP',url:'https://www.offsec.com/courses/pen-200/'}]}]}
 ];
+const SOURCES=['AI work','EV diagnostics','Repairs','Flips','Apps','Other'];
+const GOAL=1000;
 const STATUSES=['Bought','Repairing','Fixed','Listed','Sold'];
 const SKINS={
   crimson:{style:'dragon',accent:'#d42a2a',done:'Every task done. The dragon bows to you.'},
@@ -430,7 +455,7 @@ const SKINS={
   terminal:{style:'terminal',accent:'#3a9d5d',done:'All tasks done. Access level: legend.'}
 };
 /* look for each page, in PAGES order; the start and lock screens always use crimson */
-const PAGE_SKINS=['crimson','frost','steel','ember','crimson'];
+const PAGE_SKINS=['crimson','steel','ember','crimson','frost'];
 const BOOT_LINES=['> launchpad v3.0','> waking the dragon ...','> identity check'];
 const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#b3122e','#8a62b8','#3a9d5d'];
 let SK='crimson';
@@ -439,7 +464,7 @@ const RAINBOW='conic-gradient(red,yellow,lime,cyan,blue,magenta,red)';
 
 /* ---------- state ---------- */
 const KEY='launchpad.v1';
-const blank=()=>({checked:{},closed:{},notes:{},flips:[],accent:'',bg:'',dim:55,page:0,pinHash:'',pinSalt:'',v3:1,v4:1});
+const blank=()=>({checked:{},closed:{},notes:{},flips:[],earn:[],later:{},accent:'',bg:'',dim:55,page:0,pinHash:'',pinSalt:'',v3:1,v4:1});
 let S=blank();
 try{ const saved=JSON.parse(localStorage.getItem(KEY)||'{}');
   if(!saved.skin&&saved.accent==='#3a9d5d') delete saved.accent; // v1 default green → new default
@@ -457,7 +482,20 @@ const num=v=>{ const n=parseFloat(String(v).replace(',','.')); return isFinite(n
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* every task in order: cyber → income → apps → flips */
-function allTasks(){ const out=[]; PAGES.forEach((p,pi)=>(p.groups||[]).forEach(g=>g.items.forEach(it=>out.push({...it,page:p,pi,group:g})))); return out; }
+const todayKey=()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const pageById=id=>PAGES.find(p=>p.id===id);
+/* every task, in priority order; tasks put off with "Later" today go to the back */
+function allTasks(){ const out=[]; let n=0; PAGES.forEach((p,pi)=>(p.groups||[]).forEach(g=>g.items.forEach(it=>out.push({...it,page:p,pi,group:g,n:n++}))));
+  const t=todayKey(), rank=x=>(S.later[x.id]===t?100:0)+(x.group.prio||9);
+  return out.sort((a,b)=>rank(a)-rank(b)||a.n-b.n); }
+function prioProgress(k){ let n=0,d=0,pi=0; PAGES.forEach((p,i)=>(p.groups||[]).forEach(g=>{ if(g.prio!==k) return; pi=i; g.items.forEach(it=>{n++; if(S.checked[it.id]) d++;}); })); return {n,d,pi}; }
+const monthKey=()=>todayKey().slice(0,7);
+/* this month's earnings: logged entries plus profit of flips sold this month */
+function monthEarnings(key=monthKey()){
+  const by={}; let total=0;
+  S.earn.filter(e=>e.d.startsWith(key)).forEach(e=>{ by[e.src]=(by[e.src]||0)+e.a; total+=e.a; });
+  S.flips.filter(f=>f.status==='Sold'&&(f.soldOn||'').startsWith(key)).forEach(f=>{ const p=num(f.sell)-num(f.buy)-num(f.parts); by.Flips=(by.Flips||0)+p; total+=p; });
+  return {total,by}; }
 function pageProgress(p){ let n=0,d=0; (p.groups||[]).forEach(g=>g.items.forEach(it=>{n++; if(S.checked[it.id]) d++;})); return {n,d}; }
 function flipTotals(){
   let invested=0,earned=0,net=0,active=0;
@@ -546,26 +584,45 @@ function groupHtml(g){
 }
 function notesHtml(p){ return `<section class="card"><div class="label">Notes <span class="saved" data-saved="${p.id}">saved</span></div><textarea id="notes-${p.id}" data-notes="${p.id}" placeholder="Write anything…">${esc(S.notes[p.id]||'')}</textarea></section>`; }
 
+function earnFormHtml(){ return `<form class="earnform" id="addEarn">
+    <input id="earn-amount" name="amount" inputmode="decimal" placeholder="€ amount" aria-label="Amount in euros" required>
+    <select id="earn-src" name="src" aria-label="Source">${SOURCES.filter(x=>x!=='Flips').map(x=>`<option>${x}</option>`).join('')}</select>
+    <button class="btn primary" type="submit">+ Add</button></form>`; }
 function todayHtml(){
   const tasks=allTasks().filter(t=>!S.checked[t.id]);
-  const next=tasks[0], after=tasks.slice(1,4), ft=flipTotals();
+  const next=tasks[0], after=tasks.slice(1,4), m=monthEarnings();
   const date=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  let all=0,done=0; PAGES.forEach(p=>{const q=pageProgress(p); all+=q.n; done+=q.d;});
+  const month=new Date().toLocaleDateString('en-GB',{month:'long'});
+  const parts=Object.entries(m.by).filter(([,v])=>v).map(([k,v])=>`${esc(k)} ${eur(v)}`).join(' · ');
   return `<div class="wrap">
     <div><div class="date">${esc(date)}</div><h2>Today</h2></div>
     <section class="card next">${next?`
-      <div class="from">${esc(next.page.tab)} · ${esc(next.group.title)}</div>
+      <div class="from">${next.group.prio?`Priority ${next.group.prio} · `:''}${esc(next.group.title)}</div>
       <div class="t">${esc(next.t)}</div>${next.d?`<div class="d">${esc(next.d)}</div>`:''}
-      <div class="row"><button class="btn primary" data-done="${next.id}">✓ Done</button>${linkHtml(next.url)}</div>`
+      <div class="row"><button class="btn primary" data-done="${next.id}">✓ Done</button><button class="btn" data-later="${next.id}">Later</button>${linkHtml(next.url)}</div>`
       :`<div class="alldone">${esc(SKINS[SK].done)}</div>`}
     </section>
     ${after.length?`<section class="card"><div class="label">Up next</div><ol class="upnext">${after.map((t,i)=>`<li><span>0${i+2}</span><span>${esc(t.t)}<br><small>${esc(t.page.tab)}</small></span></li>`).join('')}</ol></section>`:''}
-    <section class="card"><div class="label">Progress · ${done}/${all}</div><div class="prog">
-      ${PAGES.filter(p=>p.groups).map(p=>{const q=pageProgress(p);return `<button data-go="${PAGES.indexOf(p)}"><div class="top"><span>${esc(p.tab)}</span><span>${q.d}/${q.n}</span></div><div class="meter"><i style="width:${q.n?q.d/q.n*100:0}%"></i></div></button>`;}).join('')}
+    <section class="card"><div class="label">${esc(month)} · goal ${eur(GOAL)}</div>
+      <div class="goal"><span class="big ${m.total<0?'neg':'pos'}">${eur(m.total)}</span><span class="hint">${m.total>=GOAL?'Goal reached':eur(GOAL-Math.max(0,m.total))+' to go'}</span></div>
+      <div class="meter"><i style="width:${Math.max(0,Math.min(100,m.total/GOAL*100))}%"></i></div>
+      ${parts?`<div class="hint">${parts}</div>`:''}
+      ${earnFormHtml()}
+    </section>
+    <section class="card"><div class="label">Priorities</div><div class="prog">
+      ${Object.entries(PRIORITIES).map(([k,title])=>{const q=prioProgress(+k);return `<button data-go="${q.pi}"><div class="top"><span>${k}. ${esc(title)}</span><span>${q.d}/${q.n}</span></div><div class="meter"><i style="width:${q.n?q.d/q.n*100:0}%"></i></div></button>`;}).join('')}
     </div></section>
-    <section class="card"><div class="label">Total flip profit</div><div class="big ${ft.net<0?'neg':'pos'}">${eur(ft.net)}</div><div class="hint">${S.flips.length} device${S.flips.length===1?'':'s'} · ${ft.active} in progress</div></section>
-    ${notesHtml(PAGES[0])}
   </div>`;
+}
+/* earnings log on the Income page: this month's entries, last month's total */
+function earningsHtml(){
+  const key=monthKey(), d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-1);
+  const lastKey=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`, list=S.earn.filter(e=>e.d.startsWith(key)).sort((a,b)=>b.d.localeCompare(a.d));
+  return `<section class="card" id="earnLog"><div class="label">Earnings this month · ${eur(monthEarnings().total)}</div>
+    ${earnFormHtml()}
+    ${list.length?`<ul class="elog">${list.map(e=>`<li><span>${esc(e.d.slice(8))}.${esc(e.d.slice(5,7))}</span><span>${esc(e.src)}</span><b>${eur(e.a)}</b><button class="del" data-delearn="${e.id}" aria-label="Delete entry">✕</button></li>`).join('')}</ul>`:'<div class="empty">Nothing logged yet this month.</div>'}
+    <div class="hint">Sold flips count automatically. Last month: ${eur(monthEarnings(lastKey).total)}</div>
+  </section>`;
 }
 
 function flipsTopHtml(){
@@ -592,6 +649,9 @@ function devHtml(f){
 }
 function flipsHtml(p){
   return `<div class="wrap"><h2>${esc(p.title)}</h2><p class="sub">${esc(p.sub)}</p>
+    ${p.note?`<div class="note">${p.note}</div>`:''}
+    ${p.groups.map(groupHtml).join('')}
+    <div class="note">${p.rules}</div>
     ${flipsTopHtml()}
     <section class="card"><div class="label">Add device</div>
       <form class="form" id="addDev">
@@ -604,16 +664,16 @@ function flipsHtml(p){
       </form>
     </section>
     <div class="devs" id="devs">${S.flips.length?S.flips.map(devHtml).join(''):'<div class="card empty">No devices yet.</div>'}</div>
-    ${p.groups.map(groupHtml).join('')}
     ${notesHtml(p)}
   </div>`;
 }
 function pageHtml(p){
   if(p.id==='today') return todayHtml();
-  if(p.id==='flips') return flipsHtml(p);
+  if(p.flips) return flipsHtml(p);
   return `<div class="wrap"><h2>${esc(p.title)}</h2><p class="sub">${esc(p.sub)}</p>
     ${p.note?`<div class="note">${p.note}</div>`:''}
     ${p.groups.map(groupHtml).join('')}
+    ${p.earnings?earningsHtml():''}
     ${notesHtml(p)}</div>`;
 }
 
@@ -652,9 +712,13 @@ document.addEventListener('click',e=>{
   const g=t.closest('[data-go]'); if(g){ go(+g.dataset.go); return; }
   const gh=t.closest('.ghead'); if(gh){ const sec=gh.parentElement, id=sec.dataset.g; S.closed[id]=!S.closed[id]; save(); sec.classList.toggle('closed',S.closed[id]); gh.setAttribute('aria-expanded',!S.closed[id]); return; }
   const dn=t.closest('[data-done]'); if(dn){ S.checked[dn.dataset.done]=true; save(); PAGES.forEach(renderPage); return; }
+  const lt=t.closest('[data-later]'); if(lt){ S.later[lt.dataset.later]=todayKey(); save(); renderToday(); return; }
+  const de=t.closest('[data-delearn]'); if(de){
+    if(!de.classList.contains('armed')){ de.classList.add('armed'); de.textContent='?'; setTimeout(()=>{ de.classList.remove('armed'); de.textContent='✕'; },2500); return; }
+    S.earn=S.earn.filter(x=>x.id!==de.dataset.delearn); save(); renderPage(pageById('income')); renderToday(); return; }
   const del=t.closest('[data-del]'); if(del){
     if(!del.classList.contains('armed')){ del.classList.add('armed'); del.textContent='?'; setTimeout(()=>{ del.classList.remove('armed'); del.textContent='✕'; },2500); return; }
-    S.flips=S.flips.filter(f=>f.id!==del.dataset.del); save(); renderPage(PAGES[4]); renderToday(); return; }
+    S.flips=S.flips.filter(f=>f.id!==del.dataset.del); save(); renderPage(pageById('repairs')); renderToday(); return; }
 });
 document.addEventListener('change',e=>{
   const t=e.target;
@@ -673,16 +737,20 @@ document.addEventListener('input',e=>{
 });
 function updateDev(t){
   const card=t.closest('[data-dev]'), f=S.flips.find(x=>x.id===card.dataset.dev); if(!f) return;
-  f[t.dataset.f]=t.value; save();
+  f[t.dataset.f]=t.value; if(t.dataset.f==='status') f.soldOn=t.value==='Sold'?(f.soldOn||todayKey()):''; save();
   const p=num(f.sell)-num(f.buy)-num(f.parts), pe=card.querySelector('[data-profit]');
   pe.textContent=eur(p); pe.className=p<0?'neg':'pos'; card.querySelector('.profit span').textContent=f.status==='Sold'?'Profit':'Expected profit';
-  $('#flipTotals').outerHTML=flipsTopHtml(); renderToday();
+  $('#flipTotals').outerHTML=flipsTopHtml(); renderToday(); renderPage(pageById('income'));
 }
 document.addEventListener('submit',e=>{
+  if(e.target.id==='addEarn'){ e.preventDefault(); const fd=new FormData(e.target), a=num(fd.get('amount')); if(!a) return;
+    S.earn.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),d:todayKey(),a,src:String(fd.get('src'))});
+    save(); document.activeElement.blur(); renderToday(); renderPage(pageById('income')); return; }
   if(e.target.id!=='addDev') return; e.preventDefault();
   const fd=new FormData(e.target), name=String(fd.get('name')).trim(); if(!name) return;
-  S.flips.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,status:fd.get('status'),buy:fd.get('buy'),parts:fd.get('parts'),sell:fd.get('sell')});
-  save(); document.activeElement.blur(); renderPage(PAGES[4]); renderToday();
+  const status=String(fd.get('status'));
+  S.flips.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,status,buy:fd.get('buy'),parts:fd.get('parts'),sell:fd.get('sell'),soldOn:status==='Sold'?todayKey():''});
+  save(); document.activeElement.blur(); renderPage(pageById('repairs')); renderToday();
 });
 
 /* ---------- settings ---------- */
