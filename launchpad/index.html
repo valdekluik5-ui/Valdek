@@ -554,7 +554,7 @@ function projectPage(pr){ return {id:'pj-'+pr.id,tab:pr.name,title:pr.name,sub:'
 const allPages=()=>[...PAGES,...(S.projects||[]).map(projectPage)];
 const skinFor=id=>(S.skins&&S.skins[id])||PAGE_SKIN[id]||'crimson';
 function orderPages(){ const all=allPages(), ids=(S.order||[]).filter(id=>all.some(p=>p.id===id)); all.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); }); VIEW=ids.map(id=>all.find(p=>p.id===id)); }
-const APP_VERSION='5.1';
+const APP_VERSION='5.2';
 const BOOT_LINES=[`> dragon v${APP_VERSION}`,'> waking the dragon ...','> identity check'];
 const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#2fbf6a','#b3122e','#8a62b8'];
 const SKIN_NAMES={crimson:'Crimson (red)',frost:'Frost (blue)',steel:'Steel (silver)',ember:'Ember (orange)',jade:'Jade (green)'};
@@ -659,7 +659,17 @@ function fitCanvas(c){ const d=Math.min(2,devicePixelRatio||1), W=c.clientWidth,
 const fx=(()=>{
   const c=$('#fx'), cache=new Map(); let still, x, W=0, H=0, ps=[], raf=0, on=false, snow=false, col='#fff', gold='#fff';
   function spawn(y){ return {x:Math.random()*W,y:y??(snow?-10:H+10),r:(snow?.6:.8)+Math.random()*1.8,v:(snow?.35:.25)+Math.random()*.6,ph:Math.random()*6.28,g:Math.random()<.35}; }
-  function frame(){ x.clearRect(0,0,W,H); x.drawImage(still,0,0,W,H);
+  /* the dragon drifts and sways slowly and its glow breathes; about 30 frames a second to stay light */
+  let last=0;
+  function drawDragon(t){
+    const k=1.06+.02*Math.sin(t*6.283/14), dx=W*.012*Math.sin(t*6.283/19), dy=H*.012*Math.sin(t*6.283/23+1), rot=.006*Math.sin(t*6.283/17);
+    x.save(); x.translate(W/2+dx,H/2+dy); x.rotate(rot); x.scale(k,k); x.drawImage(still,-W/2,-H/2,W,H); x.restore();
+    x.fillStyle=`rgba(0,0,0,${.06+.1*(.5+.5*Math.sin(t*6.283/7))})`; x.fillRect(0,0,W,H);
+  }
+  function frame(now){
+    if(!reduceMotion&&now&&now-last<32){ raf=requestAnimationFrame(frame); return; } last=now||0;
+    x.clearRect(0,0,W,H);
+    if(reduceMotion||S.bg) x.drawImage(still,0,0,W,H); else drawDragon((now||performance.now())/1000);
     for(const p of ps){ p.ph+=.03; p.x+=Math.sin(p.ph)*(snow?.5:.3); p.y+=snow?p.v:-p.v;
       if(snow?p.y>H+10:p.y<-10) Object.assign(p,spawn());
       const fade=snow?1:Math.min(1,p.y/(H*.6)); x.globalAlpha=Math.max(0,fade*(snow?.55:.35+.3*Math.sin(p.ph*3)));
@@ -1081,7 +1091,7 @@ const bootEl=$('#boot'), bootText=$('#bootText'), lockEl=$('#lock'), lockMsg=$('
 let locked=true, mode='enter', entry='', firstPin='', fails=0, coolUntil=0, bootTimer, afterUnlock='tap';
 $('#keypad').innerHTML=['1','2','3','4','5','6','7','8','9','⌫','0','OK'].map(k=>`<button data-k="${k}" class="${k==='OK'?'k-ok':k==='⌫'?'k-del':''}" aria-label="${k==='⌫'?'Delete':k}">${k}</button>`).join('');
 
-/* dragon eye (always its original gold and ember): opens the moment the app starts, blinks at a wrong PIN */
+/* dragon eye (always its original gold and ember): slowly opens when the app starts, blinks at a wrong PIN */
 const eye=(()=>{
   const c=$('#eye'), x=c.getContext('2d'), W=c.width, H=c.height; let o=0, raf=0;
   function draw(){
@@ -1098,10 +1108,10 @@ const eye=(()=>{
     x.restore();
     x.lineWidth=4; x.strokeStyle=acc; x.beginPath(); x.moveTo(cx-hw,cy); x.quadraticCurveTo(cx,cy-hh*2,cx+hw,cy); x.quadraticCurveTo(cx,cy+hh*2,cx-hw,cy); x.stroke();
   }
-  function to(target,ms,done){ cancelAnimationFrame(raf); const from=o, t0=performance.now();
+  function to(target,ms,done,smooth){ cancelAnimationFrame(raf); const from=o, t0=performance.now();
     if(reduceMotion||!ms){ o=target; draw(); done&&done(); return; }
-    const step=t=>{ const k=Math.min(1,(t-t0)/ms), e=1-Math.pow(1-k,3); o=from+(target-from)*e; draw(); if(k<1) raf=requestAnimationFrame(step); else done&&done(); }; raf=requestAnimationFrame(step); }
-  return {close(){ to(0,0); }, open(done){ to(1,750,done); }, blink(){ to(0,110,()=>to(1,260)); }, redraw:draw};
+    const step=t=>{ const k=Math.max(0,Math.min(1,(t-t0)/ms)), e=smooth?(k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2):1-Math.pow(1-k,3); o=from+(target-from)*e; draw(); if(k<1) raf=requestAnimationFrame(step); else done&&done(); }; raf=requestAnimationFrame(step); }
+  return {close(){ to(0,0); }, open(done){ to(1,750,done); }, wake(){ setTimeout(()=>to(1,2600,null,true),350); }, blink(){ to(0,110,()=>to(1,260)); }, redraw:draw};
 })();
 
 function showDots(){ const n=Math.max(4,entry.length); dotsPin.innerHTML=Array.from({length:n},(_,i)=>`<i class="${i<entry.length?'on':''}"></i>`).join(''); }
@@ -1155,7 +1165,7 @@ function typeGranted(){
 /* full: replay the typing intro. Otherwise go straight to the PIN pad. */
 function lock(full,m){
   hostSay('lock'); clearTimeout(bootTimer); locked=true; sheet.hidden=true; clearPages(); setSkin('crimson',true);
-  bootEl.hidden=false; bootEl.classList.remove('out'); paintBoot(); enterBtn.hidden=true; lockEl.hidden=true; eye.close(); eye.open();
+  bootEl.hidden=false; bootEl.classList.remove('out'); paintBoot(); enterBtn.hidden=true; lockEl.hidden=true; eye.close(); eye.wake();
   afterUnlock=full?'tap':'enter';
   const ready=()=>{ lockEl.hidden=false; promptFor(m||(S.pinHash?'enter':'new')); paintBoot(); };
   if(full) typeLines(BOOT_LINES,ready); else { bootText.innerHTML=esc(BOOT_LINES.at(-1))+'\n'; ready(); }
