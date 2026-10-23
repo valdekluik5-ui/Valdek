@@ -554,7 +554,7 @@ function projectPage(pr){ return {id:'pj-'+pr.id,tab:pr.name,title:pr.name,sub:'
 const allPages=()=>[...PAGES,...(S.projects||[]).map(projectPage)];
 const skinFor=id=>(S.skins&&S.skins[id])||PAGE_SKIN[id]||'crimson';
 function orderPages(){ const all=allPages(), ids=(S.order||[]).filter(id=>all.some(p=>p.id===id)); all.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); }); VIEW=ids.map(id=>all.find(p=>p.id===id)); }
-const APP_VERSION='5.5';
+const APP_VERSION='5.6';
 const BOOT_LINES=[`> dragon v${APP_VERSION}`,'> waking the dragon ...','> identity check'];
 const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#2fbf6a','#b3122e','#8a62b8'];
 const SKIN_NAMES={crimson:'Crimson (red)',frost:'Frost (blue)',steel:'Steel (silver)',ember:'Ember (orange)',jade:'Jade (green)'};
@@ -683,12 +683,12 @@ function buildLayers(W,H){
    Each joint turns its part of the dragon around a pivot; parts follow their parents (horns ride on the head,
    the head on the neck). Positions are in the artwork's own pixels (335 × 597). */
 const BONES=[ // [name, pivot x, y, centre x, y, reach, swing (radians), seconds per cycle, phase]
-  ['horns',165,175,148,122,50,.15,4.6,0],
-  ['head',157,222,186,176,76,.12,7.2,.6],
-  ['leftClaw',96,352,52,362,46,.22,4.1,1.7],
-  ['rightClaw',206,410,248,426,50,.18,5.3,2.4],
-  ['neck',132,305,128,250,88,.055,9.5,1.1],
-  ['belly',132,425,192,335,78,.045,11,2.9]
+  ['horns',165,175,148,122,50,.13,7.4,0],
+  ['head',157,222,186,176,76,.11,11.5,.6],
+  ['leftClaw',96,352,52,362,46,.19,6.6,1.7],
+  ['rightClaw',206,410,248,426,50,.16,8.5,2.4],
+  ['neck',132,305,128,250,88,.05,15,1.1],
+  ['belly',132,425,192,335,78,.04,17.5,2.9]
 ];
 const dragonGL=(()=>{
   let gl=null, cv=null, prog, buf, ibuf, tex, nIdx=0, rest=null, cols=46, rows=80, curTex=null, ok=true;
@@ -716,7 +716,7 @@ const dragonGL=(()=>{
         x=px+dx*co-dy*si; y=py+dx*si+dy*co;
       }
       // the coil breathes a little
-      const bw=1-sm(50,95,Math.hypot(x-145,y-410)), bs=1+bw*.018*Math.sin(t*6.283/6.5);
+      const bw=1-sm(50,95,Math.hypot(x-145,y-410)), bs=1+bw*.016*Math.sin(t*6.283/10.5);
       x=145+(x-145)*bs; y=410+(y-410)*bs;
       const sx=L.ox+x*L.k, sy=L.oy+y*L.k, o=(j*(cols+1)+i)*4;
       out[o]=sx; out[o+1]=sy; out[o+2]=u; out[o+3]=vv;
@@ -747,7 +747,31 @@ const dragonGL=(()=>{
 })();
 
 const fx=(()=>{
-  const c=$('#fx'), cache=new Map(); let L=null, x, W=0, H=0, flakes=[], embers=[], raf=0, on=false, snow=false, last=0, sprites=null;
+  const c=$('#fx'), cache=new Map(); let L=null, x, W=0, H=0, flakes=[], embers=[], puffs=[], smokeImgs=null, raf=0, on=false, snow=false, last=0, sprites=null;
+  /* soft smoke clouds: many faint blobs blurred together, tinted slightly with the page colour */
+  function makeSmoke(){
+    const acc=hexRgb(ACC()), tint=[0,1,2].map(i=>Math.round(170+(acc[i]-170)*.25));
+    return [0,1,2].map(n=>{ const s=document.createElement('canvas'); s.width=s.height=256; const q=s.getContext('2d'); q.filter='blur(10px)';
+      for(let i=0;i<46;i++){ const a=Math.random()*6.283, d=Math.random()*70, cx=128+Math.cos(a)*d, cy=128+Math.sin(a)*d*.7, r=26+Math.random()*44;
+        const g=q.createRadialGradient(cx,cy,0,cx,cy,r); g.addColorStop(0,`rgba(${tint.join(',')},${.05+Math.random()*.06})`); g.addColorStop(1,`rgba(${tint.join(',')},0)`);
+        q.fillStyle=g; q.fillRect(cx-r,cy-r,r*2,r*2); }
+      return s; });
+  }
+  /* a smoke puff drifts up and sideways around the dragon, slowly turning, fading in and out */
+  function puff(now,fresh){
+    const s=L&&L.spots.length?L.spots[(Math.random()*L.spots.length)|0]:[W/2,H*.6];
+    const p={x:s[0]+(Math.random()-.5)*W*.35,y:s[1]+H*(.05+Math.random()*.15),vx:(Math.random()-.5)*W*.000012,vy:-H*(.000010+Math.random()*.000014),
+      rot:Math.random()*6.283,vr:(Math.random()-.5)*.00008,size:Math.max(W,H)*(.28+Math.random()*.3),t0:now,life:16000+Math.random()*14000,
+      img:(Math.random()*3)|0,peak:.25+Math.random()*.33,front:Math.random()<.3};
+    if(fresh) p.t0-=Math.random()*p.life; return p;
+  }
+  function drawSmoke(now,front){
+    for(let i=0;i<puffs.length;i++){ const p=puffs[i]; if(p.front!==front) continue; const k=(now-p.t0)/p.life;
+      if(k>=1){ puffs[i]=puff(now); continue; }
+      const age=now-p.t0, px=p.x+p.vx*age, py=p.y+p.vy*age, sz=p.size*(1+k*.35);
+      x.save(); x.globalAlpha=p.peak*Math.sin(Math.PI*k)*(front?.45:1); x.globalCompositeOperation='screen';
+      x.translate(px,py); x.rotate(p.rot+p.vr*age); x.drawImage(smokeImgs[p.img],-sz/2,-sz/2,sz,sz); x.restore(); }
+  }
   function flake(y){ return {x:Math.random()*W,y:y??-10,r:.6+Math.random()*1.8,v:.35+Math.random()*.6,ph:Math.random()*6.28}; }
   /* fire colours: white-hot, then the flame colour, then embers fading out. Classic fire for red, orange and silver
      looks; the blue and green looks burn in their own colour */
@@ -782,13 +806,13 @@ const fx=(()=>{
   }
   function frame(now){
     now=now||performance.now();
-    if(!reduceMotion&&now-last<32){ raf=requestAnimationFrame(frame); return; } last=now;
+    if(!reduceMotion&&now-last<15){ raf=requestAnimationFrame(frame); return; } const dt=last?Math.min(64,now-last):16; last=now;
     x.clearRect(0,0,W,H);
-    if(L){ x.drawImage(L.bg,0,0,W,H);
-      const t=now/1000, glow=.93+.07*Math.sin(t*6.283/9);
+    if(L){ x.drawImage(L.bg,0,0,W,H); if(!reduceMotion) drawSmoke(now,false);
+      const t=now/1000, glow=.93+.07*Math.sin(t*6.283/14);
       if(reduceMotion||!dragonGL.draw(x,L,W,H,t,glow)) x.drawImage(L.fg,0,0,W,H);
-      if(!reduceMotion) drawEmbers(now); }
-    if(snow) for(const p of flakes){ p.ph+=.03; p.x+=Math.sin(p.ph)*.5; p.y+=p.v; if(p.y>H+10) Object.assign(p,flake());
+      if(!reduceMotion){ drawSmoke(now,true); drawEmbers(now); } }
+    if(snow) for(const p of flakes){ const f=dt/32; p.ph+=.03*f; p.x+=Math.sin(p.ph)*.5*f; p.y+=p.v*f; if(p.y>H+10) Object.assign(p,flake());
       x.globalAlpha=.55; x.fillStyle='#eaf4ff'; x.beginPath(); x.arc(p.x,p.y,p.r,0,6.283); x.fill(); }
     x.globalAlpha=1; if(!reduceMotion) raf=requestAnimationFrame(frame); }
   function start(){ cancelAnimationFrame(raf); [x,W,H]=fitCanvas(c);
@@ -796,7 +820,8 @@ const fx=(()=>{
     if(!cache.has(key)){ if(cache.size>6) cache.delete(cache.keys().next().value); cache.set(key,buildLayers(W,H)); }
     L=cache.get(key); snow=SK==='frost'; sprites=fireSprites();
     flakes=snow?Array.from({length:Math.round(W*H/9000)+10},()=>flake(Math.random()*H)):[];
-    const now=performance.now(); embers=L?Array.from({length:Math.min(130,45+Math.round(W*H/14000))},()=>ember(now,true)):[];
+    const now=performance.now(); smokeImgs=makeSmoke(); puffs=L?Array.from({length:9},()=>puff(now,true)):[];
+    embers=L?Array.from({length:Math.min(130,45+Math.round(W*H/14000))},()=>ember(now,true)):[];
     last=0; frame(); }
   addEventListener('resize',()=>{ if(on) start(); if(!$('#boot').hidden) paintBoot(); });
   document.addEventListener('visibilitychange',()=>{ if(!on) return; if(document.hidden) cancelAnimationFrame(raf); else start(); });
