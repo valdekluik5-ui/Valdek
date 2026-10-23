@@ -1677,8 +1677,15 @@ function bearShow(){
     both('inn',1.4,(u,t)=>hold({x:lerp(XB,HX,ease(u)),dir:1,...(u<.8?W(t*8,14):{}),head:-4},[lerp(165,20,ease(cl((u-.55)/.45))),10]),
       (u,t)=>({x:SX,dir:-1,lean:7*sin(t*30)*(1-u),head:-2,eyes:'closed',arms:[[30+20*sin(t*30),40],[20,20]]}));
     // 8. shelter: he hugs her close and rubs her back to warm her while the storm roars; they jump at the thunder
-    both('hug',16,(u,t)=>{ const T0=ph.hug+t, f=flinch(T0), w=sin(t*1.6)*2; return {x:HX+1,dir:1,face:.8,lean:4+w-6*f,head:12+w*.6-10*f,lift:2*f,arms:[[70+5*sin(t*4),40+8*sin(t*4)],[20,20]],eyes:f>.3?'open':t%5<3.6?'closed':'heart'}; },
-      (u,t)=>{ const T0=ph.hug+t, f=flinch(T0), w=sin(t*1.6+1)*2, sh=1.3*(1-cl(t/6)); return {x:SX-1,dir:-1,face:.8,lean:8-w-6*f+sh*sin(t*42),head:14-w*.6-12*f+(t%5>3.6?-8:0),lift:2.5*f,arms:[[60,96],[30,40]],eyes:f>.3?'open':t%5<3.6?'closed':'heart'}; });
+    // a real hug: he opens his arms, she steps in, they hold each other and rock gently; he rubs her back, they squeeze
+    // every few seconds, he kisses her forehead once; she dreams with heart eyes (a thought bubble with a heart)
+    const sq=t=>Math.max(0,sin((t-1.5)*PI/4))**4;   // a squeeze every four seconds
+    both('hug',16,(u,t)=>{ const T0=ph.hug+t, f=flinch(T0), in_=ease(cl(t/1.4)), r=sin(t*1.3)*2.2, q=t>1.4?sq(t):0, kiss=t>7&&t<8.6?sin((t-7)/1.6*PI):0, rub=sin(t*4.5);
+        return {x:HX+2*in_+r*.5,dir:1,face:.55,lean:6+8*in_+5*q-6*f+kiss*4,head:8+10*in_+r*.8-10*f+kiss*10,lift:2*f,
+          arms:in_<1?[[lerp(20,95,in_),lerp(20,60,in_)],[lerp(10,85,in_),60]]:[[62+8*rub,92-10*q],[54-6*rub,96-10*q]],eyes:f>.3?'open':(q>.4||kiss>.2)?'closed':t%6<4?'closed':'heart'}; },
+      (u,t)=>{ const T0=ph.hug+t, f=flinch(T0), in_=ease(cl((t-.3)/1.3)), r=sin(t*1.3)*2.2, q=t>1.4?sq(t):0, sh=1.3*(1-cl(t/5)), kiss=t>7&&t<8.6?sin((t-7)/1.6*PI):0;
+        return {x:SX-4*in_+r*.5,dir:-1,face:.55,lean:6+9*in_+5*q-6*f+sh*sin(t*42),head:14+6*in_-r*.6-12*f-kiss*6,lift:2.5*f+(kiss>.5?1.5:0),
+          arms:in_<1?[[lerp(40,60,in_),lerp(125,96,in_)],[lerp(34,50,in_),lerp(125,96,in_)]]:[[60,96-10*q],[52,96-10*q]],eyes:f>.3?'open':t>3&&(t%6>2.5||kiss>.3)?'heart':'closed'}; });
     // 9. the rain stops, the clouds part, the sun comes out: they let go and look up, then at each other
     both('clear',9,(u,t)=>u<.3?{x:HX+1,dir:1,face:.8,lean:4,head:10,arms:[[70,40],[20,20]],eyes:'closed'}:u<.65?{x:HX,dir:1,face:.6,head:-16,arms:[[20,20],[10,15]],eyes:'open'}:{x:HX,dir:1,head:2,arms:[[40,40],[30,30]],eyes:'heart'},
       (u,t)=>u<.3?{x:SX-1,dir:-1,face:.8,lean:8,head:12,arms:[[60,96],[30,40]],eyes:'closed'}:u<.65?{x:SX,dir:-1,face:.6,head:-18,arms:[[20,20],[10,15]],eyes:'open'}:{x:SX,dir:-1,head:2,lift:abs(sin(t*6))*2,arms:[[150,30],[140,30]],eyes:'heart'});
@@ -1711,11 +1718,11 @@ function bearShow(){
     const wx=(t,E)=>{ const clr=ease(cl((t-ph.clear)/7)), end=cl((T-t)/1.4);
       const o={cloud:ease(cl(t/7))*(1-clr),
         dark:(.6*ease(cl((t-.5)/7.5))+.25*ease(cl((t-ph.walk)/2)))*(1-ease(cl((t-ph.clear)/5.5))),
-        rain:(t<ph.surp?0:t<ph.panic?.16:t<ph.up+1?lerp(.16,.45,ease(cl((t-ph.panic)/3))):lerp(.45,1,ease(cl((t-ph.up-1)/2.6))))*(1-ease(cl((t-ph.clear)/3))),
+        rain:(t<ph.surp?0:t<ph.umb+1.6?lerp(.14,.26,cl((t-ph.surp)/(ph.umb+1.6-ph.surp))):lerp(.26,1,ease(cl((t-ph.umb-1.6)/2.8))))*(1-ease(cl((t-ph.clear)/3))),
         sun:ease(cl((t-ph.clear-2.5)/7))*end, msg:Math.max(0,t-ph.clear-5), flash:flashAt(t), strike:strikes.filter(s=>t>=s).length,
         line:{x0:62,x1:318,y:SH}, umb:null, warm:null, ts:performance.now()};
       if(t>uOn&&t<uOff){ const h=E.hand(he); if(h){ const s=t<uOn+.5?easeBack(cl((t-uOn)/.5)):t>uOff-.6?1-ease(cl((t-(uOff-.6))/.6)):1; o.umb={x:h.x,y:h.y,s:1.25*Math.max(.001,s),r:umbR(t)+2*sin(clk*3)}; } }
-      const wa=cl((t-ph.hug)/1.5)*cl((ph.clear+2-t)/1.5); if(wa>0) o.warm={x:(E.p[0].x+E.p[1].x)/2,y:GS-15,a:wa};
+      const wa=cl((t-ph.hug)/1.2)*cl((ph.clear+2-t)/1.5); if(wa>0) o.warm={x:(E.p[0].x+E.p[1].x)/2,y:GS-14,a:wa};
       window.__wx=o; };
     const qm=(x,y,o)=>o<=0?'':`<g opacity="${o.toFixed(2)}"><circle cx="${f1(x-5)}" cy="${f1(y+7)}" r="1" fill="#fff" opacity=".8"/><ellipse cx="${f1(x)}" cy="${f1(y)}" rx="6" ry="5.2" fill="#fff4f9" opacity=".95"/><text x="${f1(x)}" y="${f1(y+2.8)}" text-anchor="middle" font-size="8" font-weight="700" font-family="Nunito,sans-serif" fill="#b04a7c">?</text></g>`;
     const bang=(x,y,o)=>o<=0?'':`<text x="${f1(x)}" y="${f1(y)}" text-anchor="middle" font-size="9" font-weight="800" font-family="Nunito,sans-serif" fill="#ffd36b" stroke="#5a2347" stroke-width=".6" opacity="${o.toFixed(2)}">!</text>`;
@@ -1725,7 +1732,9 @@ function bearShow(){
         if(t>ph.umb+.1) E.once('idea',()=>{ const q=E.p[0]; E.spark(q.x,q.y-34*S,10,20); });
         if(t>uOn) E.once('uo',()=>{ const h=E.hand(he); if(h) E.spark(h.x,h.y-24,14,26); });
         if(t>uOff-.5) E.once('uf',()=>{ const h=E.hand(he); if(h) E.spark(h.x,h.y-20,12,22); });
-        if(t>ph.hug+1&&t<ph.clear) E.every('h',1500,()=>E.spawn((E.p[0].x+E.p[1].x)/2,GS-30));
+        if(t>ph.hug+1&&t<ph.clear) E.every('h',800,()=>E.spawn((E.p[0].x+E.p[1].x)/2+(rnd()-.5)*10,GS-28));
+        if(t>ph.hug+3&&t<ph.clear+1){ const q=E.p[1], a=cl((t-ph.hug-3)*1.5)*cl((ph.clear+1-t)*1.5); E.front(thought(q.x+9,q.y-40*S+sin(clk*2)*1.2,a)); }
+        if(t>ph.hug+7.7) E.once('fk',()=>{ const q=E.p[1]; for(let n=0;n<4;n++) E.spawn(q.x+(rnd()-.5)*6,q.y-30*S,true); });
         if(t>ph.party&&t<ph.goL) E.every('s',90,()=>E.p.forEach(q=>E.spark(q.x+(rnd()-.5)*18,q.y-12+(rnd()-.5)*20,1,14)));
         if(t>ph.party+.3) E.once('pj',()=>{ for(let n=0;n<8;n++) E.spawn((E.p[0].x+E.p[1].x)/2+(rnd()-.5)*20,GS-30); });
         if(t>ph.kiss1+.2) E.once('k1',()=>{ kissB.he=clk; evKiss=clk; });
@@ -3182,7 +3191,8 @@ const L0={h:col('#e6dcff'),k:col('#fff1d6')}, LB=col('#7d8cff'), LW=col('#ffc285
 function weatherLight(){ const w=window.__wx, on=w&&performance.now()-w.ts<500, d=on?w.dark:0, f=on?w.flash:0, s=on?w.sun:0;
   hemi.intensity=1-.45*d+.9*f; hemi.color.copy(L0.h).lerp(LB,.5*d).lerp(LW,.35*s);
   key.intensity=1.3*(1-.5*d)+2.4*f+.35*s; key.color.copy(L0.k).lerp(LB,.45*d).lerp(LF,cl(f*2,0,1)*.8).lerp(LW,.5*s);
-  fill.intensity=.5*(1-.4*d)+.25*s; R.toneMappingExposure=1.15*(1-.2*d)+.45*f; }
+  const wa=on&&w.warm?w.warm.a:0; if(wa>0){ key.color.lerp(LW,.75*wa); hemi.color.lerp(LW,.45*wa); key.intensity+=.55*wa; hemi.intensity+=.35*wa; }
+  fill.intensity=.5*(1-.4*d)+.25*s+.3*wa; R.toneMappingExposure=1.15*(1-.2*d)+.45*f+.12*wa; }
 function frame(){ requestAnimationFrame(frame); if(window.__qmPause) return; weatherLight();
   const groups=new Map();
   ['he','she'].forEach(w=>{ const B=BEARS[w], el=document.getElementById(w==='he'?'bsHeroot':'bsSheroot'); B.root.visible=false;
@@ -3333,9 +3343,12 @@ requestAnimationFrame(frame);
       while(motes.length<40) motes.push({x:rnd()*W,y:rnd()*H*.7,p:rnd()*6,s:.6+rnd()*1.4});
       motes.forEach(o=>{ o.y-=dt*6*o.s; o.x+=sin(tm*.6+o.p)*dt*8; if(o.y<0) o.y=H*.7; const a=A*(.25+.25*sin(tm*2+o.p)); g.fillStyle=`rgba(255,236,180,${a.toFixed(3)})`; g.beginPath(); g.arc(o.x,o.y,o.s,0,2*PI); g.fill(); });
       g.restore(); }
-    // warmth while he holds her
-    if(S.warm>.01&&m&&live&&wx.warm){ const p=P(m,wx.warm.x,wx.warm.y), r=34*m.a*(1+.06*sin(tm*2.2)); g.save(); g.globalCompositeOperation='lighter';
-      const wg=g.createRadialGradient(p.x,p.y,0,p.x,p.y,r); wg.addColorStop(0,`rgba(255,170,90,${(.32*S.warm).toFixed(3)})`); wg.addColorStop(.6,`rgba(255,140,80,${(.12*S.warm).toFixed(3)})`); wg.addColorStop(1,'rgba(255,120,60,0)'); g.fillStyle=wg; g.beginPath(); g.arc(p.x,p.y,r,0,2*PI); g.fill(); g.restore(); }
+    // warmth while he holds her: a golden-orange glow that beats like a heart, drawn behind the bears (on the layer under them)
+    if(S.warm>.01&&m&&live&&wx.warm){ const p=P(m,wx.warm.x,wx.warm.y), hb=Math.pow(Math.max(0,sin(tm*3.4)),6)+.6*Math.pow(Math.max(0,sin(tm*3.4-.55)),6), r=48*m.a*(1+.08*hb), A=S.warm; dg.save(); dg.globalCompositeOperation='lighter';
+      const halo=dg.createRadialGradient(p.x,p.y,0,p.x,p.y,r*2.3); halo.addColorStop(0,`rgba(255,170,100,${(.3*A).toFixed(3)})`); halo.addColorStop(1,'rgba(255,140,80,0)'); dg.fillStyle=halo; dg.beginPath(); dg.arc(p.x,p.y,r*2.3,0,2*PI); dg.fill();
+      const wg=dg.createRadialGradient(p.x,p.y,0,p.x,p.y,r); wg.addColorStop(0,`rgba(255,205,130,${((.7+.25*hb)*A).toFixed(3)})`); wg.addColorStop(.5,`rgba(255,155,95,${((.35+.12*hb)*A).toFixed(3)})`); wg.addColorStop(1,'rgba(255,120,70,0)'); dg.fillStyle=wg; dg.beginPath(); dg.arc(p.x,p.y,r,0,2*PI); dg.fill(); dg.restore();
+      // and a faint warm rim in front, so the bears themselves look warmed
+      g.save(); g.globalCompositeOperation='lighter'; const rim=g.createRadialGradient(p.x,p.y,r*.3,p.x,p.y,r*1.1); rim.addColorStop(0,'rgba(255,170,100,0)'); rim.addColorStop(.6,`rgba(255,170,100,${((.07+.05*hb)*A).toFixed(3)})`); rim.addColorStop(1,'rgba(255,150,90,0)'); g.fillStyle=rim; g.beginPath(); g.arc(p.x,p.y,r*1.1,0,2*PI); g.fill(); g.restore(); }
     // rain: light at first, then pouring over the whole screen; it stops on the umbrella and on the line and splashes
     { const gu=sin(tm*.37)+.6*sin(tm*.83+1)+.3*sin(tm*1.9+2); G01=cl(.55+gu*.42)*cl(S.rain*1.3); WND=.08+.62*G01; }   // wind gusts
     const want=Math.round(S.rain*Math.min(1800,W*H/430/900*1150)), wind=WND, u=live&&wx.umb&&m?wx.umb:null;
