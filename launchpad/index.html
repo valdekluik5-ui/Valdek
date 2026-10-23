@@ -554,7 +554,7 @@ function projectPage(pr){ return {id:'pj-'+pr.id,tab:pr.name,title:pr.name,sub:'
 const allPages=()=>[...PAGES,...(S.projects||[]).map(projectPage)];
 const skinFor=id=>(S.skins&&S.skins[id])||PAGE_SKIN[id]||'crimson';
 function orderPages(){ const all=allPages(), ids=(S.order||[]).filter(id=>all.some(p=>p.id===id)); all.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); }); VIEW=ids.map(id=>all.find(p=>p.id===id)); }
-const APP_VERSION='5.6';
+const APP_VERSION='5.7';
 const BOOT_LINES=[`> dragon v${APP_VERSION}`,'> waking the dragon ...','> identity check'];
 const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#2fbf6a','#b3122e','#8a62b8'];
 const SKIN_NAMES={crimson:'Crimson (red)',frost:'Frost (blue)',steel:'Steel (silver)',ember:'Ember (orange)',jade:'Jade (green)'};
@@ -682,13 +682,17 @@ function buildLayers(W,H){
 /* ---------- the living dragon: a puppet made of joints, drawn as a textured mesh with WebGL ----------
    Each joint turns its part of the dragon around a pivot; parts follow their parents (horns ride on the head,
    the head on the neck). Positions are in the artwork's own pixels (335 × 597). */
-const BONES=[ // [name, pivot x, y, centre x, y, reach, swing (radians), seconds per cycle, phase]
+const BONES=[ // [name, pivot x, y, centre x, y, reach, swing (radians), seconds per cycle, phase]; children before parents
   ['horns',165,175,148,122,50,.13,7.4,0],
   ['head',157,222,186,176,76,.11,11.5,.6],
   ['leftClaw',96,352,52,362,46,.19,6.6,1.7],
   ['rightClaw',206,410,248,426,50,.16,8.5,2.4],
-  ['neck',132,305,128,250,88,.05,15,1.1],
-  ['belly',132,425,192,335,78,.04,17.5,2.9]
+  // the spine: same slow cycle, each section a little later, so a wave flows from the head down into the coil
+  ['neckUpper',128,256,142,214,62,.07,13,.4],
+  ['neckLower',120,306,124,266,72,.06,13,1.1],
+  ['bodyRight',150,300,198,318,62,.055,13,1.8],
+  ['bodySide',205,330,222,372,58,.05,13,2.5],
+  ['coil',150,400,150,432,72,.035,13,3.2]
 ];
 const dragonGL=(()=>{
   let gl=null, cv=null, prog, buf, ibuf, tex, nIdx=0, rest=null, cols=46, rows=80, curTex=null, ok=true;
