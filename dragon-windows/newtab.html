@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New tab</title>
+<style>
+/* Dragon new-tab page: eye, search and quick links, in the current look (skin and accent come in the URL) */
+:root{--accent:#d42a2a;--bg:#070505;--panel:rgba(20,10,10,.85);--line:#3b1d1d;--ink:#f0eaea;--muted:#a69595;color-scheme:dark}
+:root[data-skin=frost]{--bg:#05080f;--panel:rgba(10,18,34,.85);--line:#1f2e4a;--ink:#e6eef8;--muted:#8fa2bb}
+:root[data-skin=steel]{--bg:#080506;--panel:rgba(20,11,13,.85);--line:#3c2329;--ink:#f2eeee;--muted:#a99a9c}
+:root[data-skin=ember]{--bg:#0d0908;--panel:rgba(22,14,12,.85);--line:#3a2721;--ink:#f1e4d8;--muted:#a8907f}
+:root[data-skin=jade]{--bg:#040806;--panel:rgba(8,18,12,.85);--line:#1c3a26;--ink:#e8f3ea;--muted:#92a996}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;color:var(--ink);font:15px "Segoe UI",system-ui,sans-serif}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:12vh 24px 40px;
+  background:radial-gradient(60% 45% at 50% 30%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%),
+    radial-gradient(circle,rgba(255,255,255,.05) .8px,transparent 1.3px) 0 0/5px 5px,var(--bg)}
+svg{width:150px;height:75px;filter:drop-shadow(0 0 18px color-mix(in srgb,var(--accent) 55%,transparent))}
+h1{font:700 26px "Segoe UI",sans-serif;letter-spacing:.3em;text-transform:uppercase;margin:14px 0 24px}
+form{width:min(640px,100%)}
+input{width:100%;height:48px;border-radius:24px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:0 22px;font:16px "Segoe UI",sans-serif}
+input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;width:min(820px,100%);margin-top:32px}
+.grid a{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);text-decoration:none}
+.grid a:hover{border-color:var(--accent);box-shadow:0 0 14px color-mix(in srgb,var(--accent) 35%,transparent)}
+.grid b{font-size:14px} .grid small{color:var(--muted);font-size:12px}
+.label{width:min(820px,100%);margin-top:28px;font:600 11px Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+</style>
+</head>
+<body>
+<svg viewBox="0 0 32 16" aria-hidden="true"><path d="M1 8C7 1 25 1 31 8C25 15 7 15 1 8Z" fill="#1a0805" stroke="#c9532c" stroke-width=".8"/><circle cx="16" cy="8" r="5.6" fill="#d6a548"/><circle cx="16" cy="8" r="3.4" fill="#ffd27a" opacity=".55"/><ellipse cx="16" cy="8" rx=".9" ry="5.2" fill="#0a0403"/></svg>
+<h1>Dragon</h1>
+<form action="https://www.google.com/search" method="get"><input name="q" placeholder="Search Google" autofocus aria-label="Search Google" autocomplete="off"></form>
+<div class="label">Fix &amp; sell</div>
+<div class="grid">
+  <a href="https://www.olx.ua/uk/list/q-%D0%BD%D0%B0-%D0%B7%D0%B0%D0%BF%D1%87%D0%B0%D1%81%D1%82%D0%B8%D0%BD%D0%B8/"><b>OLX</b><small>на запчастини</small></a>
+  <a href="https://prom.ua/ua/"><b>Prom.ua</b><small>marketplace</small></a>
+  <a href="https://hotline.ua/ua/"><b>Hotline</b><small>new prices</small></a>
+  <a href="https://rozetka.com.ua/ua/"><b>Rozetka</b><small>shop</small></a>
+  <a href="https://www.ebay.com/"><b>eBay</b><small>sold prices</small></a>
+</div>
+<div class="label">Cyber Shift</div>
+<div class="grid">
+  <a href="https://tryhackme.com/"><b>TryHackMe</b><small>labs</small></a>
+  <a href="https://letsdefend.io/"><b>LetsDefend</b><small>SOC practice</small></a>
+  <a href="https://blueteamlabs.online/"><b>Blue Team Labs</b><small>investigations</small></a>
+  <a href="https://cyberdefenders.org/"><b>CyberDefenders</b><small>forensics</small></a>
+  <a href="https://www.professormesser.com/"><b>Professor Messer</b><small>Security+</small></a>
+</div>
+<div class="label">Income</div>
+<div class="grid">
+  <a href="https://work.mercor.com/"><b>Mercor</b><small>expert work</small></a>
+  <a href="https://www.dataannotation.tech/"><b>DataAnnotation</b><small>AI work</small></a>
+  <a href="https://www.opentrain.ai/"><b>OpenTrain AI</b><small>AI work</small></a>
+</div>
+<script>
+const q=new URLSearchParams(location.search);
+if(q.get('skin')) document.documentElement.dataset.skin=q.get('skin');
+if(/^#[0-9a-f]{6}$/i.test(q.get('accent')||'')) document.documentElement.style.setProperty('--accent',q.get('accent'));
+</script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dragon browser bar</title>
+<style>
+/* Browser bar for Dragon's training pane: tabs, address bar and the price bar.
+   Colours follow the Dragon page's current look (crimson, frost, steel, ember, jade); the host sends them. */
+:root{
+  --accent:#d42a2a; --bg:#070505; --panel:#140a0a; --panel-2:#1e0f0f; --line:#3b1d1d; --ink:#f0eaea; --muted:#a69595;
+  --good:#6ec878; --warn:#e6be5a; --bad:#eb645a;
+  --mono:"JetBrains Mono",Consolas,monospace; --ui:"Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+:root[data-skin=frost]{--bg:#05080f;--panel:#0a1222;--panel-2:#101b31;--line:#1f2e4a;--ink:#e6eef8;--muted:#8fa2bb}
+:root[data-skin=steel]{--bg:#080506;--panel:#140b0d;--panel-2:#201013;--line:#3c2329;--ink:#f2eeee;--muted:#a99a9c}
+:root[data-skin=ember]{--bg:#0d0908;--panel:#160e0c;--panel-2:#201511;--line:#3a2721;--ink:#f1e4d8;--muted:#a8907f}
+:root[data-skin=jade]{--bg:#040806;--panel:#08120c;--panel-2:#0d1c13;--line:#1c3a26;--ink:#e8f3ea;--muted:#92a996}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:13px var(--ui);user-select:none;overflow:hidden}
+body{background:
+  radial-gradient(60% 140% at 0% 0%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%),
+  radial-gradient(circle,rgba(255,255,255,.05) .8px,transparent 1.3px) 0 0/5px 5px,
+  linear-gradient(var(--panel),var(--bg));
+  padding-bottom:6px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* row 1: logo, tabs, tools */
+#top{display:flex;align-items:flex-end;gap:6px;padding:6px 8px 0;height:40px}
+.logo{width:26px;height:26px;flex:0 0 auto;align-self:center;margin-right:4px;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--accent) 60%,transparent))}
+#tabs{display:flex;gap:4px;flex:1;min-width:0;overflow:hidden;align-items:flex-end}
+.tab{display:flex;align-items:center;gap:7px;flex:0 1 200px;min-width:70px;height:32px;padding:0 6px 0 10px;border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;background:var(--panel-2);color:var(--muted);position:relative}
+.tab .t{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.tab img,.tab .dot{width:15px;height:15px;flex:0 0 auto;border-radius:3px}
+.tab .dot{background:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.tab.loading .dot,.tab.loading img{animation:spin 1s linear infinite;border-radius:50%;border:2px solid var(--accent);border-right-color:transparent;background:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tab .x{border:0;background:none;width:20px;height:20px;border-radius:5px;color:var(--muted);font-size:13px;line-height:1;padding:0}
+.tab .x:hover{background:color-mix(in srgb,var(--accent) 35%,transparent);color:var(--ink)}
+.tab.on{background:linear-gradient(color-mix(in srgb,var(--accent) 28%,var(--panel)),var(--panel));color:var(--ink);border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+.tab.on::after{content:"";position:absolute;left:10px;right:10px;top:-1px;height:2px;border-radius:2px;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+#newtab{border:1px dashed var(--line);background:none;width:30px;height:28px;border-radius:8px;margin-bottom:3px;color:var(--muted);font-size:16px;flex:0 0 auto}
+#newtab:hover{color:var(--ink);border-color:var(--accent)}
+.tools{display:flex;gap:5px;align-self:center;flex:0 0 auto}
+.tool{height:28px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);font-weight:600;font-size:12.5px;white-space:nowrap}
+.tool:hover{border-color:var(--accent)}
+.tool.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 10px color-mix(in srgb,var(--accent) 60%,transparent)}
+
+/* row 2: navigation and address */
+#nav{display:flex;align-items:center;gap:6px;margin:0 8px;padding:5px 6px;border-radius:12px;background:color-mix(in srgb,var(--panel) 80%,transparent);border:1px solid var(--line)}
+.nb{width:30px;height:28px;border:1px solid transparent;border-radius:8px;background:none;color:var(--muted);font-size:14px}
+.nb:hover:not(:disabled){background:var(--panel-2);border-color:var(--line);color:var(--ink)}
+.nb:disabled{opacity:.35;cursor:default}
+#addr{flex:1;min-width:0;height:30px;border-radius:15px;border:1px solid var(--line);background:rgba(0,0,0,.4);color:var(--ink);padding:0 14px;font:13px var(--ui)}
+#addr:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.lock{color:var(--muted);font-size:12px;margin-right:-2px}
+
+/* row 3: price bar (only on listing pages) */
+#price{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:6px 8px 0;padding:8px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 14%,var(--panel)),var(--panel))}
+#price[hidden]{display:none}
+.pc{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.pc .k{font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pc .v{font:700 14px var(--ui);white-space:nowrap}
+.pc .s{font-size:11px;color:var(--muted);white-space:nowrap}
+.pc input{width:78px;height:24px;margin-top:1px;border-radius:6px;border:1px solid var(--line);background:rgba(0,0,0,.4);color:var(--ink);padding:0 6px;font:13px var(--ui)}
+.verdict{font:700 14px var(--ui);padding:5px 10px;border-radius:8px;border:1px solid var(--line);white-space:nowrap}
+.verdict.good{color:var(--good);border-color:color-mix(in srgb,var(--good) 50%,transparent)}
+.verdict.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)}
+.verdict.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 50%,transparent)}
+.links{display:flex;gap:5px;margin-left:auto}
+.links .tool{height:26px;font-size:12px}
+.note{flex-basis:100%;font-size:11px;color:var(--muted)}
+
+/* graphics menu */
+#menu{position:fixed;right:8px;top:40px;z-index:5;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:6px;min-width:260px;box-shadow:0 8px 24px rgba(0,0,0,.6)}
+#menu[hidden]{display:none}
+#menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:7px}
+#menu button:hover{background:color-mix(in srgb,var(--accent) 25%,transparent)}
+#menu small{display:block;color:var(--muted);padding:2px 10px 6px}
+</style>
+</head>
+<body>
+<div id="top">
+  <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M2 16C8 7 24 7 30 16C24 25 8 25 2 16Z" fill="none" stroke="#c9532c" stroke-width="2"/><ellipse cx="16" cy="16" rx="6.5" ry="6.5" fill="#d6a548"/><ellipse cx="16" cy="16" rx="1.6" ry="6" fill="#120806"/></svg>
+  <div id="tabs" role="tablist"></div>
+  <button id="newtab" title="New tab" aria-label="New tab">+</button>
+  <div class="tools">
+    <button class="tool" id="en" title="Translate this site into English. Click again for the original language.">EN</button>
+    <button class="tool" id="full" title="Full screen (F11)">⛶</button>
+    <button class="tool" id="more" title="More" aria-label="More">⋯</button>
+    <button class="tool" id="hide" title="Hide the browser">Hide ▸</button>
+  </div>
+</div>
+<div id="nav">
+  <button class="nb" id="back" title="Back" aria-label="Back">◀</button>
+  <button class="nb" id="fwd" title="Forward" aria-label="Forward">▶</button>
+  <button class="nb" id="reload" title="Reload" aria-label="Reload">⟳</button>
+  <input id="addr" spellcheck="false" placeholder="Search Google or type an address" aria-label="Address">
+  <button class="nb" id="ext" title="Open in your normal browser" aria-label="Open in your normal browser">↗</button>
+</div>
+<div id="price" hidden></div>
+<div id="menu" hidden></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const send=m=>{ try{ chrome.webview.postMessage(m); }catch(e){} };
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tabs=[], price=null, eur=0, parts=0, safe=false, addrFocused=false;
+
+const uah=v=>Math.round(v).toLocaleString('uk-UA').replace(/,/g,' ')+' ₴';
+const euro=v=>eur>0?` ≈ €${Math.round(v/eur).toLocaleString('en-GB')}`:'';
+
+function renderTabs(){
+  $('#tabs').innerHTML=tabs.map(t=>`<div class="tab${t.active?' on':''}${t.loading?' loading':''}" role="tab" aria-selected="${t.active}" data-id="${t.id}" title="${esc(t.title||t.url)}">
+    ${t.icon&&!t.loading?`<img src="${esc(t.icon)}" alt="">`:'<span class="dot"></span>'}<span class="t">${esc(t.title||'New tab')}</span>
+    <button class="x" data-close="${t.id}" title="Close tab" aria-label="Close tab">✕</button></div>`).join('');
+  const a=tabs.find(t=>t.active)||{};
+  $('#back').disabled=!a.canBack; $('#fwd').disabled=!a.canFwd;
+  if(!addrFocused) $('#addr').value=a.url||'';
+  $('#en').classList.toggle('on',!!a.english); $('#en').textContent=a.english?'EN ✓':'EN';
+}
+
+/* all money in Ukrainian hryvnia (₴); euros use the National Bank of Ukraine rate */
+function renderPrice(){
+  const el=$('#price');
+  if(!price){ el.hidden=true; fit(); return; }
+  el.hidden=false;
+  const p=price, used=p.used, max=used?used.mid*0.6-parts:0;
+  let verdict='';
+  if(p.state==='done'&&used){
+    if(p.asking<=max) verdict=`<span class="verdict good" title="The asking price is under your max buy">✅ Good flip</span>`;
+    else if(p.asking<=used.mid*0.85) verdict=`<span class="verdict warn" title="Cheaper than used ones, but above the 60% rule">🟡 Cheap, but over the 60% rule</span>`;
+    else verdict=`<span class="verdict bad" title="Too close to the normal used price to make money">❌ Too expensive to flip</span>`;
+  }
+  el.innerHTML=`
+    <div class="pc"><span class="k">This listing asks</span><span class="v">${uah(p.asking)}</span><span class="s">${euro(p.asking)||'&nbsp;'}</span></div>
+    <div class="pc"><span class="k">Used, good condition (OLX)</span>${p.state==='checking'?'<span class="v">checking…</span><span class="s">&nbsp;</span>':used?`<span class="v">${uah(used.mid)}</span><span class="s">usually ${uah(used.lo)} – ${uah(used.hi)} · ${used.n} ads</span>`:'<span class="v">not enough ads</span><span class="s">&nbsp;</span>'}</div>
+    <div class="pc"><span class="k">New in shops (Hotline)</span>${p.state==='checking'?'<span class="v">checking…</span><span class="s">&nbsp;</span>':p.fresh?`<span class="v">from ${uah(p.fresh)}</span><span class="s">${euro(p.fresh)||'&nbsp;'}</span>`:'<span class="v">not found</span><span class="s">&nbsp;</span>'}</div>
+    <div class="pc"><span class="k">Parts you need</span><input id="parts" inputmode="decimal" value="${parts||''}" placeholder="0 ₴" aria-label="Parts cost in hryvnia"><span class="s">&nbsp;</span></div>
+    <div class="pc"><span class="k">Max you should pay</span><span class="v">${used?(max>0?uah(max):'don\'t buy'):'—'}</span><span class="s">${used?'60% of used price − parts':'&nbsp;'}</span></div>
+    ${verdict}
+    <div class="links"><button class="tool" data-open="used">Used ads ↗</button><button class="tool" data-open="new">New prices ↗</button><button class="tool" data-open="sold">eBay sold ↗</button></div>
+    <div class="note">“${esc(p.name)}” · all prices in Ukrainian hryvnia (₴)${eur?`, € at the National Bank rate (1 € = ${eur.toFixed(2)} ₴)`:''}. The 60% rule leaves about 40% of the resale price for your profit and risk.</div>`;
+  const inp=$('#parts'); inp.addEventListener('input',()=>{ parts=+inp.value.replace(',','.').replace(/[^\d.]/g,'')||0; const pos=inp.selectionStart; renderPrice(); const n=$('#parts'); n.focus(); n.setSelectionRange(pos,pos); });
+  fit();
+}
+
+function renderMenu(){
+  $('#menu').innerHTML=`<small>Graphics</small>
+    <button data-gfx="fast">${safe?'':'✓ '}Fast: use the graphics card (smooth)</button>
+    <button data-gfx="safe">${safe?'✓ ':''}Safe: no graphics card (only if pages show black)</button>
+    <small>Changing this restarts Dragon.</small>`;
+}
+
+/* the host sizes this bar to its content */
+let lastH=0; const px=css=>Math.ceil(css*(window.devicePixelRatio||1));
+function fit(){ const h=px(document.body.scrollHeight); if(h!==lastH){ lastH=h; send({type:'height',h}); } }
+
+chrome.webview.addEventListener('message',e=>{
+  const d=e.data||{};
+  if(d.type==='tabs'){ tabs=d.tabs; renderTabs(); }
+  if(d.type==='theme'){ document.documentElement.dataset.skin=d.skin||'crimson'; if(d.accent) document.documentElement.style.setProperty('--accent',d.accent); }
+  if(d.type==='price'){ const same=price&&d.price&&price.name===d.price.name; price=d.price; if(!same) parts=0; renderPrice(); }
+  if(d.type==='rates'){ eur=d.eur||0; if(price) renderPrice(); }
+  if(d.type==='safe'){ safe=!!d.safe; renderMenu(); }
+  if(d.type==='focusaddr') $('#addr').focus();
+});
+
+document.addEventListener('click',e=>{
+  const t=e.target;
+  const close=t.closest('[data-close]'); if(close){ send({type:'close',id:+close.dataset.close}); return; }
+  const tab=t.closest('.tab'); if(tab){ send({type:'select',id:+tab.dataset.id}); return; }
+  const op=t.closest('[data-open]'); if(op){ send({type:'openprice',which:op.dataset.open}); return; }
+  const gx=t.closest('[data-gfx]'); if(gx){ $('#menu').hidden=true; send({type:'gfx',safe:gx.dataset.gfx==='safe'}); return; }
+  if(t.id==='newtab') send({type:'newtab'});
+  if(t.id==='back') send({type:'back'}); if(t.id==='fwd') send({type:'fwd'}); if(t.id==='reload') send({type:'reload'});
+  if(t.id==='ext') send({type:'external'}); if(t.id==='en') send({type:'en'}); if(t.id==='hide') send({type:'hide'});
+  if(t.id==='full') send({type:'fullscreen'});
+  if(t.id==='more'){ renderMenu(); $('#menu').hidden=!$('#menu').hidden; send({type:'height',h:$('#menu').hidden?lastH:Math.max(lastH,px(200))}); return; }
+  if(!t.closest('#menu')&&!$('#menu').hidden){ $('#menu').hidden=true; send({type:'height',h:lastH}); }
+});
+document.addEventListener('auxclick',e=>{ const tab=e.target.closest('.tab'); if(tab&&e.button===1) send({type:'close',id:+tab.dataset.id}); });
+const addr=$('#addr');
+addr.addEventListener('focus',()=>{ addrFocused=true; setTimeout(()=>addr.select(),0); });
+addr.addEventListener('blur',()=>{ addrFocused=false; renderTabs(); });
+addr.addEventListener('keydown',e=>{ if(e.key==='Enter'){ send({type:'nav',text:addr.value}); addr.blur(); } if(e.key==='Escape') addr.blur(); });
+addEventListener('keydown',e=>{
+  if(e.ctrlKey&&e.key.toLowerCase()==='t'){ e.preventDefault(); send({type:'newtab'}); }
+  if(e.ctrlKey&&e.key.toLowerCase()==='w'){ e.preventDefault(); const a=tabs.find(t=>t.active); if(a) send({type:'close',id:a.id}); }
+  if(e.ctrlKey&&e.key.toLowerCase()==='l'){ e.preventDefault(); addr.focus(); }
+  if(e.key==='F11'){ e.preventDefault(); send({type:'fullscreen'}); }
+});
+new ResizeObserver(fit).observe(document.body);
+renderMenu(); fit(); send({type:'ready'});
+</script>
+</body>
+</html>
