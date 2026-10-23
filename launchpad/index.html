@@ -554,7 +554,7 @@ function projectPage(pr){ return {id:'pj-'+pr.id,tab:pr.name,title:pr.name,sub:'
 const allPages=()=>[...PAGES,...(S.projects||[]).map(projectPage)];
 const skinFor=id=>(S.skins&&S.skins[id])||PAGE_SKIN[id]||'crimson';
 function orderPages(){ const all=allPages(), ids=(S.order||[]).filter(id=>all.some(p=>p.id===id)); all.forEach(p=>{ if(!ids.includes(p.id)) ids.push(p.id); }); VIEW=ids.map(id=>all.find(p=>p.id===id)); }
-const APP_VERSION='5.7';
+const APP_VERSION='5.8';
 const BOOT_LINES=[`> dragon v${APP_VERSION}`,'> waking the dragon ...','> identity check'];
 const PRESETS=['#d42a2a','#4fb3f0','#d9dde3','#d0592f','#2fbf6a','#b3122e','#8a62b8'];
 const SKIN_NAMES={crimson:'Crimson (red)',frost:'Frost (blue)',steel:'Steel (silver)',ember:'Ember (orange)',jade:'Jade (green)'};
@@ -683,16 +683,16 @@ function buildLayers(W,H){
    Each joint turns its part of the dragon around a pivot; parts follow their parents (horns ride on the head,
    the head on the neck). Positions are in the artwork's own pixels (335 × 597). */
 const BONES=[ // [name, pivot x, y, centre x, y, reach, swing (radians), seconds per cycle, phase]; children before parents
-  ['horns',165,175,148,122,50,.13,7.4,0],
-  ['head',157,222,186,176,76,.11,11.5,.6],
-  ['leftClaw',96,352,52,362,46,.19,6.6,1.7],
-  ['rightClaw',206,410,248,426,50,.16,8.5,2.4],
+  ['horns',165,175,148,122,50,.13,11,0],
+  ['head',157,222,186,176,76,.11,17,.6],
+  ['leftClaw',96,352,52,362,46,.19,10,1.7],
+  ['rightClaw',206,410,248,426,50,.16,13,2.4],
   // the spine: same slow cycle, each section a little later, so a wave flows from the head down into the coil
-  ['neckUpper',128,256,142,214,62,.07,13,.4],
-  ['neckLower',120,306,124,266,72,.06,13,1.1],
-  ['bodyRight',150,300,198,318,62,.055,13,1.8],
-  ['bodySide',205,330,222,372,58,.05,13,2.5],
-  ['coil',150,400,150,432,72,.035,13,3.2]
+  ['neckUpper',128,256,142,214,62,.07,20,.4],
+  ['neckLower',120,306,124,266,72,.06,20,1.1],
+  ['bodyRight',150,300,198,318,62,.055,20,1.8],
+  ['bodySide',205,330,222,372,58,.05,20,2.5],
+  ['coil',150,400,150,432,72,.035,20,3.2]
 ];
 const dragonGL=(()=>{
   let gl=null, cv=null, prog, buf, ibuf, tex, nIdx=0, rest=null, cols=46, rows=80, curTex=null, ok=true;
@@ -720,7 +720,7 @@ const dragonGL=(()=>{
         x=px+dx*co-dy*si; y=py+dx*si+dy*co;
       }
       // the coil breathes a little
-      const bw=1-sm(50,95,Math.hypot(x-145,y-410)), bs=1+bw*.016*Math.sin(t*6.283/10.5);
+      const bw=1-sm(50,95,Math.hypot(x-145,y-410)), bs=1+bw*.016*Math.sin(t*6.283/16);
       x=145+(x-145)*bs; y=410+(y-410)*bs;
       const sx=L.ox+x*L.k, sy=L.oy+y*L.k, o=(j*(cols+1)+i)*4;
       out[o]=sx; out[o+1]=sy; out[o+2]=u; out[o+3]=vv;
@@ -764,7 +764,7 @@ const fx=(()=>{
   /* a smoke puff drifts up and sideways around the dragon, slowly turning, fading in and out */
   function puff(now,fresh){
     const s=L&&L.spots.length?L.spots[(Math.random()*L.spots.length)|0]:[W/2,H*.6];
-    const p={x:s[0]+(Math.random()-.5)*W*.35,y:s[1]+H*(.05+Math.random()*.15),vx:(Math.random()-.5)*W*.000012,vy:-H*(.000010+Math.random()*.000014),
+    const p={x:s[0]+(Math.random()-.5)*W*.35,y:s[1]+H*(.05+Math.random()*.15),vx:(Math.random()-.5)*W*.000008,vy:-H*(.000007+Math.random()*.00001),
       rot:Math.random()*6.283,vr:(Math.random()-.5)*.00008,size:Math.max(W,H)*(.28+Math.random()*.3),t0:now,life:16000+Math.random()*14000,
       img:(Math.random()*3)|0,peak:.25+Math.random()*.33,front:Math.random()<.3};
     if(fresh) p.t0-=Math.random()*p.life; return p;
@@ -813,7 +813,7 @@ const fx=(()=>{
     if(!reduceMotion&&now-last<15){ raf=requestAnimationFrame(frame); return; } const dt=last?Math.min(64,now-last):16; last=now;
     x.clearRect(0,0,W,H);
     if(L){ x.drawImage(L.bg,0,0,W,H); if(!reduceMotion) drawSmoke(now,false);
-      const t=now/1000, glow=.93+.07*Math.sin(t*6.283/14);
+      const t=now/1000, glow=.93+.07*Math.sin(t*6.283/20);
       if(reduceMotion||!dragonGL.draw(x,L,W,H,t,glow)) x.drawImage(L.fg,0,0,W,H);
       if(!reduceMotion){ drawSmoke(now,true); drawEmbers(now); } }
     if(snow) for(const p of flakes){ const f=dt/32; p.ph+=.03*f; p.x+=Math.sin(p.ph)*.5*f; p.y+=p.v*f; if(p.y>H+10) Object.assign(p,flake());
@@ -831,7 +831,64 @@ const fx=(()=>{
   document.addEventListener('visibilitychange',()=>{ if(!on) return; if(document.hidden) cancelAnimationFrame(raf); else start(); });
   return {toggle(v){ on=v; if(v) start(); else { cancelAnimationFrame(raf); if(x) x.clearRect(0,0,W,H); } }};
 })();
-function paintBoot(){ requestAnimationFrame(()=>{ const [x,W,H]=fitCanvas($('#bootfx')); paintScene(x,W,H,'boot'); }); }
+/* lock screen fire: flames along the bottom that flare up and die down in random places, with embers and smoke rising */
+const bootFire=(()=>{
+  let x, W=0, H=0, raf=0, running=false, last=0, flames=[], embers=[], smoke=[], spr=null, smokeImg=null, seed=Math.random()*1000;
+  const glow=(r,g,b)=>{ const s=document.createElement('canvas'); s.width=s.height=64; const q=s.getContext('2d'), gr=q.createRadialGradient(32,32,0,32,32,32);
+    gr.addColorStop(0,`rgba(${r},${g},${b},1)`); gr.addColorStop(.3,`rgba(${r},${g},${b},.5)`); gr.addColorStop(1,`rgba(${r},${g},${b},0)`); q.fillStyle=gr; q.fillRect(0,0,64,64); return s; };
+  /* a flame tongue: soft teardrop, brightest low down, fading to a point at the top */
+  const tongue=(r,g,b)=>{ const s=document.createElement('canvas'); s.width=64; s.height=160; const q=s.getContext('2d'); q.filter='blur(6px)';
+    const gr=q.createRadialGradient(32,118,2,32,100,60); gr.addColorStop(0,`rgba(${r},${g},${b},1)`); gr.addColorStop(.45,`rgba(${r},${g},${b},.45)`); gr.addColorStop(1,`rgba(${r},${g},${b},0)`);
+    q.fillStyle=gr; q.beginPath(); q.moveTo(32,10); q.bezierCurveTo(46,60,58,92,52,124); q.bezierCurveTo(46,150,18,150,12,124); q.bezierCurveTo(6,92,18,60,32,10); q.fill(); return s; };
+  let tongues=null;
+  function cloud(){ const s=document.createElement('canvas'); s.width=s.height=256; const q=s.getContext('2d'); q.filter='blur(12px)';
+    for(let i=0;i<40;i++){ const a=Math.random()*6.283, d=Math.random()*70, cx=128+Math.cos(a)*d, cy=128+Math.sin(a)*d*.7, r=28+Math.random()*40, g=q.createRadialGradient(cx,cy,0,cx,cy,r);
+      g.addColorStop(0,`rgba(150,140,140,${.05+Math.random()*.05})`); g.addColorStop(1,'rgba(150,140,140,0)'); q.fillStyle=g; q.fillRect(cx-r,cy-r,r*2,r*2); }
+    return s; }
+  /* how strongly fire burns at position u (0-1 across) at time t: slow drifting bumps, so tongues flare and fade */
+  const heat=(u,t)=>Math.max(0,.45+.3*Math.sin(u*9+t*.7+seed)+.25*Math.sin(u*23-t*1.3+seed*2)+.2*Math.sin(u*4+t*.31));
+  function flame(now){ let u=Math.random(); for(let i=0;i<3&&Math.random()>heat(u,now/1000);i++) u=Math.random();
+    const h=heat(u,now/1000), sc=Math.min(W,H)/700;
+    return {x:u*W,y:H+10,vx:(Math.random()-.5)*.25,vy:-(.9+Math.random()*1.3)*(0.6+h)*sc*1.6,t0:now,life:700+Math.random()*900*(0.5+h),r:(22+Math.random()*30)*(0.7+h*.6)*sc,ph:Math.random()*6.28}; }
+  function ember(now,fresh){ const sc=Math.min(W,H)/700, e={x:Math.random()*W,y:H*(.88+Math.random()*.1),vx:(Math.random()-.5)*.5,vy:-(.5+Math.random()*1.1)*sc,t0:now,life:3000+Math.random()*4000,r:(1.4+Math.random()*2.4)*sc,ph:Math.random()*100};
+    if(fresh) e.t0-=Math.random()*e.life; return e; }
+  function puff(now,fresh){ const p={x:Math.random()*W,y:H*(.82+Math.random()*.1),vx:(Math.random()-.5)*.08,vy:-(.12+Math.random()*.18)*Math.min(W,H)/700,t0:now,life:9000+Math.random()*7000,size:Math.max(W,H)*(.25+Math.random()*.25),rot:Math.random()*6.28,vr:(Math.random()-.5)*.0002,peak:.35+Math.random()*.35};
+    if(fresh) p.t0-=Math.random()*p.life; return p; }
+  function draw(now){
+    if(document.getElementById('boot').hidden){ running=false; return; }
+    if(now-last<15){ raf=requestAnimationFrame(draw); return; } last=now;
+    x.clearRect(0,0,W,H);
+    // smoke behind
+    for(let i=0;i<smoke.length;i++){ const p=smoke[i], k=(now-p.t0)/p.life; if(k>=1){ smoke[i]=puff(now); continue; } const a=now-p.t0, f=a/16;
+      x.save(); x.globalAlpha=p.peak*Math.sin(Math.PI*k); x.globalCompositeOperation='screen'; x.translate(p.x+p.vx*f,p.y+p.vy*f); x.rotate(p.rot+p.vr*a);
+      const sz=p.size*(1+k*.5); x.drawImage(smokeImg,-sz/2,-sz/2,sz,sz); x.restore(); }
+    // a dim glow of the fire bed
+    const g=x.createLinearGradient(0,H*.72,0,H); g.addColorStop(0,'rgba(120,20,5,0)'); g.addColorStop(1,'rgba(160,40,10,.35)'); x.fillStyle=g; x.fillRect(0,H*.72,W,H*.28);
+    x.save(); x.globalCompositeOperation='lighter';
+    // flames: rise, sway, shrink and cool from white-hot through orange to red
+    const want=Math.round(W/4.5);
+    while(flames.length<want) flames.push(flame(now));
+    for(let i=0;i<flames.length;i++){ const p=flames[i], k=(now-p.t0)/p.life; if(k>=1){ flames[i]=flame(now); continue; }
+      const f=(now-p.t0)/16, px=p.x+p.vx*f+Math.sin(p.ph+now/260)*4*k, py=p.y+p.vy*f, r=p.r*(1-k*.75), a=Math.min(1,k*8)*(1-k);
+      const st=k*2, i0=Math.min(1,st|0), w=st-i0;
+      x.globalAlpha=a*(1-w)*.55; x.drawImage(tongues[i0],px-r*.65,py-r*2.6,r*1.3,r*3.2);
+      x.globalAlpha=a*w*.55; x.drawImage(tongues[i0+1],px-r*.65,py-r*2.6,r*1.3,r*3.2); }
+    // embers: drift higher with a swirl, flicker and go out
+    for(let i=0;i<embers.length;i++){ const e=embers[i], k=(now-e.t0)/e.life; if(k>=1){ embers[i]=ember(now); continue; }
+      const f=(now-e.t0)/16, px=e.x+e.vx*f+Math.sin(now/800+e.ph)*f*.25, py=e.y+e.vy*f, a=Math.min(1,k*6)*(1-k)*(.7+.3*Math.sin(now/70+e.ph)), sz=e.r*(1-k*.5)*7;
+      x.globalAlpha=a; x.drawImage(spr[1],px-sz/2,py-sz/2,sz,sz); x.globalAlpha=a*.7; x.drawImage(spr[0],px-sz*.18,py-sz*.18,sz*.36,sz*.36); }
+    x.restore(); x.globalAlpha=1;
+    raf=requestAnimationFrame(draw);
+  }
+  return { start(){
+    const c=$('#bootfx'); [x,W,H]=fitCanvas(c);
+    spr=[glow(255,214,120),glow(255,120,30),glow(190,35,10)]; tongues=[tongue(255,206,96),tongue(255,112,26),tongue(196,34,8)]; smokeImg=smokeImg||cloud();
+    const now=performance.now(); flames=[]; embers=Array.from({length:Math.round(W/9)},()=>ember(now,true)); smoke=Array.from({length:7},()=>puff(now,true));
+    if(reduceMotion){ return; }
+    if(!running){ running=true; last=0; raf=requestAnimationFrame(draw); }
+  } };
+})();
+function paintBoot(){ requestAnimationFrame(()=>bootFire.start()); }
 
 /* ---------- rendering ---------- */
 function linkHtml(url){ return url?`<a class="open" href="${esc(url)}" target="_blank" rel="noopener">Open ↗</a>`:''; }
