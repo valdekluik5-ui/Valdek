@@ -12,7 +12,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-/* Full-screen wrapper around the Launchpad page bundled in assets/. Progress, notes and the PIN live in the
+/* Full-screen wrapper around the Dragon page bundled in assets/. Progress, notes and the PIN live in the
    WebView's local storage, which is part of this app's private storage on the phone. */
 public class MainActivity extends Activity {
     private static final int PICK_IMAGE = 1;
