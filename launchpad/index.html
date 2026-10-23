@@ -227,6 +227,8 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:var(--accent)}
 .elog li span:first-child{color:var(--muted)}
 .elog .del{border:1px solid var(--line);background:transparent;border-radius:8px;width:34px;height:30px;color:var(--muted)}
 .elog .del.armed{background:var(--danger);color:var(--white);border-color:var(--danger)}
+#flipTotals>.hint{display:inline-block;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+.rule{font:12.5px var(--mono);color:var(--muted);margin-top:4px}
 .empty{color:var(--muted);font:13px var(--mono);text-align:center;padding:16px}
 
 /* settings sheet */
@@ -315,7 +317,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
     <h3>Settings <button class="iconbtn" id="closeSettings" aria-label="Close">✕</button></h3>
     <div>
       <div class="label">Page looks</div>
-      <div class="hint">Each page has its own look: Today and My apps crimson, Income steel, Repairs &amp; flips ember, Cyber frost.</div>
+      <div class="hint">Each page has its own look: Today and My apps crimson, Income steel, Fix &amp; sell ember, Cyber frost.</div>
     </div>
     <div>
       <div class="label">Accent colour</div>
@@ -357,7 +359,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
 /* ---------- content ---------- */
 const THM='https://tryhackme.com';
 /* groups with prio feed Today's next task in that order (1 first); the rest follow in page order */
-const PRIORITIES={1:'Apply to AI language platforms',2:'Repair & flip listings in Kyiv',3:'Cyber fit test this weekend',4:'Teleprompter public version',5:'Grow EV diagnostics'};
+const PRIORITIES={1:'Apply to AI language platforms',2:'Start fix & sell in Kyiv',3:'Cyber fit test this weekend',4:'Teleprompter public version',5:'Grow EV diagnostics'};
 const PAGES=[
  {id:'today',tab:'Today'},
  {id:'income',tab:'Income',title:'Income',sub:'AI language and expert work, then EV diagnostics.',earnings:true,
@@ -383,19 +385,22 @@ const PAGES=[
      {id:'diag-ppi',t:'Pre-purchase battery-check reports'},
      {id:'diag-kyiv',t:'Freelance hard HV jobs for Kyiv EV shops'},
      {id:'diag-train',t:'Training for technicians'}]}]},
- {id:'repairs',tab:'Repairs & flips',title:'Repairs & flips',sub:'Kyiv. Customers drop devices off, so little talking is needed.',flips:true,
-  note:'<b>10–15 repairs at €70–100 ≈ €1,000.</b> Outage gear is in demand: power stations, UPS units, inverters, e-bike and scooter batteries.',
-  rules:'<b>Flip rules.</b> Best: iPhones (screen or battery) and ThinkPad / Dell laptops. Avoid water damage, unknown boot loops and Mac logic-board faults. Buy only if buy + parts is under ~60% of the resale price.',
+ {id:'repairs',tab:'Fix & sell',title:'Fix & sell',sub:'Buy broken small electronics, repair them, keep them in stock, sell.',flips:true,
+  note:'<b>About €70–100 profit a device → 10–15 sales a month ≈ €1,000.</b> Small things only: laptops, phones, tablets and gadgets that fit on a shelf. No TVs, fridges or washing machines.',
+  rules:'<b>Buying rules.</b> Best: iPhones (screen or battery), ThinkPad / Dell laptops, iPads. Avoid water damage, unknown boot loops, Mac logic-board faults, and phones or tablets with iCloud / Google lock. Buy only if buy + parts is under ~60% of the resale price.',
   groups:[
-   {id:'rep',prio:2,title:'Outage-gear repairs',sub:'Power stations, UPS, inverters, e-bike and scooter batteries',items:[
-     {id:'rep-prices',t:'Set your prices and drop-off process',d:'Aim for €70–100 a repair'},
-     {id:'rep-olx',t:'Post the repair listing on OLX',url:'https://www.olx.ua/uk/'},
-     {id:'rep-tg',t:'Post in Kyiv Telegram groups'},
-     {id:'rep-first',t:'Finish the first paid repair'}]},
-   {id:'src',prio:2,title:'Find flip devices',items:[
+   {id:'src',prio:2,title:'Find broken devices',sub:'Laptops, phones, tablets, small gadgets',items:[
      {id:'src-olx',t:'Check OLX "на запчастини"',url:'https://www.olx.ua/uk/list/q-%D0%BD%D0%B0-%D0%B7%D0%B0%D0%BF%D1%87%D0%B0%D1%81%D1%82%D0%B8%D0%BD%D0%B8/'},
      {id:'src-prom',t:'Check Prom.ua',url:'https://prom.ua/ua/search?search_term=%D0%BD%D0%B0%20%D0%B7%D0%B0%D0%BF%D1%87%D0%B0%D1%81%D1%82%D0%B8%D0%BD%D0%B8'},
-     {id:'src-shops',t:'Ask repair shops for dead stock'}]}]},
+     {id:'src-shops',t:'Ask repair shops for dead stock'},
+     {id:'src-tg',t:'Watch Kyiv Telegram buy-and-sell groups'},
+     {id:'src-first',t:'Buy the first device'}]},
+   {id:'sell',prio:2,title:'Set up selling',items:[
+     {id:'sell-parts',t:'Find a parts supplier',d:'Screens, batteries, keyboards, chargers'},
+     {id:'sell-shelf',t:'Set up a stock shelf',d:'A box and a label for each device and its parts'},
+     {id:'sell-olx',t:'Make an OLX seller profile',url:'https://www.olx.ua/uk/'},
+     {id:'sell-template',t:'Write a listing template',d:'Model, what was fixed, how you tested it, warranty days'},
+     {id:'sell-first',t:'Sell the first repaired device'}]}]},
  {id:'apps',tab:'My apps',title:'My apps',sub:'Teleprompter first, Quiet Moon later.',
   note:'<b>About 3% of active users pay ~$5/month:</b> roughly $135/month at 1,000 users, $675 at 5,000. No marketing: $0–50/month. Steady demo videos: $100–700/month.',
   groups:[
@@ -444,7 +449,7 @@ const PAGES=[
      {id:'r155',t:'Learn UNECE R155 / R156',url:'https://unece.org/transport/documents/2021/03/standards/un-regulation-no-155-cyber-security-and-cyber-security'},
      {id:'oscp',t:'Work toward OSCP',url:'https://www.offsec.com/courses/pen-200/'}]}]}
 ];
-const SOURCES=['AI work','EV diagnostics','Repairs','Flips','Apps','Other'];
+const SOURCES=['AI work','EV diagnostics','Fix & sell','Apps','Other'];
 const GOAL=1000;
 const STATUSES=['Bought','Repairing','Fixed','Listed','Sold'];
 const SKINS={
@@ -494,14 +499,15 @@ const monthKey=()=>todayKey().slice(0,7);
 function monthEarnings(key=monthKey()){
   const by={}; let total=0;
   S.earn.filter(e=>e.d.startsWith(key)).forEach(e=>{ by[e.src]=(by[e.src]||0)+e.a; total+=e.a; });
-  S.flips.filter(f=>f.status==='Sold'&&(f.soldOn||'').startsWith(key)).forEach(f=>{ const p=num(f.sell)-num(f.buy)-num(f.parts); by.Flips=(by.Flips||0)+p; total+=p; });
+  S.flips.filter(f=>f.status==='Sold'&&(f.soldOn||'').startsWith(key)).forEach(f=>{ const p=num(f.sell)-num(f.buy)-num(f.parts); by['Fix & sell']=(by['Fix & sell']||0)+p; total+=p; });
   return {total,by}; }
 function pageProgress(p){ let n=0,d=0; (p.groups||[]).forEach(g=>g.items.forEach(it=>{n++; if(S.checked[it.id]) d++;})); return {n,d}; }
 function flipTotals(){
-  let invested=0,earned=0,net=0,active=0;
-  S.flips.forEach(f=>{ const cost=num(f.buy)+num(f.parts); invested+=cost;
-    if(f.status==='Sold'){ earned+=num(f.sell); net+=num(f.sell)-cost; } else active++; });
-  return {invested,earned,net,active};
+  let tied=0,earned=0,net=0,stock=0,fixing=0;
+  S.flips.forEach(f=>{ const cost=num(f.buy)+num(f.parts);
+    if(f.status==='Sold'){ earned+=num(f.sell); net+=num(f.sell)-cost; }
+    else { tied+=cost; if(f.status==='Fixed'||f.status==='Listed') stock++; else fixing++; } });
+  return {tied,earned,net,stock,fixing};
 }
 
 /* ---------- theme ---------- */
@@ -586,7 +592,7 @@ function notesHtml(p){ return `<section class="card"><div class="label">Notes <s
 
 function earnFormHtml(){ return `<form class="earnform" id="addEarn">
     <input id="earn-amount" name="amount" inputmode="decimal" placeholder="€ amount" aria-label="Amount in euros" required>
-    <select id="earn-src" name="src" aria-label="Source">${SOURCES.filter(x=>x!=='Flips').map(x=>`<option>${x}</option>`).join('')}</select>
+    <select id="earn-src" name="src" aria-label="Source">${SOURCES.filter(x=>x!=='Fix & sell').map(x=>`<option>${x}</option>`).join('')}</select>
     <button class="btn primary" type="submit">+ Add</button></form>`; }
 function todayHtml(){
   const tasks=allTasks().filter(t=>!S.checked[t.id]);
@@ -621,19 +627,22 @@ function earningsHtml(){
   return `<section class="card" id="earnLog"><div class="label">Earnings this month · ${eur(monthEarnings().total)}</div>
     ${earnFormHtml()}
     ${list.length?`<ul class="elog">${list.map(e=>`<li><span>${esc(e.d.slice(8))}.${esc(e.d.slice(5,7))}</span><span>${esc(e.src)}</span><b>${eur(e.a)}</b><button class="del" data-delearn="${e.id}" aria-label="Delete entry">✕</button></li>`).join('')}</ul>`:'<div class="empty">Nothing logged yet this month.</div>'}
-    <div class="hint">Sold flips count automatically. Last month: ${eur(monthEarnings(lastKey).total)}</div>
+    <div class="hint">Devices you mark as sold count automatically. Last month: ${eur(monthEarnings(lastKey).total)}</div>
   </section>`;
 }
 
 function flipsTopHtml(){
   const ft=flipTotals();
-  return `<div class="totals" id="flipTotals">
-    <div class="card"><div class="label">Invested</div><div class="v">${eur(ft.invested)}</div></div>
-    <div class="card"><div class="label">Earned</div><div class="v">${eur(ft.earned)}</div></div>
+  return `<div id="flipTotals"><div class="totals">
     <div class="card"><div class="label">Net profit</div><div class="v ${ft.net<0?'neg':'pos'}">${eur(ft.net)}</div></div>
-    <div class="card"><div class="label">In progress</div><div class="v">${ft.active}</div></div>
-  </div>`;
+    <div class="card"><div class="label">Sold for</div><div class="v">${eur(ft.earned)}</div></div>
+    <div class="card"><div class="label">In stock</div><div class="v">${ft.stock}</div></div>
+    <div class="card"><div class="label">Being fixed</div><div class="v">${ft.fixing}</div></div>
+  </div><div class="hint">Money in unsold devices: ${eur(ft.tied)}</div></div>`;
 }
+/* the 60% rule: buy + parts should stay under ~60% of the resale price */
+function ruleHtml(f){ const cost=num(f.buy)+num(f.parts), sell=num(f.sell); if(!sell||!cost) return '';
+  const pct=Math.round(cost/sell*100); return pct<=60?`Cost is ${pct}% of the sale price · within the 60% rule`:`<span class="neg">Cost is ${pct}% of the sale price · over the 60% rule</span>`; }
 function devHtml(f){
   const profit=num(f.sell)-num(f.buy)-num(f.parts);
   return `<section class="card dev" data-dev="${f.id}">
@@ -645,6 +654,7 @@ function devHtml(f){
       <label class="fld">Sell €<input inputmode="decimal" data-f="sell" value="${esc(f.sell)}"></label>
     </div>
     <div class="profit"><span>${f.status==='Sold'?'Profit':'Expected profit'}</span><span class="${profit<0?'neg':'pos'}" data-profit>${eur(profit)}</span></div>
+    <div class="rule" data-rule>${ruleHtml(f)}</div>
   </section>`;
 }
 function flipsHtml(p){
@@ -655,7 +665,7 @@ function flipsHtml(p){
     ${flipsTopHtml()}
     <section class="card"><div class="label">Add device</div>
       <form class="form" id="addDev">
-        <label class="fld full">Name<input id="nd-name" name="name" placeholder="e.g. iPhone 12, cracked screen" required></label>
+        <label class="fld full">Name<input id="nd-name" name="name" placeholder="e.g. ThinkPad T480, no power" required></label>
         <label class="fld full">Status<select id="nd-status" name="status">${STATUSES.map(s=>`<option>${s}</option>`).join('')}</select></label>
         <label class="fld">Buy €<input id="nd-buy" name="buy" inputmode="decimal" placeholder="0"></label>
         <label class="fld">Parts €<input id="nd-parts" name="parts" inputmode="decimal" placeholder="0"></label>
@@ -739,7 +749,7 @@ function updateDev(t){
   const card=t.closest('[data-dev]'), f=S.flips.find(x=>x.id===card.dataset.dev); if(!f) return;
   f[t.dataset.f]=t.value; if(t.dataset.f==='status') f.soldOn=t.value==='Sold'?(f.soldOn||todayKey()):''; save();
   const p=num(f.sell)-num(f.buy)-num(f.parts), pe=card.querySelector('[data-profit]');
-  pe.textContent=eur(p); pe.className=p<0?'neg':'pos'; card.querySelector('.profit span').textContent=f.status==='Sold'?'Profit':'Expected profit';
+  pe.textContent=eur(p); pe.className=p<0?'neg':'pos'; card.querySelector('[data-rule]').innerHTML=ruleHtml(f); card.querySelector('.profit span').textContent=f.status==='Sold'?'Profit':'Expected profit';
   $('#flipTotals').outerHTML=flipsTopHtml(); renderToday(); renderPage(pageById('income'));
 }
 document.addEventListener('submit',e=>{
