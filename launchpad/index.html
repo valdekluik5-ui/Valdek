@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" translate="no" data-skin="dragon">
+<html lang="en" translate="no" data-skin="crimson" data-style="dragon">
 <head>
 <meta charset="utf-8">
 <meta name="google" content="notranslate">
@@ -10,13 +10,13 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0d0908">
+<meta name="theme-color" content="#070505">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Launchpad">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Alegreya+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Oxanium:wght@600;700&family=Alegreya+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
 <script>
 /* service worker makes the app installable; it always fetches fresh and only uses the cache offline */
 if('serviceWorker' in navigator&&location.protocol==='https:') addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
@@ -26,23 +26,34 @@ if('serviceWorker' in navigator&&location.protocol==='https:') addEventListener(
    Deliberately dark only. Two skins: "dragon" (obsidian, ember, gold scales) and "terminal" (green-black grid).
    The accent is the user's own pick; --gold is the dragon's fixed second colour. */
 :root{
-  --accent:#c9532c;
-  --gold:#d6a548;
-  --bg:#0d0908; --panel:rgba(22,14,12,.86); --panel-2:rgba(32,21,17,.92); --line:#3a2721;
-  --ink:#f1e4d8; --muted:#a8907f; --danger:#e0574a; --white:#fff; --black:#000;
+  --accent:#d42a2a;
+  --gold:#c9cdd4;
+  --bg:#070505; --panel:rgba(18,9,9,.8); --panel-2:rgba(30,14,14,.9); --line:#3b1d1d;
+  --ink:#f0eaea; --muted:#a69595; --eye-core:#ffffff; --danger:#e0574a; --white:#fff; --black:#000;
   --acc-soft:color-mix(in srgb,var(--accent) 15%,transparent);
   --acc-line:color-mix(in srgb,var(--accent) 50%,var(--line));
   --on-accent:#140806;
-  --display:"Cinzel","Trajan Pro",Georgia,serif;
+  --display:"Oxanium","Eurostile",system-ui,sans-serif;
   --body:"Alegreya Sans",system-ui,-apple-system,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --h-mark:"◆ ";
   color-scheme:dark;
 }
+:root[data-skin=frost]{
+  --gold:#d5ebff;
+  --bg:#060a14; --panel:rgba(9,15,30,.78); --panel-2:rgba(15,24,44,.9); --line:#1f2e4a;
+  --ink:#e6eef8; --muted:#8fa2bb; --eye-core:#f4fbff;
+}
+:root[data-skin=ember]{
+  --gold:#d6a548;
+  --bg:#0d0908; --panel:rgba(22,14,12,.86); --panel-2:rgba(32,21,17,.92); --line:#3a2721;
+  --ink:#f1e4d8; --muted:#a8907f; --eye-core:#ffe9a8;
+  --display:"Cinzel","Trajan Pro",Georgia,serif;
+}
 :root[data-skin=terminal]{
   --gold:#7fae8f;
   --bg:#0a0d0b; --panel:rgba(17,22,19,.86); --panel-2:rgba(24,31,27,.92); --line:#26302a;
-  --ink:#dfe8e2; --muted:#8a9a90;
+  --ink:#dfe8e2; --muted:#8a9a90; --eye-core:#ffffff;
   --display:var(--mono); --body:system-ui,-apple-system,"Segoe UI",sans-serif;
   --h-mark:"> ";
 }
@@ -57,22 +68,25 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 a{color:var(--accent)}
 [hidden]{display:none!important}
 
-/* backdrop layers: own picture, darkening, skin pattern, embers */
+/* backdrop layers: own picture, darkening, skin glow/pattern, dragon scene + particles */
 #bgimg{position:fixed;inset:0;background:center/cover no-repeat;z-index:0}
 #bgdim{position:fixed;inset:0;background:var(--black);z-index:0;pointer-events:none}
 #pattern{position:fixed;inset:0;z-index:0;pointer-events:none}
-[data-skin=dragon] #pattern{
+[data-skin=crimson] #pattern{background:radial-gradient(80% 55% at 50% 28%,color-mix(in srgb,var(--accent) 26%,transparent),transparent 70%),radial-gradient(120% 90% at 50% 40%,transparent 55%,var(--black) 100%)}
+[data-skin=frost] #pattern{background:radial-gradient(90% 50% at 70% 0%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%),linear-gradient(#0c1934,var(--bg) 55%)}
+[data-skin=ember] #pattern{
   background:
     radial-gradient(120% 60% at 50% -10%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 65%),
     radial-gradient(circle at 50% 0,transparent 58%,color-mix(in srgb,var(--gold) 11%,transparent) 60%,color-mix(in srgb,var(--gold) 11%,transparent) 66%,transparent 68%) 0 0/30px 22px,
     radial-gradient(circle at 50% 0,transparent 58%,color-mix(in srgb,var(--gold) 11%,transparent) 60%,color-mix(in srgb,var(--gold) 11%,transparent) 66%,transparent 68%) 15px 11px/30px 22px;
   -webkit-mask-image:linear-gradient(#000,transparent 70%);mask-image:linear-gradient(#000,transparent 70%)}
-[data-skin=terminal] #pattern{opacity:.5;
+[data-style=terminal] #pattern{opacity:.5;
   background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
   background-size:32px 32px;-webkit-mask-image:radial-gradient(ellipse at 50% 0%,#000 0%,transparent 75%);mask-image:radial-gradient(ellipse at 50% 0%,#000 0%,transparent 75%)}
 body.has-bg #pattern{display:none}
-#embers{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
-[data-skin=terminal] #embers{display:none}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+[data-style=terminal] #fx,[data-style=terminal] #bootfx{display:none}
+#bootfx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 
 /* header + tabs */
 header{position:relative;z-index:2;padding-top:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -80,10 +94,10 @@ header{position:relative;z-index:2;padding-top:10px;padding-left:max(16px,env(sa
 .brand{font:700 17px var(--display);letter-spacing:.08em;flex:1;display:flex;align-items:center;gap:8px}
 .brand b{color:var(--accent);font-weight:700}
 .brand svg{width:26px;height:26px;flex:0 0 auto}
-[data-skin=terminal] .brand{font:700 15px var(--mono);letter-spacing:.04em}
-[data-skin=terminal] .brand svg{display:none}
+[data-style=terminal] .brand{font:700 15px var(--mono);letter-spacing:.04em}
+[data-style=terminal] .brand svg{display:none}
 .cursor{display:none;width:.55em;height:1em;background:var(--accent);margin-left:2px;animation:blink 1.1s steps(1) infinite}
-[data-skin=terminal] .cursor{display:inline-block}
+[data-style=terminal] .cursor{display:inline-block}
 @keyframes blink{50%{opacity:0}}
 .iconbtn{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel);display:grid;place-items:center;font-size:18px}
 .tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;max-width:640px;margin:10px auto 0;padding-bottom:10px}
@@ -99,8 +113,9 @@ header{position:relative;z-index:2;padding-top:10px;padding-left:max(16px,env(sa
 .wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 h2{font:700 23px/1.15 var(--display);margin:4px 0 0;letter-spacing:.04em;text-wrap:balance}
 h2::before{content:var(--h-mark);color:var(--accent);font-size:.7em;vertical-align:.12em}
-[data-skin=terminal] h2{font-size:20px;letter-spacing:.01em}
-[data-skin=terminal] h2::before{font-size:1em;vertical-align:0}
+[data-skin=crimson] h2,[data-skin=frost] h2{text-transform:uppercase;letter-spacing:.08em;font-size:21px}
+[data-style=terminal] h2{font-size:20px;letter-spacing:.01em}
+[data-style=terminal] h2::before{font-size:1em;vertical-align:0}
 .sub{color:var(--muted);font-size:15px;margin:-8px 0 0}
 
 /* dots */
@@ -139,10 +154,10 @@ h2::before{content:var(--h-mark);color:var(--accent);font-size:.7em;vertical-ali
 .prog .top span:last-child{color:var(--muted)}
 .meter{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:5px}
 .meter i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,var(--gold)));border-radius:4px;transition:width .3s}
-[data-skin=terminal] .meter i{background:var(--accent)}
+[data-style=terminal] .meter i{background:var(--accent)}
 .big{font:700 28px var(--mono);font-variant-numeric:tabular-nums}
 .pos{color:var(--gold)} .neg{color:var(--danger)}
-[data-skin=terminal] .pos{color:var(--accent)}
+[data-style=terminal] .pos{color:var(--accent)}
 .alldone{font:700 18px var(--display);color:var(--gold)}
 
 /* checklist groups */
@@ -150,7 +165,7 @@ h2::before{content:var(--h-mark);color:var(--accent);font-size:.7em;vertical-ali
 .ghead{all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:flex;align-items:center;gap:10px;padding:13px 14px}
 .ghead:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .ghead .gt{flex:1;font:700 15.5px var(--body);letter-spacing:.01em}
-[data-skin=terminal] .ghead .gt{font:600 14.5px var(--mono)}
+[data-style=terminal] .ghead .gt{font:600 14.5px var(--mono)}
 .ghead .gt small{display:block;font:400 13px var(--body);color:var(--muted);margin-top:1px}
 .ghead .gc{font:600 12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
 .ghead .chev{color:var(--muted);transition:transform .2s;font-family:var(--mono)}
@@ -163,8 +178,8 @@ h2::before{content:var(--h-mark);color:var(--accent);font-size:.7em;vertical-ali
 .item+.item{border-top:1px dashed var(--line)}
 .item label{flex:1;display:flex;gap:11px;align-items:flex-start;cursor:pointer;min-width:0}
 .item input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:22px;height:22px;margin:1px 0 0;border:1.5px solid var(--muted);border-radius:6px;display:grid;place-items:center;background:transparent}
-[data-skin=dragon] .item input{border-radius:4px;transform:rotate(45deg) scale(.86)}
-[data-skin=dragon] .item input:checked::after{transform:translate(-1px,-1px)}
+[data-style=dragon] .item input{border-radius:4px;transform:rotate(45deg) scale(.86)}
+[data-style=dragon] .item input:checked::after{transform:translate(-1px,-1px)}
 .item input:checked{background:var(--accent);border-color:var(--accent)}
 .item input:checked::after{content:"";width:6px;height:11px;border:solid var(--on-accent);border-width:0 2.5px 2.5px 0;transform:translateY(-1px) rotate(45deg)}
 .item input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -202,8 +217,9 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:var(--accent)}
 #sheet .in{width:100%;max-width:560px;max-height:88dvh;overflow-y:auto;background:var(--bg);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;
   padding-block:18px calc(20px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
 #sheet h3{font:700 18px var(--display);letter-spacing:.06em;margin:0;display:flex;justify-content:space-between;align-items:center}
-.seg{display:flex;gap:8px;margin-top:8px}
-.seg button{flex:1;border:1px solid var(--line);background:var(--panel-2);border-radius:10px;padding:10px;font:600 13.5px var(--mono);color:var(--muted)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+@media (max-width:380px){.seg{grid-template-columns:repeat(2,1fr)}}
+.seg button{border:1px solid var(--line);background:var(--panel-2);border-radius:10px;padding:10px;font:600 13.5px var(--mono);color:var(--muted)}
 .seg button[aria-pressed=true]{border-color:var(--accent);color:var(--ink);background:var(--acc-soft)}
 .swatches{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
 .sw{width:36px;height:36px;border-radius:50%;border:2px solid transparent;padding:0}
@@ -219,12 +235,13 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
 #boot{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;justify-content:center;align-items:center;
   padding-block:24px;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px));transition:opacity .35s;overflow-y:auto}
 #boot.out{opacity:0;pointer-events:none}
-#boot .bin{width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;gap:14px}
+#boot .bin{position:relative;width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;gap:14px}
 #eye{width:220px;height:110px;display:block}
-[data-skin=terminal] #eye{display:none}
-#boot pre{font:13.5px/1.7 var(--mono);color:var(--muted);margin:0;width:100%;white-space:pre-wrap;min-height:7em}
+[data-style=terminal] #eye{display:none}
+#boot pre{font:13.5px/1.7 var(--mono);color:var(--muted);text-shadow:0 1px 3px var(--black);margin:0;width:100%;white-space:pre-wrap;min-height:7em}
 #boot .ok{color:var(--accent);font-weight:700;font-size:20px}
-[data-skin=dragon] #boot .ok{font:700 22px var(--display);letter-spacing:.1em;color:var(--gold)}
+[data-style=dragon] #boot .ok{font:700 22px var(--display);letter-spacing:.14em;color:var(--gold)}
+[data-skin=crimson] #boot .ok{color:var(--accent)}
 #boot .tap{font:600 12px var(--mono);color:var(--muted);letter-spacing:.2em;animation:blink 1.4s steps(1) infinite;background:none;border:0;padding:8px}
 #lock{width:100%;display:flex;flex-direction:column;align-items:center;gap:12px}
 #lockMsg{font:600 14px var(--mono);color:var(--ink);text-align:center;min-height:1.4em}
@@ -232,7 +249,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
 .pindots{display:flex;gap:12px;height:16px}
 .pindots i{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--muted)}
 .pindots i.on{background:var(--accent);border-color:var(--accent)}
-[data-skin=dragon] .pindots i{border-radius:2px;transform:rotate(45deg) scale(.85)}
+[data-style=dragon] .pindots i{border-radius:2px;transform:rotate(45deg) scale(.85)}
 .pindots.shake{animation:shake .35s}
 @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 .keypad{display:grid;grid-template-columns:repeat(3,68px);gap:10px}
@@ -248,9 +265,10 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
 </style>
 </head>
 <body>
-<div id="bgimg"></div><div id="bgdim"></div><div id="pattern"></div><canvas id="embers"></canvas>
+<div id="bgimg"></div><div id="bgdim"></div><div id="pattern"></div><canvas id="fx"></canvas>
 
 <div id="boot">
+  <canvas id="bootfx" aria-hidden="true"></canvas>
   <div class="bin">
     <canvas id="eye" width="440" height="220" aria-hidden="true"></canvas>
     <pre id="bootText"></pre>
@@ -280,7 +298,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin-top:8px}
     <h3>Settings <button class="iconbtn" id="closeSettings" aria-label="Close">✕</button></h3>
     <div>
       <div class="label">Theme</div>
-      <div class="seg" id="skins"><button data-skin="dragon">Dragon</button><button data-skin="terminal">Terminal</button></div>
+      <div class="seg" id="skins"><button data-skin="crimson">Crimson</button><button data-skin="frost">Frost</button><button data-skin="ember">Ember</button><button data-skin="terminal">Terminal</button></div>
     </div>
     <div>
       <div class="label">Accent colour</div>
@@ -395,19 +413,25 @@ const PAGES=[
 ];
 const STATUSES=['Bought','Repairing','Fixed','Listed','Sold'];
 const SKINS={
-  dragon:{accent:'#c9532c',presets:['#c9532c','#c99a3b','#a8323a','#3f8f6b','#5b8fb0','#8a62b8','#3a9d5d'],
-    boot:['> launchpad v2.0','> the lair stirs ...','> identity check'],done:'Every task done. The hoard is yours.'},
-  terminal:{accent:'#3a9d5d',presets:['#3a9d5d','#2f8f8a','#4a7fc1','#8a6cc9','#c0773a','#b8a23a','#c25b6e'],
-    boot:['> launchpad v2.0','> loading modules: cyber · income · apps · flips','> identity check'],done:'All tasks done. Access level: legend.'}
+  crimson:{style:'dragon',dragon:'chrome',accent:'#d42a2a',presets:['#d42a2a','#b3122e','#ff4d3d','#e0e0e0','#5fb4ea','#c99a3b','#3a9d5d'],
+    boot:['> launchpad v3.0','> waking the dragon ...','> identity check'],done:'Every task done. The dragon bows to you.'},
+  frost:{style:'dragon',dragon:'bolt',accent:'#5fb4ea',presets:['#5fb4ea','#3d8bff','#8fd3ff','#7a6cf0','#4fd1c5','#d42a2a','#e0e0e0'],
+    boot:['> launchpad v3.0','> storm over the peaks ...','> identity check'],done:'Every task done. The storm is yours.'},
+  ember:{style:'dragon',dragon:'gold',accent:'#c9532c',presets:['#c9532c','#c99a3b','#a8323a','#3f8f6b','#5b8fb0','#8a62b8','#3a9d5d'],
+    boot:['> launchpad v3.0','> the lair stirs ...','> identity check'],done:'Every task done. The hoard is yours.'},
+  terminal:{style:'terminal',accent:'#3a9d5d',presets:['#3a9d5d','#2f8f8a','#4a7fc1','#8a6cc9','#c0773a','#b8a23a','#c25b6e'],
+    boot:['> launchpad v3.0','> loading modules: cyber · income · apps · flips','> identity check'],done:'All tasks done. Access level: legend.'}
 };
 const RAINBOW='conic-gradient(red,yellow,lime,cyan,blue,magenta,red)';
 
 /* ---------- state ---------- */
 const KEY='launchpad.v1';
-const blank=()=>({checked:{},closed:{},notes:{},flips:[],skin:'dragon',accent:SKINS.dragon.accent,bg:'',dim:55,page:0,pinHash:'',pinSalt:''});
+const blank=()=>({checked:{},closed:{},notes:{},flips:[],skin:'crimson',accent:SKINS.crimson.accent,bg:'',dim:55,page:0,pinHash:'',pinSalt:''});
 let S=blank();
 try{ const saved=JSON.parse(localStorage.getItem(KEY)||'{}');
-  if(!saved.skin&&saved.accent==='#3a9d5d') delete saved.accent; // v1 default green → dragon ember
+  if(!saved.skin&&saved.accent==='#3a9d5d') delete saved.accent; // v1 default green → new default
+  if(saved.skin==='dragon'){ saved.skin='crimson'; if(saved.accent==='#c9532c') delete saved.accent; } // v2 dragon → crimson
+  if(saved.skin&&!SKINS[saved.skin]) delete saved.skin;
   Object.assign(S,saved); }catch(e){}
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); return true; }catch(e){ return false; } }
 
@@ -429,32 +453,94 @@ function flipTotals(){
 
 /* ---------- theme ---------- */
 function applyTheme(){
-  const root=document.documentElement, r=root.style; root.dataset.skin=S.skin; r.setProperty('--accent',S.accent);
+  const root=document.documentElement, r=root.style; root.dataset.skin=S.skin; root.dataset.style=SKINS[S.skin].style; r.setProperty('--accent',S.accent);
   const h=S.accent.replace('#',''); const [R,G,B]=[0,2,4].map(i=>parseInt(h.substr(i,2),16)/255).map(c=>c<=.03928?c/12.92:((c+.055)/1.055)**2.4);
   const L=.2126*R+.7152*G+.0722*B; r.setProperty('--on-accent',L>.18?'#140806':'#ffffff');
   $('#bgimg').style.backgroundImage=S.bg?`url("${S.bg}")`:'none';
   $('#bgdim').style.opacity=S.bg?S.dim/100:0;
   document.body.classList.toggle('has-bg',!!S.bg);
-  embers.toggle(S.skin==='dragon');
+  fx.toggle(SKINS[S.skin].style==='dragon');
+  if(!$('#boot').hidden) paintBoot();
 }
 const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
-/* rising embers behind the pages (dragon skin only) */
-const embers=(()=>{
-  const c=$('#embers'), x=c.getContext('2d'); let ps=[], on=false, raf=0, W=0, H=0, dpr=1, col='#c9532c', gold='#d6a548';
-  function size(){ dpr=Math.min(2,devicePixelRatio||1); W=c.clientWidth; H=c.clientHeight; c.width=W*dpr; c.height=H*dpr; x.setTransform(dpr,0,0,dpr,0,0); }
-  function spawn(y){ return {x:Math.random()*W,y:y??H+10,r:.8+Math.random()*1.8,vy:.25+Math.random()*.6,ph:Math.random()*6.28,g:Math.random()<.35}; }
-  function frame(){ x.clearRect(0,0,W,H);
-    for(const p of ps){ p.y-=p.vy; p.ph+=.03; p.x+=Math.sin(p.ph)*.3; if(p.y<-10) Object.assign(p,spawn());
-      const fade=Math.min(1,p.y/(H*.6)); x.globalAlpha=Math.max(0,fade*(.35+.3*Math.sin(p.ph*3)));
-      x.fillStyle=p.g?gold:col; x.beginPath(); x.arc(p.x,p.y,p.r,0,6.283); x.fill(); }
-    x.globalAlpha=1; raf=requestAnimationFrame(frame); }
-  function start(){ cancelAnimationFrame(raf); size(); col=cssVar('--accent'); gold=cssVar('--gold'); ps=Array.from({length:Math.round(W*H/22000)+10},()=>spawn(Math.random()*H));
-    if(reduceMotion){ frame(); cancelAnimationFrame(raf); } else frame(); }
-  addEventListener('resize',()=>on&&start());
+/* backdrop scene: line-art dragon (tapered cubic strokes in a 100×100 box), frost mountains, sparks or snow */
+const DRAGON=[
+ [[55,32,52,22,49,16,46,11],2.2,1.6],
+ [[46,11,32,4,16,3,0,6],1.6,.2],[[46,11,32,9,18,12,4,18],1.4,.2],[[46,11,34,15,22,22,12,30],1.3,.2],[[46,11,38,20,30,30,24,40],1.2,.2],
+ [[0,6,6,12,2,15,4,18],.45,.3],[[4,18,10,24,8,27,12,30],.45,.3],[[12,30,18,34,18,37,24,40],.45,.35],[[24,40,34,40,42,38,52,40],.45,.9],
+ [[55,32,58,22,64,18,70,22],2.4,1.8],
+ [[70,22,74,22,79,25,84,30],1.8,.3],[[70,24,74,28,77,30,81,32],1.2,.2],
+ [[70,21,68,17,67,14,64,10],1.2,.1],[[72,21,72,17,73,14,72,11],1,.1],
+ [[62,20,60,16,59,14,56,13],.9,.1],[[58,25,55,22,53,21,50,21],.8,.1],
+ [[55,32,42,46,44,66,60,72],3,2.6],[[58,36,48,48,50,63,62,68],1,.6],
+ [[60,72,74,76,84,72,90,80],2.6,1.2],[[90,80,95,87,97,93,100,100],1.2,.1],[[62,68,78,72,88,66,94,74],.8,.1],
+ [[50,56,56,58,60,60,64,58],1.2,.4],[[64,58,66,57,67,58,68,60],.5,.1]
+];
+function drawDragon(x,ox,oy,size,look){
+  let s=7; const rnd=()=>((s=(s*16807)%2147483647)/2147483647-.5);
+  x.save(); x.translate(ox,oy); x.scale(size/100,size/100);
+  let fill=look.a;
+  if(look.kind==='chrome'){ fill=x.createLinearGradient(0,0,100,100); ['#ffffff','#8d939c','#eef0f3','#5f646c','#d9dce1'].forEach((c,i)=>fill.addColorStop(i/4,c)); }
+  if(look.kind==='gold'){ fill=x.createLinearGradient(0,0,100,100); fill.addColorStop(0,look.b); fill.addColorStop(.5,look.a); fill.addColorStop(1,look.b); }
+  const passes=look.kind==='bolt'?[{blur:14,col:look.glow,w:1.6},{blur:0,col:look.a,w:1}]:[{blur:0,col:fill,w:1}];
+  for(const ps of passes){
+    x.shadowBlur=ps.blur*size/400; x.shadowColor=look.glow||'transparent'; x.fillStyle=ps.col;
+    for(const [c,w0,w1] of DRAGON){
+      const L=[],R=[],n=28;
+      for(let i=0;i<=n;i++){ const t=i/n,u=1-t;
+        const px=u*u*u*c[0]+3*u*u*t*c[2]+3*u*t*t*c[4]+t*t*t*c[6], py=u*u*u*c[1]+3*u*u*t*c[3]+3*u*t*t*c[5]+t*t*t*c[7];
+        const dx=3*u*u*(c[2]-c[0])+6*u*t*(c[4]-c[2])+3*t*t*(c[6]-c[4]), dy=3*u*u*(c[3]-c[1])+6*u*t*(c[5]-c[3])+3*t*t*(c[7]-c[5]);
+        const m=Math.hypot(dx,dy)||1, nx=-dy/m, ny=dx/m, j=look.kind==='bolt'&&i%3===0&&i&&i<n?rnd()*1.4:0, w=(w0+(w1-w0)*t)/2*ps.w;
+        L.push([px+nx*(w+j),py+ny*(w+j)]); R.push([px-nx*(w-j),py-ny*(w-j)]); }
+      x.beginPath(); L.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])); R.reverse().forEach(p=>x.lineTo(p[0],p[1])); x.closePath(); x.fill();
+    }
+  }
+  x.restore();
+}
+function drawMountains(x,W,H){
+  let s=11; const rnd=()=>(s=(s*16807)%2147483647)/2147483647;
+  [[.74,.2,'rgba(175,200,235,.5)','#16243f','#0a1222'],[.84,.14,'rgba(150,175,215,.4)','#0f1a30','#070c18']].forEach(([base,amp,snow,mid,low])=>{
+    const by=H*base, a=H*amp, peaks=Array.from({length:5},()=>[rnd(),.5+rnd()*.5,1.5+rnd()*2.5]);
+    x.beginPath(); x.moveTo(0,H);
+    for(let px=0;px<=W+6;px+=6){ const xn=px/W; let y=0; for(const [c,h,st] of peaks) y=Math.max(y,h*(1-Math.abs(xn-c)*st)); y+=(rnd()-.5)*.03; x.lineTo(px,by-a*Math.max(.05,y)); }
+    x.lineTo(W,H); x.closePath();
+    const g=x.createLinearGradient(0,by-a,0,by+H*.06); g.addColorStop(0,snow); g.addColorStop(.3,mid); g.addColorStop(1,low); x.fillStyle=g; x.fill();
+  });
+  const g=x.createLinearGradient(0,H*.88,0,H); g.addColorStop(0,'#070c18'); g.addColorStop(1,'#16233b'); x.fillStyle=g; x.fillRect(0,H*.88,W,H*.12);
+}
+function sceneLook(){ const sk=SKINS[S.skin], acc=cssVar('--accent'), gold=cssVar('--gold');
+  return sk.dragon==='chrome'?{kind:'chrome'}:sk.dragon==='bolt'?{kind:'bolt',a:'#e8f6ff',glow:acc}:{kind:'gold',a:gold,b:acc}; }
+/* where: 'bg' = behind the pages (dragon top right, faint), 'boot' = start screen (dragon centred) */
+function paintScene(x,W,H,where){
+  x.clearRect(0,0,W,H);
+  if(SKINS[S.skin].style!=='dragon'||(where==='bg'&&S.bg)) return;
+  if(S.skin==='frost') drawMountains(x,W,H);
+  const D=where==='bg'?Math.min(W*.92,560):Math.min(W*.86,420);
+  x.globalAlpha=where==='bg'?(S.skin==='frost'?.26:.28):.6;
+  drawDragon(x,where==='bg'?W-D*.98:(W-D)/2,where==='bg'?Math.max(60,H*.07):H*.04,D,sceneLook());
+  x.globalAlpha=1;
+}
+function fitCanvas(c){ const d=Math.min(2,devicePixelRatio||1), W=c.clientWidth, H=c.clientHeight; c.width=W*d; c.height=H*d; const x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); return [x,W,H]; }
+
+const fx=(()=>{
+  const c=$('#fx'), still=document.createElement('canvas'); let x, W=0, H=0, ps=[], raf=0, on=false, snow=false, col='#fff', gold='#fff';
+  function spawn(y){ return {x:Math.random()*W,y:y??(snow?-10:H+10),r:(snow?.6:.8)+Math.random()*1.8,v:(snow?.35:.25)+Math.random()*.6,ph:Math.random()*6.28,g:Math.random()<.35}; }
+  function frame(){ x.clearRect(0,0,W,H); x.drawImage(still,0,0,W,H);
+    for(const p of ps){ p.ph+=.03; p.x+=Math.sin(p.ph)*(snow?.5:.3); p.y+=snow?p.v:-p.v;
+      if(snow?p.y>H+10:p.y<-10) Object.assign(p,spawn());
+      const fade=snow?1:Math.min(1,p.y/(H*.6)); x.globalAlpha=Math.max(0,fade*(snow?.55:.35+.3*Math.sin(p.ph*3)));
+      x.fillStyle=snow?'#eaf4ff':p.g?gold:col; x.beginPath(); x.arc(p.x,p.y,p.r,0,6.283); x.fill(); }
+    x.globalAlpha=1; if(!reduceMotion) raf=requestAnimationFrame(frame); }
+  function start(){ cancelAnimationFrame(raf); [x,W,H]=fitCanvas(c);
+    const d=Math.min(2,devicePixelRatio||1); still.width=W*d; still.height=H*d; const sx=still.getContext('2d'); sx.setTransform(d,0,0,d,0,0); paintScene(sx,W,H,'bg');
+    snow=S.skin==='frost'; col=cssVar('--accent'); gold=cssVar('--gold');
+    ps=Array.from({length:Math.round(W*H/(snow?9000:22000))+10},()=>spawn(Math.random()*H)); frame(); }
+  addEventListener('resize',()=>{ if(on) start(); if(!$('#boot').hidden) paintBoot(); });
   document.addEventListener('visibilitychange',()=>{ if(!on) return; if(document.hidden) cancelAnimationFrame(raf); else start(); });
-  return {toggle(v){ on=v; if(v) start(); else { cancelAnimationFrame(raf); x.clearRect(0,0,W,H); } }};
+  return {toggle(v){ on=v; if(v) start(); else { cancelAnimationFrame(raf); if(x) x.clearRect(0,0,W,H); } }};
 })();
+function paintBoot(){ const [x,W,H]=fitCanvas($('#bootfx')); paintScene(x,W,H,'boot'); }
 
 /* ---------- rendering ---------- */
 function linkHtml(url){ return url?`<a class="open" href="${esc(url)}" target="_blank" rel="noopener">Open ↗</a>`:''; }
@@ -676,7 +762,7 @@ const eye=(()=>{
     x.clearRect(0,0,W,H); x.lineWidth=4; x.strokeStyle=acc; x.lineCap='round';
     if(o<.03){ x.beginPath(); x.moveTo(cx-hw,cy); x.quadraticCurveTo(cx,cy+H*.06,cx+hw,cy); x.stroke(); return; }
     x.save(); x.beginPath(); x.moveTo(cx-hw,cy); x.quadraticCurveTo(cx,cy-hh*2,cx+hw,cy); x.quadraticCurveTo(cx,cy+hh*2,cx-hw,cy); x.closePath(); x.clip();
-    const g=x.createRadialGradient(cx,cy,4,cx,cy,hw*.62); g.addColorStop(0,'#ffe9a8'); g.addColorStop(.35,gold); g.addColorStop(.75,acc); g.addColorStop(1,'#1a0805');
+    const g=x.createRadialGradient(cx,cy,4,cx,cy,hw*.62); g.addColorStop(0,cssVar('--eye-core')); g.addColorStop(.35,gold); g.addColorStop(.75,acc); g.addColorStop(1,cssVar('--bg'));
     x.fillStyle=g; x.fillRect(0,0,W,H);
     x.strokeStyle='rgba(60,20,5,.35)'; x.lineWidth=1.5;
     for(let i=0;i<36;i++){ const a=i/36*6.283; x.beginPath(); x.moveTo(cx+Math.cos(a)*14,cy+Math.sin(a)*14); x.lineTo(cx+Math.cos(a)*hw*.6,cy+Math.sin(a)*hw*.6); x.stroke(); }
@@ -742,7 +828,7 @@ function typeGranted(){
 /* full: replay the typing intro. Otherwise go straight to the PIN pad. */
 function lock(full,m){
   clearTimeout(bootTimer); locked=true; sheet.hidden=true; clearPages();
-  bootEl.hidden=false; bootEl.classList.remove('out'); enterBtn.hidden=true; lockEl.hidden=true; eye.close();
+  bootEl.hidden=false; bootEl.classList.remove('out'); paintBoot(); enterBtn.hidden=true; lockEl.hidden=true; eye.close();
   afterUnlock=full?'tap':'enter';
   const ready=()=>{ lockEl.hidden=false; promptFor(m||(S.pinHash?'enter':'new')); };
   if(full) typeLines(SKINS[S.skin].boot,ready); else { bootText.innerHTML=esc(SKINS[S.skin].boot.at(-1))+'\n'; ready(); }
