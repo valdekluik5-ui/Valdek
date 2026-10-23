@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -63,6 +65,12 @@ namespace Dragon
         readonly TextBox query = new TextBox(), resale = new TextBox(), parts = new TextBox();
         readonly Label maxBuy = new Label();
         static readonly Color On = Color.FromArgb(212, 42, 42);
+        readonly Panel priceBar = new Panel();
+        readonly Label barText = new Label(), barVerdict = new Label();
+        CoreWebView2Controller scout;                       // hidden browser that looks up reference prices
+        int lookupId;                                       // newer page → older lookups are dropped
+        readonly Dictionary<string, (List<decimal> used, List<decimal> fresh)> priceCache = new Dictionary<string, (List<decimal>, List<decimal>)>();
+        decimal eurRate, usdRate;                           // hryvnia per euro / dollar (National Bank of Ukraine)
 
         public MainForm()
         {
@@ -94,6 +102,7 @@ namespace Dragon
             training.DefaultBackgroundColor = Color.White;
             split.Panel2.Controls.Add(training);
             split.Panel2.Controls.Add(BuildPricePanel());
+            split.Panel2.Controls.Add(BuildPriceBar());
             split.Panel2.Controls.Add(BuildToolbar());
             Controls.Add(split);
 
@@ -129,7 +138,8 @@ namespace Dragon
             btn("⟳", "Reload (F5)", () => training.CoreWebView2?.Reload());
             btn("Browser ↗", "Open this page in your normal browser", () => { var u = training.Source?.ToString(); if (IsWeb(u)) OpenExternal(u); });
             translateBtn = btn("EN", "Show this site in English (Google Translate). Click again for the original.", ToggleTranslate);
-            btn("Price ₴", "Price check: new and used prices for what you are looking at", () => SetPriceOpen(!pricePanel.Visible));
+            var pb = btn("Price ₴", "Price check: new and used prices for what you are looking at", () => SetPriceOpen(!pricePanel.Visible));
+            pb.BackColor = Color.FromArgb(120, 24, 24);
             btn("Hide ▸", "Hide the training pane (Ctrl+T)", () => SetTrainingHidden(true));
             title.AutoSize = false;
             title.Width = 600;
@@ -193,6 +203,179 @@ namespace Dragon
             if (r <= 0) { maxBuy.Text = "—"; return; }
             var m = r * 0.6m - Num(parts.Text);
             maxBuy.Text = m > 0 ? m.ToString("#,0", CultureInfo.InvariantCulture).Replace(",", " ") : "don't buy";
+        }
+
+        /* ---------- automatic price bar ---------- */
+        Control BuildPriceBar()
+        {
+            priceBar.Dock = DockStyle.Top;
+            priceBar.Height = 40;
+            priceBar.BackColor = Color.FromArgb(28, 10, 10);
+            priceBar.Padding = new Padding(10, 0, 8, 0);
+            priceBar.Visible = false;
+            var details = new Button { Text = "Details" };
+            StyleButton(details);
+            details.Dock = DockStyle.Right;
+            details.Click += (s, e) => SetPriceOpen(true);
+            barVerdict.Dock = DockStyle.Right;
+            barVerdict.AutoSize = false;
+            barVerdict.Width = 250;
+            barVerdict.TextAlign = ContentAlignment.MiddleRight;
+            barVerdict.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
+            barVerdict.Padding = new Padding(0, 0, 10, 0);
+            barText.Dock = DockStyle.Fill;
+            barText.AutoEllipsis = true;
+            barText.TextAlign = ContentAlignment.MiddleLeft;
+            barText.ForeColor = Ink;
+            barText.Font = new Font("Segoe UI", 9.75f);
+            priceBar.Controls.Add(barText);
+            priceBar.Controls.Add(barVerdict);
+            priceBar.Controls.Add(details);
+            return priceBar;
+        }
+
+        /* reads name and asking price from a listing: schema.org data first, then OLX's price block, then page meta */
+        const string ListingScript = @"(()=>{const h=document.querySelector('h1');const name=h?h.innerText.trim():'';let price=0,cur='';
+for(const s of document.querySelectorAll('script[type=""application/ld+json""]')){try{const d=JSON.parse(s.textContent);const arr=Array.isArray(d)?d:(d['@graph']||[d]);
+for(const x of arr){let o=x&&x.offers;if(Array.isArray(o))o=o[0];if(o&&(o.price||o.lowPrice)){price=+String(o.price||o.lowPrice).replace(/[^\d.]/g,'');cur=o.priceCurrency||'';break;}}}catch(e){}if(price)break;}
+if(!price){const el=document.querySelector('[data-testid=""ad-price-container""] h3,[data-testid=""ad-price-container""],[data-qaid=""product_price""],meta[property=""product:price:amount""]');
+const t=el?(el.content||el.innerText||''):'';const m=t.match(/\d[\d\s  ]*/);if(m){price=+m[0].replace(/\D/g,'');cur=/\$/.test(t)?'USD':/€/.test(t)?'EUR':'UAH';}}
+return JSON.stringify({name,price,cur});})()";
+
+        /* collects prices from a search results page (OLX ad prices, shop price blocks) */
+        const string ResultsScript = @"(()=>{const out=[];const re=/(\d[\d\s  ]{1,9})\s*(?:грн|₴|uah)/i;
+document.querySelectorAll('[data-testid=""ad-price""],[class*=""price""]').forEach(el=>{if(el.querySelector('[data-testid=""ad-price""],[class*=""price""]'))return;
+const m=(el.innerText||'').match(re);if(m){const v=+m[1].replace(/\D/g,'');if(v>=100&&v<10000000)out.push(v);}});return JSON.stringify(out.slice(0,60));})()";
+
+        class Listing { public string name { get; set; } = ""; public decimal price { get; set; } public string cur { get; set; } = ""; }
+
+        async void CheckListing()
+        {
+            var id = ++lookupId;
+            await Task.Delay(1500);                         // let the listing page render
+            if (id != lookupId || training.CoreWebView2 == null) return;
+            Listing l;
+            try { l = json.Deserialize<Listing>(json.Deserialize<string>(await training.CoreWebView2.ExecuteScriptAsync(ListingScript))); }
+            catch { l = null; }
+            if (id != lookupId) return;
+            if (l == null || l.price <= 0 || l.name.Length < 3) { priceBar.Visible = false; return; }
+
+            var q = SearchName(l.name);
+            query.Text = q;
+            priceBar.Visible = true;
+            ShowBar(l, null, null, "Checking prices…");
+            List<decimal> used, fresh;
+            if (priceCache.TryGetValue(q, out var hit)) { used = hit.used; fresh = hit.fresh; }
+            else
+            {
+                used = await ScoutPrices("https://www.olx.ua/uk/list/q-" + Slug(q) + "/?search%5Bfilter_enum_state%5D%5B0%5D=used", id);
+                if (id != lookupId) return;
+                if (used.Count < 3) used = await ScoutPrices("https://www.olx.ua/uk/list/q-" + Slug(q) + "/", id);  // category without a condition filter
+                if (id != lookupId) return;
+                fresh = await ScoutPrices("https://hotline.ua/ua/sr/?q=" + Uri.EscapeDataString(q), id);
+                if (id != lookupId) return;
+                priceCache[q] = (used, fresh);
+            }
+            ShowBar(l, used, fresh, null);
+        }
+
+        /* load a search page in the hidden browser and read its prices */
+        async Task<List<decimal>> ScoutPrices(string url, int id)
+        {
+            var list = new List<decimal>();
+            if (scout == null) return list;
+            var done = new TaskCompletionSource<bool>();
+            EventHandler<CoreWebView2NavigationCompletedEventArgs> h = (s, e) => done.TrySetResult(e.IsSuccess);
+            scout.CoreWebView2.NavigationCompleted += h;
+            try
+            {
+                scout.CoreWebView2.Navigate(url);
+                await Task.WhenAny(done.Task, Task.Delay(15000));
+                for (int tries = 0; tries < 3 && list.Count == 0 && id == lookupId; tries++)
+                {
+                    await Task.Delay(1800);                 // results are often drawn by script after load
+                    var raw = json.Deserialize<string>(await scout.CoreWebView2.ExecuteScriptAsync(ResultsScript));
+                    list = json.Deserialize<List<decimal>>(raw) ?? new List<decimal>();
+                }
+            }
+            catch (Exception ex) { Log("Price lookup failed for " + url + ": " + ex.Message); }
+            finally { scout.CoreWebView2.NavigationCompleted -= h; }
+            return list;
+        }
+
+        static decimal Quantile(List<decimal> sorted, double q)
+        {
+            if (sorted.Count == 0) return 0;
+            var pos = (sorted.Count - 1) * q; int lo = (int)Math.Floor(pos), hi = (int)Math.Ceiling(pos);
+            return sorted[lo] + (sorted[hi] - sorted[lo]) * (decimal)(pos - lo);
+        }
+
+        void ShowBar(Listing l, List<decimal> used, List<decimal> fresh, string status)
+        {
+            var asking = ToUah(l.price, l.cur);
+            var parts = new List<string> { Short(l.name, 38), "asking " + Money(asking) };
+            barVerdict.Text = ""; barVerdict.ForeColor = Ink;
+            if (status != null) { barText.Text = string.Join("  ·  ", parts) + "  ·  " + status; return; }
+
+            // good-condition used: drop the cheapest quarter (broken and parts-only ads), then median and middle range
+            decimal usedMid = 0;
+            if (used != null && used.Count >= 3)
+            {
+                var u = used.OrderBy(x => x).ToList(); u = u.Skip(u.Count / 4).ToList();
+                usedMid = Quantile(u, 0.5);
+                parts.Add($"used ≈ {Money(usedMid)} ({Num0(Quantile(u, 0.25))}–{Num0(Quantile(u, 0.75))}, {used.Count} ads)");
+            }
+            else parts.Add("used: not enough ads");
+            if (fresh != null && fresh.Count > 0)
+            {
+                var f = fresh.Take(12).OrderBy(x => x).ToList();
+                parts.Add("new from ≈ " + Money(Quantile(f, 0.25)));
+            }
+            else parts.Add("new: no prices found");
+
+            if (usedMid > 0)
+            {
+                var max = usedMid * 0.6m - Num(this.parts.Text);
+                resale.Text = Num0(usedMid);
+                parts.Add("max buy " + Money(max));
+                if (asking <= max) { barVerdict.Text = "✅ Good flip"; barVerdict.ForeColor = Color.FromArgb(110, 200, 120); }
+                else if (asking <= usedMid * 0.85m) { barVerdict.Text = "🟡 Cheap, over 60%"; barVerdict.ForeColor = Color.FromArgb(230, 190, 90); }
+                else { barVerdict.Text = "❌ Too expensive to flip"; barVerdict.ForeColor = Color.FromArgb(235, 100, 90); }
+            }
+            barText.Text = string.Join("  ·  ", parts);
+        }
+
+        /* shorter search text: first words of the title without sale words */
+        static string SearchName(string title)
+        {
+            var drop = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "продам", "продаю", "продається", "б/у", "бу", "б.у.", "на", "запчастини", "запчасти", "терміново", "срочно", "новий", "новый", "ідеал", "идеал", "стан", "состояние", "розбитий", "розбита", "разбитый", "разбит", "не", "працює", "работает", "робочий", "рабочий", "екран", "экран", "-", "|" };
+            var words = CleanProduct(title).Split(new[] { ' ', ',', '(', ')', '/' }, StringSplitOptions.RemoveEmptyEntries).Where(w => !drop.Contains(w)).Take(5);
+            return string.Join(" ", words);
+        }
+
+        static string Slug(string q) => string.Join("-", q.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(Uri.EscapeDataString));
+        static string Short(string t, int n) => t.Length > n ? t.Substring(0, n - 1) + "…" : t;
+        static string Num0(decimal v) => Math.Round(v).ToString("#,0", CultureInfo.InvariantCulture).Replace(",", " ");
+        string Money(decimal uah) => Num0(uah) + " ₴" + (eurRate > 0 ? " (€" + Num0(uah / eurRate) + ")" : "");
+        decimal ToUah(decimal v, string cur) => cur == "USD" && usdRate > 0 ? v * usdRate : cur == "EUR" && eurRate > 0 ? v * eurRate : v;
+
+        /* hryvnia rates from the National Bank of Ukraine, for euros next to prices */
+        async void LoadRates()
+        {
+            try
+            {
+                ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+                using (var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) })
+                {
+                    var rows = json.Deserialize<List<Dictionary<string, object>>>(await http.GetStringAsync("https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json"));
+                    foreach (var r in rows)
+                    {
+                        var code = r["cc"] as string; var rate = Convert.ToDecimal(r["rate"], CultureInfo.InvariantCulture);
+                        if (code == "EUR") eurRate = rate; else if (code == "USD") usdRate = rate;
+                    }
+                }
+            }
+            catch (Exception ex) { Log("Exchange rates not loaded: " + ex.Message); }
         }
 
         async void SetPriceOpen(bool open)
@@ -323,6 +506,9 @@ namespace Dragon
                 await dragon.EnsureCoreWebView2Async(env);
                 await training.EnsureCoreWebView2Async(env);
                 await prices.EnsureCoreWebView2Async(env);
+                scout = await env.CreateCoreWebView2ControllerAsync(Handle);
+                scout.IsVisible = false;
+                scout.Bounds = new Rectangle(0, 0, 1280, 900);
             }
             catch (WebView2RuntimeNotFoundException)
             {
@@ -362,7 +548,9 @@ namespace Dragon
             var tc = training.CoreWebView2;
             tc.NewWindowRequested += (s, e) => { e.Handled = true; if (IsWeb(e.Uri)) tc.Navigate(e.Uri); };
             tc.NavigationStarting += (s, e) => RouteEnglish(tc, e);
-            tc.NavigationCompleted += (s, e) => UpdateTranslateButton();
+            tc.NavigationCompleted += (s, e) => { UpdateTranslateButton(); CheckListing(); };
+            tc.SourceChanged += (s, e) => CheckListing();   // listing sites that change pages without reloading
+            LoadRates();
             var pc = prices.CoreWebView2;
             pc.NewWindowRequested += (s, e) => { e.Handled = true; if (IsWeb(e.Uri)) pc.Navigate(e.Uri); };
             pc.NavigationStarting += (s, e) => RouteEnglish(pc, e);

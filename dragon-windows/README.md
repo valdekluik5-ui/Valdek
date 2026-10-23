@@ -6,6 +6,9 @@ A small Windows app (C#, WinForms, Edge WebView2, .NET Framework 4.8; all built 
 - right: a training browser. Links from Dragon open here, sign-ins persist, and it reopens the last page
   on the next start. Ctrl+T hides or shows it.
 - EN: shows a site in English through Google Translate; the choice is remembered per site.
+- Price bar: on a listing page a bar appears by itself with the asking price, the typical good-condition used
+  price on OLX (cheapest quarter dropped), the new price on Hotline.ua, the 60% max buy and a verdict; euros use
+  the National Bank of Ukraine rate. Lookups run in a hidden browser and are cached per product.
 - Price ₴: a price-check panel. It reads the product name from the page and searches new prices
   (Hotline.ua, Rozetka) and used ones (OLX, eBay sold items); a 60% rule calculator gives the max buy price.
 
