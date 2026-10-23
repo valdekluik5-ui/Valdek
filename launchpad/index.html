@@ -465,42 +465,49 @@ function applyTheme(){
 }
 const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
-/* backdrop scene: line-art dragon, frost mountains, sparks or snow */
-/* minimal blade-stroke dragon in a 100×100 box: each stroke is a sampled path with a width profile and pointed ends */
-function cub(c,n=40){ const p=[]; for(let i=0;i<=n;i++){ const t=i/n,u=1-t; p.push([u*u*u*c[0]+3*u*u*t*c[2]+3*u*t*t*c[4]+t*t*t*c[6], u*u*u*c[1]+3*u*u*t*c[3]+3*u*t*t*c[5]+t*t*t*c[7]]); } return p; }
-function chain(...cs){ let p=[]; cs.forEach((c,i)=>{ const q=cub(c); p=p.concat(i?q.slice(1):q); }); return p; }
-const PROFILE={ blade:(t,w)=>w*Math.pow(Math.sin(Math.PI*t),.6), out:(t,w)=>w*Math.pow(1-t,.8), in:(t,w)=>w*Math.pow(t,.8) };
-const DRAGON=[
-  [chain([9,92,2,91,3,85,10,80],[10,80,24,70,34,86,48,79],[48,79,62,72,59,56,57,47],[57,47,55,37,60,29,69,27]),5.4,'in'],
-  [cub([69,30,76,31,83,33,90,36]),2.2,'out'],
-  [cub([70,25,67,16,62,11,53,8]),2.6,'out'],[cub([74,23,74,15,77,10,74,3]),1.7,'out'],
-  [cub([62,30,62,25,64,22,63,18]),1.2,'out'],[cub([58,38,56,34,56,31,54,28]),1.1,'out'],
-  [cub([57,49,52,32,46,18,34,8]),3.4,'out'],
-  [cub([34,8,22,5,12,9,1,18]),2.8,'blade'],[cub([34,8,23,15,15,24,9,37]),2.8,'blade'],[cub([34,8,27,21,23,34,23,47]),2.4,'blade'],[cub([35,9,34,24,36,36,41,47]),1.8,'blade'],
-  [cub([34,8,36,4,40,2,45,1]),1.3,'out'],
-  [cub([56,60,62,62,66,66,71,66]),2,'out'],[cub([50,78,54,83,58,85,63,85]),1.8,'out']
+/* backdrop scene: glowing tribal dragon, frost mountains, sparks or snow */
+/* tribal dragon in a 100×160 box: a glowing S-shaped spine with blade spikes, a bladed head and mane, clawed arms and a coiled tail */
+function tcub(c,n=40){ const p=[]; for(let i=0;i<=n;i++){ const t=i/n,u=1-t; p.push([u*u*u*c[0]+3*u*u*t*c[2]+3*u*t*t*c[4]+t*t*t*c[6], u*u*u*c[1]+3*u*u*t*c[3]+3*u*t*t*c[5]+t*t*t*c[7]]); } return p; }
+function tchain(cs){ let p=[]; cs.forEach((c,i)=>{ const q=tcub(c); p=p.concat(i?q.slice(1):q); }); return p; }
+const TPROF={ out:(t,w)=>w*Math.pow(1-t,.75), swell:(t,w)=>w*Math.min(1,.55+t*4)*(.22+.78*Math.pow(1-t,.8)), blade:(t,w)=>w*Math.pow(Math.sin(Math.PI*t),.55)*(1-t*.3) };
+const SPINE=tchain([[58,30,50,34,38,44,44,58],[44,58,50,72,70,72,66,90],[66,90,62,106,38,102,36,120],[36,120,34,138,60,146,72,134],[72,134,82,124,72,110,60,116],[60,116,50,122,58,138,86,150]]);
+function tangent(p,i){ const a=p[Math.max(0,i-1)], b=p[Math.min(p.length-1,i+1)], dx=b[0]-a[0], dy=b[1]-a[1], m=Math.hypot(dx,dy)||1; return [dx/m,dy/m]; }
+/* blades growing off the spine, swept back toward the tail, alternating sides */
+function spineBlades(){ const out=[], n=SPINE.length-1;
+  for(let k=0;k<13;k++){ const t=.05+k/13*.6, i=Math.round(t*n), [px,py]=SPINE[i], [tx,ty]=tangent(SPINE,i), dorsal=k%4!==3, side=dorsal?-1:1, nx=-ty*side, ny=tx*side;
+    const len=(dorsal?22-10*t:10-4*t)*(1+.15*Math.sin(k*2.1)), w=dorsal?10-5*t:5-2*t;
+    out.push([tcub([px,py, px+nx*len*.5,py+ny*len*.5, px+nx*len*.95+tx*len*.4,py+ny*len*.95+ty*len*.4, px+nx*len*.6+tx*len*1.15,py+ny*len*.6+ty*len*1.15]),w,'out']); }
+  /* small flames on the outside of the tail coil */
+  for(let k=0;k<5;k++){ const i=Math.round((.68+k*.05)*n), [px,py]=SPINE[i], [tx,ty]=tangent(SPINE,i), nx=-ty, ny=tx, len=9;
+    out.push([tcub([px,py, px+nx*len*.5,py+ny*len*.5, px+nx*len*.9+tx*len*.4,py+ny*len*.9+ty*len*.4, px+nx*len*.5+tx*len*1.1,py+ny*len*.5+ty*len*1.1]),4.5,'out']); }
+  return out; }
+const TRIBAL=[
+  ...spineBlades(),
+  [SPINE,12,'swell'],
+  /* head: mane flames and horn behind, then jaws */
+  [tcub([58,24,56,14,50,6,40,0]),9,'out'],[tcub([56,26,50,18,42,14,30,13]),8.5,'out'],[tcub([55,30,46,26,36,27,26,31]),8,'out'],
+  [tcub([54,34,46,35,39,39,33,47]),7,'out'],[tcub([61,22,63,12,63,4,59,-4]),6,'out'],
+  [tcub([56,31,64,20,74,12,89,6]),8.5,'out'],[tcub([58,33,66,31,74,29,86,27]),4.8,'out'],
+  [tcub([61,22,65,16,71,13,79,12]),3,'out'],
+  [tcub([87,7,94,3,97,11,100,4]),1.8,'out'],[tcub([84,27,90,31,92,37,98,38]),1.6,'out'],
+  /* front arm with claws */
+  [tcub([46,60,56,58,62,54,68,56]),5.5,'out'],[tcub([66,55,72,50,75,49,79,44]),2.6,'out'],[tcub([67,56,73,56,77,58,82,56]),2.6,'out'],[tcub([66,57,70,61,72,64,74,68]),2.2,'out'],
+  /* hind arm with claws */
+  [tcub([40,108,30,108,24,104,17,106]),5,'out'],[tcub([19,105,15,100,12,98,9,93]),2.4,'out'],[tcub([19,106,13,107,10,109,5,108]),2.4,'out'],[tcub([19,107,16,111,15,114,14,119]),2,'out'],
+  /* tail fin */
+  [tcub([82,148,88,144,93,139,97,131]),4.5,'out'],[tcub([82,149,89,152,94,156,100,157]),4,'out'],[tcub([84,150,90,149,96,148,100,145]),3,'out']
 ];
-const DRAGON_HEAD=[[67,24.5],[72,21.5],[80,21],[88,23],[96,27],[88,28.2],[80,28.4],[72,29.6],[67,30]];
-const DRAGON_WING={wrist:[34,8],tips:[[1,18],[9,37],[23,47],[41,47]],root:[57,52]};
-function drawDragon(x,ox,oy,size,look){
-  x.save(); x.translate(ox,oy); x.scale(size/100,size/100);
-  /* wing skin with a scalloped trailing edge */
-  const [wx,wy]=DRAGON_WING.wrist, wg=x.createLinearGradient(34,8,22,48); wg.addColorStop(0,look.mem); wg.addColorStop(1,'rgba(0,0,0,0)');
-  x.fillStyle=wg; x.beginPath(); x.moveTo(wx,wy); let prev=DRAGON_WING.tips[0]; x.lineTo(prev[0],prev[1]);
-  for(const t of [...DRAGON_WING.tips.slice(1),DRAGON_WING.root]){ const mx=(prev[0]+t[0])/2, my=(prev[1]+t[1])/2; x.quadraticCurveTo(mx+(wx-mx)*.22,my+(wy-my)*.22,t[0],t[1]); prev=t; }
-  x.closePath(); x.fill();
-  const metal=x.createLinearGradient(0,0,100,100); look.stops.forEach((c,i)=>metal.addColorStop(i/(look.stops.length-1),c));
-  for(const pass of [{blur:12,col:look.glow,a:.6},{blur:0,col:metal,a:1}]){
-    x.save(); x.globalAlpha*=pass.a; x.shadowBlur=pass.blur*size/300; x.shadowColor=look.glow; x.fillStyle=pass.col;
-    for(const [pts,w,prof] of DRAGON){ const L=[],R=[],n=pts.length-1;
-      for(let i=0;i<=n;i++){ const a=pts[Math.max(0,i-1)], b=pts[Math.min(n,i+1)], dx=b[0]-a[0], dy=b[1]-a[1], m=Math.hypot(dx,dy)||1, hw=PROFILE[prof](i/n,w)/2;
-        L.push([pts[i][0]-dy/m*hw,pts[i][1]+dx/m*hw]); R.push([pts[i][0]+dy/m*hw,pts[i][1]-dx/m*hw]); }
-      x.beginPath(); L.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])); R.reverse().forEach(p=>x.lineTo(p[0],p[1])); x.closePath(); x.fill(); }
-    x.beginPath(); DRAGON_HEAD.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])); x.closePath(); x.fill();
+function drawTribal(x,ox,oy,h,look){
+  const k=h/160; x.save(); x.translate(ox,oy); x.scale(k,k);
+  const shape=(pts,w,prof,wk)=>{ const L=[],R=[],n=pts.length-1;
+    for(let i=0;i<=n;i++){ const [tx,ty]=tangent(pts,i), hw=TPROF[prof](i/n,w)/2*wk; L.push([pts[i][0]-ty*hw,pts[i][1]+tx*hw]); R.push([pts[i][0]+ty*hw,pts[i][1]-tx*hw]); }
+    x.beginPath(); L.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])); R.reverse().forEach(p=>x.lineTo(p[0],p[1])); x.closePath(); x.fill(); };
+  for(const ps of [{blur:30,col:look.glow,wk:1.1,a:.6},{blur:8,col:look.mid,wk:1,a:1},{blur:2,col:look.core,wk:.42,a:.95}]){
+    x.save(); x.globalAlpha*=ps.a; x.shadowBlur=ps.blur*k; x.shadowColor=look.glow; x.fillStyle=ps.col;
+    for(const [pts,w,prof] of TRIBAL) shape(pts,w,prof,ps.wk);
     x.restore(); }
-  /* glowing eye slit */
-  x.shadowBlur=6*size/300; x.shadowColor=look.eye; x.fillStyle=look.eye;
-  x.beginPath(); x.moveTo(75.6,24.8); x.lineTo(79.8,23.3); x.lineTo(78.8,24.9); x.closePath(); x.fill();
+  /* eye */
+  x.save(); x.shadowBlur=10*k; x.shadowColor='#fff'; x.fillStyle='#000'; x.beginPath(); x.ellipse(70,19,2.6,1.1,-.55,0,6.283); x.fill(); x.restore();
   x.restore();
 }
 function drawMountains(x,W,H){
@@ -514,21 +521,21 @@ function drawMountains(x,W,H){
   });
   const g=x.createLinearGradient(0,H*.88,0,H); g.addColorStop(0,'#070c18'); g.addColorStop(1,'#16233b'); x.fillStyle=g; x.fillRect(0,H*.88,W,H*.12);
 }
-function sceneLook(){ const sk=SKINS[S.skin], acc=cssVar('--accent'), gold=cssVar('--gold'), rgb=[1,3,5].map(i=>parseInt(acc.slice(i,i+2),16)).join(',');
-  const stops=sk.dragon==='chrome'?['#ffffff','#9aa0a8','#f2f3f5','#666b73','#e3e5e9']:sk.dragon==='bolt'?['#ffffff','#9fd6f7','#eef8ff','#5f9fca','#dff2ff']:[gold,acc,gold,'#7a3418',gold];
-  return {stops,glow:acc,eye:sk.dragon==='bolt'?'#ffffff':acc,mem:`rgba(${rgb},.3)`}; }
-/* where: 'bg' = behind the pages (dragon top right, faint), 'boot' = start screen (whole dragon above the eye when it fits) */
+/* glow in the accent colour, a lighter middle and a near-white core */
+function sceneLook(){ const acc=cssVar('--accent'), c=[1,3,5].map(i=>parseInt(acc.slice(i,i+2),16)), mix=k=>`rgb(${c.map(v=>Math.round(v+(255-v)*k)).join(',')})`;
+  return {glow:acc,mid:mix(.25),core:mix(.88)}; }
+/* where: 'bg' = behind the pages (dragon on the right, faint), 'boot' = start screen (whole dragon above the eye when it fits) */
 function paintScene(x,W,H,where){
   x.clearRect(0,0,W,H);
   if(SKINS[S.skin].style!=='dragon'||(where==='bg'&&S.bg)) return;
   if(S.skin==='frost') drawMountains(x,W,H);
-  let D=Math.min(W*.92,560), ox=W-D*.98, oy=Math.max(60,H*.07), alpha=S.skin==='frost'?.26:.3;
+  let h=Math.min(H*.82,720), ox=W-h*.6, oy=H*.1, alpha=S.skin==='frost'?.3:.32;
   if(where==='boot'){
-    const top=$('#eye').getBoundingClientRect().top, fit=Math.min(W*.86,420,(top-20)/.93);
-    if(fit>=150){ D=fit; ox=(W-D)/2; oy=top-10-D*.93; alpha=1; }
-    else { D=Math.min(W*.92,460); ox=(W-D)/2; oy=H*.03; alpha=.32; }
+    const top=$('#eye').getBoundingClientRect().top, fit=Math.min(460,(top-24)*.95,W*1.3);
+    if(fit>=200){ h=fit; ox=(W-h*.625)/2; oy=top-14-h*.97; alpha=1; }
+    else { h=Math.min(H*.9,620); ox=(W-h*.625)/2; oy=H*.03; alpha=.3; }
   }
-  x.globalAlpha=alpha; drawDragon(x,ox,oy,D,sceneLook()); x.globalAlpha=1;
+  x.globalAlpha=alpha; drawTribal(x,ox,oy,h,sceneLook()); x.globalAlpha=1;
 }
 function fitCanvas(c){ const d=Math.min(2,devicePixelRatio||1), W=c.clientWidth, H=c.clientHeight; c.width=W*d; c.height=H*d; const x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); return [x,W,H]; }
 
