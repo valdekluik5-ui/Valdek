@@ -10,9 +10,13 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap">
+<style>
+/* fonts ship with the game (fonts/), so it looks right offline: web app, desktop app and APK alike */
+@font-face { font-family: "Lilita One"; font-weight: 400; src: url(fonts/lilita-one-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Nunito"; font-weight: 700; src: url(fonts/nunito-latin-700-normal.woff2) format("woff2"); }
+@font-face { font-family: "Nunito"; font-weight: 800; src: url(fonts/nunito-latin-800-normal.woff2) format("woff2"); }
+@font-face { font-family: "Nunito"; font-weight: 900; src: url(fonts/nunito-latin-900-normal.woff2) format("woff2"); }
+</style>
 <style>
 /* Layout: one cartoon game screen centered on a dark stage, key help underneath. Single deliberate dark theme. */
 :root {
@@ -831,7 +835,7 @@ function hitButton(e) {
 function quitToTitle() { saveProgress(); if (window.speechSynthesis) speechSynthesis.cancel(); if (window.AndroidTTS) window.AndroidTTS.stop(); overlay = null; S = { mode: 'title', modeT: 0, menu: 0, time: 300 }; }
 
 // ---------- menus: how-to-play guide, settings, quit confirm (drawn on top of the title or pause screen) ----------
-const IS_APP = !!(window.AndroidTTS && window.AndroidTTS.exitApp);
+const IS_APP = !!((window.AndroidTTS && window.AndroidTTS.exitApp) || window.fuseDesktop); // Android app or Windows desktop app
 let overlay = null;      // { kind: 'guide' | 'settings' | 'quit', page }
 let menuSel = 0, menuKey = '';
 let toast = null;        // short message at the bottom of the screen
@@ -842,7 +846,7 @@ function stopVoices() {
   if (voiceEl) { voiceEl.pause(); clipList = []; clipBusy = false; speechQueue = []; }
   if (window.speechSynthesis) speechSynthesis.cancel(); if (window.AndroidTTS) window.AndroidTTS.stop();
 }
-function exitApp() { saveProgress(); stopVoices(); if (IS_APP) window.AndroidTTS.exitApp(); }
+function exitApp() { saveProgress(); stopVoices(); if (window.fuseDesktop) window.fuseDesktop.quit(); else if (IS_APP) window.AndroidTTS.exitApp(); }
 function saveNow() { saveProgress(); showToast(`Saved! Continue starts you at yard ${S.level}.`); }
 // keyboard: arrows move between the buttons on screen, Enter presses the highlighted one
 function menuNav(code) {
@@ -2545,7 +2549,7 @@ function drawTitle() {
   txt("Russian looters stole Gary's toilet. Get Kevin back.", W / 2, 672, 22, '#fff', 'center', TXT, 900, true);
   txt(TOUCH ? 'New here? Tap HOW TO PLAY.' : 'Arrows choose · Enter selects · New here? Pick HOW TO PLAY.', W / 2, 704, 16, '#cfc6dc');
   txt('BEST ' + String(best).padStart(7, '0'), W / 2, 734, 22, '#f8a020', 'center', DISP, 400, true);
-  if (voices.length) {
+  if (voices.length && !window.fuseDesktop && !VOICE_PACK) { // only matters when using the device's own voices
     const n = voices.filter(isNatural).length, ru = voices.some(x => /^ru/i.test(x.lang));
     txt(ru && n ? 'Natural voices and a real Russian voice found. Perfect.'
       : 'For natural voices and real Russian pronunciation, open the game with the "Fuselight (best voices)" shortcut (Edge).',
