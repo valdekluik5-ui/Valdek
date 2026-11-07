@@ -2888,4 +2888,4 @@ if (document.fonts && document.fonts.load) Promise.all([document.fonts.load(`900
 })();
 </script>
 
-<script>if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
+<script>if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});</script>
