@@ -10,7 +10,7 @@ for your browser or file manager when Android asks. Android 7.0 or newer.
 background noise* → compare **Cleaned** and **Original** → *Save to phone* or *Share*. Everything runs on the
 phone; nothing is uploaded.
 
-## How the cleaning works (2.0)
+## How the cleaning works (1.1)
 
 1. The sound track is decoded to mono and converted to 48 kHz (`Resampler.java`).
 2. **Neural voice filter** (`NeuralCleaner.java`, native code in `libs/`): RNNoise 0.2, a recurrent neural
@@ -26,7 +26,7 @@ uses step 3 alone.
 Measured on a desktop with the same code (`tools/NeuralCli.java` then `tools/DenoiseCli.java`), speech mixed
 with noise as loud as the voice; "pauses" is the background left between words (lower is better):
 
-| noise | original | 1.0 | 2.0 |
+| noise | original | 1.0 | 1.1 |
 |---|---|---|---|
 | fan + hum | −24 dB | −53 dB | **−70 dB** |
 | wind | −25 dB | −44 dB | **−79 dB** |

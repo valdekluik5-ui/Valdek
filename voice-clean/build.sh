@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 : "${TOOLS:?set TOOLS}" "${KEYSTORE:?set KEYSTORE}" "${KEYPASS:?set KEYPASS}"
 AAPT2="$TOOLS/prebuilt/linux/aapt2_64"; FRAMEWORK="$TOOLS/prebuilt/android-framework.jar"; ANDROID_JAR="$TOOLS/android-all-14.jar"
-VERSION_CODE="${VERSION_CODE:-2}"; VERSION_NAME="${VERSION_NAME:-2.0}"
+VERSION_CODE="${VERSION_CODE:-3}"; VERSION_NAME="${VERSION_NAME:-1.1}"
 rm -rf build && mkdir -p build/gen build/classes build/toolclasses
 "$AAPT2" compile --dir res -o build/res.zip
 "$AAPT2" link -o build/linked.apk -I "$FRAMEWORK" --manifest AndroidManifest.xml build/res.zip \

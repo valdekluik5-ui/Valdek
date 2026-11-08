@@ -141,7 +141,9 @@ public class MainActivity extends Activity {
         root.setPadding(dp(16), dp(24), dp(16), dp(32));
         scroll.addView(root);
 
-        add(root, text("Voice Clean", 28, TEXT, true), 0);
+        String version = "";
+        try { version = " " + getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception ignored) { }
+        add(root, text("Voice Clean" + version, 28, TEXT, true), 0);
         add(root, text("Removes background noise from a video and keeps the voice of the person talking. The picture is not changed.", 15, DIM, false), 6);
         add(root, text(Rnnoise.AVAILABLE ? "Engine: neural voice filter (RNNoise) + noise-profile cleaner"
                 : "Engine: noise-profile cleaner (the neural filter is not available on this phone)", 13, Rnnoise.AVAILABLE ? ACCENT : DIM, false), 6);
