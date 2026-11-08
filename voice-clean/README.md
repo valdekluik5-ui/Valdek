@@ -10,28 +10,46 @@ for your browser or file manager when Android asks. Android 7.0 or newer.
 background noise* → compare **Cleaned** and **Original** → *Save to phone* or *Share*. Everything runs on the
 phone; nothing is uploaded.
 
-## How the cleaning works (`src/com/valdek/voiceclean/Denoiser.java`)
+## How the cleaning works (2.0)
 
-1. The sound track is decoded to mono PCM.
-2. **Listen pass:** for every frequency band the app learns the steady background — what is left in the
-   pauses between words (hum, fan, air-con, engine, traffic, hiss, wind rumble).
-3. **Clean pass:** each ~21 ms slice of sound is split into frequencies; bands that are only background are
-   turned down (Ephraim–Malah log-spectral gain, which avoids the "watery" artefacts of simple noise gates).
-   A noise tracker follows background that changes during the video, and a voice detector lowers everything
-   further while nobody is speaking. Optional voice-band filter cuts rumble below ~80 Hz and hiss above 10 kHz.
+1. The sound track is decoded to mono and converted to 48 kHz (`Resampler.java`).
+2. **Neural voice filter** (`NeuralCleaner.java`, native code in `libs/`): RNNoise 0.2, a recurrent neural
+   network trained on thousands of hours of speech and noise, keeps what sounds like a human voice and
+   removes the rest, 10 ms at a time. Its speech detector also turns down whatever is left between words.
+3. **Noise-profile cleaner** (`Denoiser.java`, the 1.0 engine): learns the background that is still left
+   from the pauses and removes it (log-spectral-amplitude gain, rumble and hiss cut).
 4. **Level:** a quiet voice is raised to a normal level, with a soft limiter so it never clips.
 
-Settings: *Noise removal* 0–100 % (default 60). Higher removes more but can make the voice thinner.
+If the native library cannot load (for example on an x86 emulator) the app says so on its first screen and
+uses step 3 alone.
 
-Works best on steady noise. Other people talking or music behind the speaker are much harder: they are
-reduced in the pauses, but anything that sounds like a voice at the same moment as the speaker stays.
+Measured on a desktop with the same code (`tools/NeuralCli.java` then `tools/DenoiseCli.java`), speech mixed
+with noise as loud as the voice; "pauses" is the background left between words (lower is better):
 
-Tested on a desktop with the same engine (`tools/DenoiseCli.java`) on speech mixed with fan/hum, hiss and
-traffic noise: about 30 dB less background in the pauses, and 2–13 dB better voice-to-noise during speech.
+| noise | original | 1.0 | 2.0 |
+|---|---|---|---|
+| fan + hum | −24 dB | −53 dB | **−70 dB** |
+| wind | −25 dB | −44 dB | **−79 dB** |
+| hiss | −24 dB | −52 dB | **−76 dB** |
+| traffic | −24 dB | −40 dB | **−48 dB** |
+| music | −24 dB | −41 dB | −41 dB |
+| other people talking | −24 dB | −31 dB | −31 dB |
+
+The voice itself also comes out 1–6 dB cleaner than in 1.0. Music and other voices *at the same moment*
+as the speaker remain hard: the filter cannot tell which voice is "the" speaker. `demo-before-after.m4a`
+plays each test before (beep) and after.
+
+The native ARM code was checked under QEMU against the desktop build (same output within −47 dB).
 
 ## Build
 
-No Android SDK needed (same approach as `../launchpad-android`), see the header of `build.sh` for the tools:
+`libs/<abi>/libvoiceclean.so` (arm64-v8a, armeabi-v7a) is prebuilt. To rebuild it, get RNNoise 0.2 with its
+model from Ubuntu (`https://archive.ubuntu.com/ubuntu/pool/universe/r/rnnoise/rnnoise_0.2+ds.orig.tar.xz`,
+sha256 `db2718ee4a0b294bfbbe198fe94aabfdc8cd0d77cb9cd95d76c7a818ad805f0b`) and run
+`RNNOISE=<unpacked dir> JDK_INCLUDE=<jdk>/include ./jni/build-native.sh $PWD/libs` (plain clang + lld,
+no NDK). RNNoise is BSD licensed, see `jni/RNNOISE-COPYING`.
+
+The APK: no Android SDK needed (same approach as `../launchpad-android`), see the header of `build.sh` for the tools:
 
     TOOLS=<tools dir> KEYSTORE=voiceclean.p12 KEYPASS=<password> ./build.sh
 

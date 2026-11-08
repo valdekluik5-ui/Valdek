@@ -48,6 +48,7 @@ public final class VideoProcessor {
     public void run(Uri src, File out, Options opt) throws Exception {
         File pcm = new File(ctx.getCacheDir(), "decoded.pcm");
         File cleaned = new File(ctx.getCacheDir(), "cleaned.pcm");
+        File neural = new File(ctx.getCacheDir(), "neural.pcm");
         try {
             MediaExtractor probe = open(src);
             int audioTrack = -1, videoTrack = -1;
@@ -65,10 +66,18 @@ public final class VideoProcessor {
             // 1. decode the sound to mono 16-bit PCM in a temporary file
             long[] startUs = new long[1];
             int fs = decode(src, audioTrack, pcm, startUs);
-            long samples = pcm.length() / 2;
-            if (samples < fs / 10) throw new IOException("The sound track is too short or could not be read.");
+            if (pcm.length() / 2 < fs / 10) throw new IOException("The sound track is too short or could not be read.");
 
-            // 2. learn the background noise
+            // 2. neural pass (RNNoise): removes most noise of every kind; its output is 48 kHz
+            if (Rnnoise.AVAILABLE) {
+                neural(pcm, fs, neural, opt.strength);
+                pcm.delete();
+                if (!neural.renameTo(pcm)) throw new IOException("Could not write to the phone's storage.");
+                fs = Rnnoise.RATE;
+            }
+            long samples = pcm.length() / 2;
+
+            // 3. learn what background is left
             Denoiser d = new Denoiser(fs, opt.strength, opt.voiceBand);
             float[] buf = new float[8192];
             short[] sbuf = new short[8192];
@@ -85,7 +94,7 @@ public final class VideoProcessor {
             }
             d.finishAnalysis();
 
-            // 3. clean it, and measure the speech level for the volume step
+            // 4. clean it, and measure the speech level for the volume step
             float[] outBuf = new float[8192 + d.frameSize() * 2];
             Level level = new Level(fs);
             done = 0;
@@ -97,19 +106,55 @@ public final class VideoProcessor {
                     int w = d.process(buf, 0, got, outBuf, 0);
                     writeFloats(os, outBuf, w, level);
                     done += got;
-                    progress.update("Removing background noise", (int) (done * 100 / samples));
+                    progress.update("Cleaning what is left", (int) (done * 100 / samples));
                 }
                 writeFloats(os, outBuf, d.flush(outBuf, 0), level);
             }
             pcm.delete();
             float gain = opt.louder ? level.gain() : 1f;
 
-            // 4. encode the cleaned sound as AAC and put it back next to the original picture
+            // 5. encode the cleaned sound as AAC and put it back next to the original picture
             progress.update("Saving the new video", 0);
             mux(src, videoTrack, cleaned, fs, startUs[0], gain, out);
         } finally {
             pcm.delete();
             cleaned.delete();
+            neural.delete();
+        }
+    }
+
+    private void neural(File pcm, int fs, File out, float strength) throws Exception {
+        long samples = pcm.length() / 2, done = 0;
+        short[] sbuf = new short[8192];
+        float[] buf = new float[8192];
+        final byte[][] ob = {new byte[0]};
+        try (DataInputStream in = pcmIn(pcm); final OutputStream os = new BufferedOutputStream(new FileOutputStream(out), 1 << 16)) {
+            NeuralCleaner.Sink sink = new NeuralCleaner.Sink() {
+                public void write(float[] b, int n) throws IOException {
+                    if (ob[0].length < n * 2) ob[0] = new byte[n * 2];
+                    byte[] o = ob[0];
+                    for (int i = 0; i < n; i++) {
+                        int s = Math.round(b[i] * 32767);
+                        s = Math.max(-32768, Math.min(32767, s));
+                        o[2 * i] = (byte) s; o[2 * i + 1] = (byte) (s >> 8);
+                    }
+                    os.write(o, 0, n * 2);
+                }
+            };
+            NeuralCleaner nc = new NeuralCleaner(fs, strength);
+            try {
+                int got;
+                while ((got = readShorts(in, sbuf)) > 0) {
+                    check();
+                    for (int i = 0; i < got; i++) buf[i] = sbuf[i] / 32768f;
+                    nc.process(buf, 0, got, sink);
+                    done += got;
+                    progress.update("Removing noise (neural)", (int) (done * 100 / samples));
+                }
+                nc.finish(sink);
+            } finally {
+                nc.close();
+            }
         }
     }
 
