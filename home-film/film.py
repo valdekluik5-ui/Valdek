@@ -739,3 +739,58 @@ def attach_to_paw(ob, arm, bone, offset=(0, .03, 0), rot=(0, 0, 0)):
     ob.parent = arm; ob.parent_type = 'BONE'; ob.parent_bone = bone
     ob.location = offset; ob.rotation_euler = rot
     return ob
+
+
+# ---------------------------------------------------------------- their car (scenes 7, 10, 12, 13)
+def car(name, loc, rot_z=0.0, coll=None, color=(.05, .07, .1), luggage=False, lights=False):
+    """A small, friendly hatchback (about 2.9 long). Front points to -Y in its local space. Returns its root empty."""
+    root = link(bpy.data.objects.new(name, None), coll); root.location = loc; root.rotation_euler = (0, 0, rot_z)
+    paint = mat(name + '_paint', color, rough=.22, metal=.5, coat=1, haze=True)
+    glass = mat(name + '_glass', (.02, .03, .035), rough=.04, metal=.5, haze=True)
+    tire = mat(name + '_tire', (.01, .01, .01), rough=.7); rim = mat(name + '_rim', (.5, .5, .52), rough=.3, metal=1)
+    parts = [box(name + '_body', (1.2, 2.9, .5), (0, 0, .2), paint, coll, bevel=.14),
+             box(name + '_roof', (1.06, 1.45, .06), (0, .25, 1.06), paint, coll, bevel=.03)]
+    for sx in (-1, 1):            # open window frames (pillars), so the bears inside can be seen
+        for py, tilt in ((-.62, .5), (.35, 0), (.98, -.35)):
+            parts.append(box(f'{name}_pillar{sx}{py}', (.06, .07, .42), (sx * .5, py, .66), paint, coll, rot=(tilt, 0, 0)))
+    parts.append(box(name + '_windshield', (1.0, .03, .45), (0, -.72, .64), glass, coll, rot=(.55, 0, 0)))
+    wheels = []
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            w = cylinder(f'{name}_wheel{sx}{sy}', .22, .16, (sx * .6, sy * .95, .22), tire, coll, n=20)
+            w.rotation_euler = (0, PI / 2, 0); w.location.x -= .08 * sx; parts.append(w); wheels.append(w)
+            h = cylinder(f'{name}_hub{sx}{sy}', .12, .17, (sx * .6, sy * .95, .22), rim, coll, n=12)
+            h.rotation_euler = (0, PI / 2, 0); h.location.x -= .085 * sx; parts.append(h)
+    head = emit_mat(name + '_head', (1, .95, .85), 6 if lights else .3); tail = emit_mat(name + '_tail', (1, .06, .04), 5 if lights else .8)
+    for sx in (-1, 1):
+        parts.append(box(f'{name}_headlight{sx}', (.22, .04, .08), (sx * .4, -1.44, .48), head, coll))
+        parts.append(box(f'{name}_taillight{sx}', (.2, .04, .07), (sx * .42, 1.44, .52), tail, coll))
+    if luggage:
+        rack = mat(name + '_rack', (.05, .05, .05), rough=.4, metal=.6)
+        parts.append(box(name + '_rack', (.95, 1.2, .03), (0, .25, 1.1), rack, coll))
+        cols = [(.35, .18, .1), (.2, .3, .45), (.55, .45, .3), (.4, .1, .12)]
+        for i, (sz, p) in enumerate((((.5, .7, .25), (-.2, .1)), ((.38, .5, .3), (.25, .35)), ((.42, .4, .18), (-.15, .62)), ((.3, .3, .16), (.25, -.2)))):
+            parts.append(box(f'{name}_bag{i}', sz, (p[0], p[1], 1.13), mat(f'{name}_bagm{i}', cols[i], rough=.8), coll, bevel=.04))
+    for p in parts:
+        p.parent = root
+    root['wheels'] = [w.name for w in wheels]
+    return root
+
+
+def drive(car_root, f0, f1, p0, p1):
+    """Move the car in a straight line between two frames, wheels turning."""
+    car_root.location = p0; car_root.keyframe_insert('location', frame=f0)
+    car_root.location = p1; car_root.keyframe_insert('location', frame=f1)
+    import bears
+    for fc in bears._fcurves(car_root):
+        for kp in fc.keyframe_points:
+            if f0 - .5 <= kp.co.x <= f1 + .5:
+                kp.interpolation = 'LINEAR'
+    turns = (Vector(p1) - Vector(p0)).length / (2 * PI * .22)
+    for n in car_root.get('wheels', []):
+        w = bpy.data.objects[n]
+        w.keyframe_insert('rotation_euler', frame=f0)
+        w.rotation_euler.x -= turns * 2 * PI; w.keyframe_insert('rotation_euler', frame=f1)
+        for fc in bears._fcurves(w):
+            for kp in fc.keyframe_points:
+                kp.interpolation = 'LINEAR'
