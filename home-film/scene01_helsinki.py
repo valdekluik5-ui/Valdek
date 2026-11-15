@@ -169,8 +169,9 @@ def prism(name, width, height, depth, loc, m, coll, rot_z=0.0, parent=None):
 
 
 def build_cathedral(coll):
-    white = mat('Plaster', (.78, .79, .77), rough=.65, haze=True)
-    granite = mat('GraniteBase', (.3, .29, .28), rough=.7, haze=True)
+    white = film.plaster_material('Plaster', (.74, .75, .73), grime=.25, scale=.6)
+    granite = film.plaster_material('GraniteBase', (.3, .29, .28), grime=.3, scale=2.0)
+    granite.name = 'GraniteBase'
     green = mat('Verdigris', (.13, .34, .28), rough=.45, metal=.25, haze=True)
     gold = mat('Gold', (1, .72, .32), rough=.25, metal=1)
     dark = mat('WindowDark', (.02, .025, .03), rough=.15, haze=True)
@@ -286,6 +287,29 @@ def build_city(coll):
     facade_building('NorthWest', (26, 18, 13), (-44, 70, 0), (.7, .58, .38), coll, False)
     # the market side by the harbour (behind the south houses)
     facade_building('HarbourRow', (70, 12, 14), (-10, -112, 0), (.66, .5, .36), coll, False)
+    # life on the square: benches, little trees in planters, pigeons
+    rng = np.random.default_rng(14)
+    wood_b = mat('SqBench', (.22, .12, .06), rough=.6, haze=True); iron_b = mat('SqBenchIron', (.02, .02, .02), rough=.4, metal=.6, haze=True)
+    for i, (x, y) in enumerate([(sx * 17, y) for sx in (-1, 1) for y in (-49, -39, -19)]):
+        box(f'SqBenchSeat{i}', (.5, 2.0, .06), (x, y, .45), wood_b, coll); box(f'SqBenchBack{i}', (.06, 2.0, .45), (x + (.22 if x > 0 else -.22), y, .5), wood_b, coll)
+        for yy in (-.85, .85):
+            box(f'SqBenchLeg{i}{yy}', (.5, .06, .45), (x, y + yy, 0), iron_b, coll)
+    pot = mat('Planter', (.25, .24, .22), rough=.7, haze=True); twig = mat('Twig', (.06, .05, .04), rough=.8, haze=True)
+    for i, (x, y) in enumerate([(sx * 21, y) for sx in (-1, 1) for y in (-52, -42, -32, -22)]):
+        box(f'Planter{i}', (1.2, 1.2, .7), (x, y, 0), pot, coll)
+        blob(f'PlanterSnow{i}', (x, y, .7), (.55, .55, .12), coll, film.snow_material('PlanterSnow'), sub=2, rough=.2, seed=i)
+        me = film.bare_tree(f'PlanterTree{i}', 120 + i, [twig]); film.place_tree(coll, me, (x, y, .7), rng.uniform(3.2, 4.2), rng, name=f'PlanterTree{i}')
+    feather = mat('Pigeon', (.35, .36, .4), rough=.7, haze=True)
+    for i in range(14):
+        x, y = rng.uniform(-6, 6), rng.uniform(-36, -24)
+        if abs(y + 29) < 1.2:
+            continue
+        body = blob(f'Pigeon{i}', (x, y, .1), (.07, .12, .07), coll, feather, sub=2, rough=.05, seed=i)
+        body.rotation_euler = (0, 0, rng.uniform(0, 6.3))
+        hd = blob(f'PigeonHead{i}', (0, -.1, .07), (.04, .045, .04), coll, feather, sub=1, rough=.05, seed=i + 50); hd.parent = body
+        for f in range(SHOTS['d'], SHOTS['e'], int(rng.uniform(14, 30))):
+            body.location.x = x + .15 * math.sin(f * .3 + i); body.location.y = y + .12 * math.cos(f * .2 + i)
+            body.keyframe_insert('location', frame=f)
     # melt water: a wide shallow puddle in front of the low camera
     film.mesh_obj('MeltPuddle', [(-24, -34, .004), (-4, -34, .004), (-4, -18, .004), (-24, -18, .004)], [(0, 1, 2, 3)], coll,
                   [film.water_material('MeltWater', color=(.02, .022, .025), rough=.02, wave=.04, scale=2)])
@@ -307,7 +331,7 @@ def build_city(coll):
     # lamp posts
     iron = mat('Iron', (.02, .025, .025), rough=.35, metal=.6, haze=True)
     glass = mat('LampGlass', (.9, .85, .7), rough=.1, emission=(1, .75, .45), strength=0, transmission=.6)
-    posts = [(-20.3, 14.0)] + [(x, y) for x in (-14, 14) for y in (-14, 6)] + [(x, -146.2) for x in (-4.5, 9)]
+    posts = [(-20.3, 14.0)] + [(x, y) for x in (-14, 14) for y in (-54, -44, -24, -14, 6)] + [(x, -146.2) for x in (-4.5, 9)]
     for i, (x, y) in enumerate(posts):
         lamp_post(f'Lamp{i}', (x, y, 0), coll, iron, glass, icicles=5 if i == 0 else 0, rng=rng)
     # harbour: quay edge, sea, ice floes, a bench, bare trees
@@ -415,9 +439,9 @@ def animate_bears(bears):
     bears.blink(he, c + 30); bears.blink(she, c + 110)
     # glimpse 2: they cross paths on the square and both look back
     d = SHOTS['d']
-    bears.place(he, d, (-7.5, -12.0, 0), bears.facing(1, 0)); bears.place(she, d, (7.5, -10.3, 0), bears.facing(-1, 0))
-    bears.walk(he, d + 2, SHOTS['e'] - 2, (-7.5, -12.0, 0), (5.5, -11.8, 0))
-    bears.walk(she, d + 2, SHOTS['e'] - 2, (7.5, -10.3, 0), (-5.5, -10.6, 0))
+    bears.place(he, d, (-7.5, -30.0, 0), bears.facing(1, 0)); bears.place(she, d, (7.5, -28.3, 0), bears.facing(-1, 0))
+    bears.walk(he, d + 2, SHOTS['e'] - 2, (-7.5, -30.0, 0), (5.5, -29.8, 0))
+    bears.walk(she, d + 2, SHOTS['e'] - 2, (7.5, -28.3, 0), (-5.5, -28.6, 0))
     for b in (he, she):
         bears.turn_head(b, d + 30, yaw=0); bears.turn_head(b, d + 62, yaw=35); bears.turn_head(b, d + 92, yaw=95, nod=-4)
         bears.turn_head(b, d + 130, yaw=100, nod=-4)
@@ -457,9 +481,9 @@ def build():
     zs, ys = step_top(11)
     C = film.camera('Cam1c_Steps', [(SHOTS['c'], (2.2, 11.6, 1.25), (-1.2, 20.0, 1.55)), (SHOTS['d'] - 1, (1.4, 12.2, 1.2), (-1.6, 20.0, 1.55))],
                     lens=26, fstop=4, focus=(-1, 19, 1.2))
-    D = film.camera('Cam1d_Square', [(SHOTS['d'], (5.5, -24.5, .9), (0, -10.8, 1.6)), (SHOTS['e'] - 1, (4.6, -23.5, .9), (0, -10.8, 1.6))],
-                    lens=40, fstop=4, focus=(0, -11, .6))
-    E = film.camera('Cam1e_Harbour', [(SHOTS['e'], (.1, -142.4, 1.2), (0, -170, .1)), (SHOTS['end'], (1.6, -141.6, 1.3), (2.6, -170, .1))],
+    D = film.camera('Cam1d_Square', [(SHOTS['d'], (2.5, -42.5, .95), (0, -29, 1.9)), (SHOTS['e'] - 1, (1.5, -41.5, .95), (0, -29, 1.9))],
+                    lens=36, fstop=4, focus=(0, -29, .6))
+    E = film.camera('Cam1e_Harbour', [(SHOTS['e'], (.1, -142.4, 1.2), (0, -170, .1)), (SHOTS['e'] + 110, (.1, -142.6, 1.2), (0, -170, .1)), (SHOTS['end'], (1.6, -141.6, 1.3), (2.6, -170, .1))],
                     lens=20, fstop=4, focus=(0, -146.8, .5))
     for f, cam in ((SHOTS['a'], A), (SHOTS['b'], B), (SHOTS['c'], C), (SHOTS['d'], D), (SHOTS['e'], E)):
         film.cut(f, cam)

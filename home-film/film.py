@@ -270,7 +270,7 @@ def snow_material(name='Snow', wet=.0):
 
 # ---------------------------------------------------------------- sky and light
 def make_sky(elev=4.0, az=0.0, strength=.9, low=(1.0, .42, .22), mid=(1.0, .62, .55), high=(.75, .78, 1.0),
-             air=2.2, aerosol=5.0, ozone=3.0, sun_disc=True):
+             air=2.2, aerosol=5.0, ozone=3.0, sun_disc=True, clouds=.42, cloud_tint=(1.0, .97, .94)):
     """Physical sky with a colour tint near the horizon. az: degrees, 0 = sun toward -Y, + = toward +X.
     Returns (world, sky node, background node, ramp) so a scene can animate them."""
     w = bpy.data.worlds.new('Sky'); bpy.context.scene.world = w; w.use_nodes = True
@@ -289,7 +289,39 @@ def make_sky(elev=4.0, az=0.0, strength=.9, low=(1.0, .42, .22), mid=(1.0, .62, 
     L.new(mr.outputs['Result'], ramp.inputs['Fac'])
     tint = N.new('ShaderNodeMix'); tint.data_type = 'RGBA'; tint.blend_type = 'MULTIPLY'; tint.inputs['Factor'].default_value = 1
     L.new(sky.outputs['Color'], tint.inputs['A']); L.new(ramp.outputs['Color'], tint.inputs['B'])
-    L.new(tint.outputs['Result'], bg.inputs['Color'])
+    out = tint.outputs['Result']
+    if clouds > 0:
+        # soft drifting clouds on a sky plane: the view direction projected onto a high flat layer, two noise octaves
+        d = N.new('ShaderNodeSeparateXYZ'); L.new(tc.outputs['Generated'], d.inputs[0])
+        zc = N.new('ShaderNodeMath'); zc.operation = 'MAXIMUM'; zc.inputs[1].default_value = .035; L.new(d.outputs['Z'], zc.inputs[0])
+        px = N.new('ShaderNodeMath'); px.operation = 'DIVIDE'; L.new(d.outputs['X'], px.inputs[0]); L.new(zc.outputs[0], px.inputs[1])
+        py = N.new('ShaderNodeMath'); py.operation = 'DIVIDE'; L.new(d.outputs['Y'], py.inputs[0]); L.new(zc.outputs[0], py.inputs[1])
+        uv = N.new('ShaderNodeCombineXYZ'); L.new(px.outputs[0], uv.inputs['X']); L.new(py.outputs[0], uv.inputs['Y'])
+        drift = N.new('ShaderNodeMapping'); drift.inputs['Scale'].default_value = (.9, 1.6, 1)
+        fc = drift.inputs['Location'].driver_add('default_value', 0); fc.driver.expression = 'frame * 0.0015'
+        L.new(uv.outputs['Vector'], drift.inputs['Vector'])
+        n1 = N.new('ShaderNodeTexNoise'); n1.inputs['Scale'].default_value = 1.2; n1.inputs['Detail'].default_value = 8; n1.inputs['Roughness'].default_value = .62
+        L.new(drift.outputs['Vector'], n1.inputs['Vector'])
+        cov = N.new('ShaderNodeMapRange'); cov.inputs['From Min'].default_value = .62 - clouds * .3; cov.inputs['From Max'].default_value = .78 - clouds * .25
+        cov.interpolation_type = 'SMOOTHSTEP'; L.new(n1.outputs['Fac'], cov.inputs['Value'])
+        hz = N.new('ShaderNodeMapRange'); hz.inputs['From Min'].default_value = .0; hz.inputs['From Max'].default_value = .12
+        L.new(d.outputs['Z'], hz.inputs['Value'])
+        k = N.new('ShaderNodeMath'); k.operation = 'MULTIPLY'; L.new(cov.outputs['Result'], k.inputs[0]); L.new(hz.outputs['Result'], k.inputs[1])
+        k.name = 'CloudAmount'
+        # cloud colour: the horizon light (warm at sunset), brighter, with darker bellies
+        lit = N.new('ShaderNodeMix'); lit.data_type = 'RGBA'; lit.blend_type = 'MULTIPLY'; lit.inputs['Factor'].default_value = 1
+        L.new(ramp.outputs['Color'], lit.inputs['A']); lit.inputs['B'].default_value = (*cloud_tint, 1)
+        bright = N.new('ShaderNodeMath'); bright.operation = 'MULTIPLY_ADD'; bright.inputs[1].default_value = .9; bright.inputs[2].default_value = .25
+        L.new(n1.outputs['Fac'], bright.inputs[0])
+        sh = N.new('ShaderNodeMix'); sh.data_type = 'RGBA'; sh.blend_type = 'MULTIPLY'
+        L.new(bright.outputs[0], sh.inputs['Factor']); L.new(lit.outputs['Result'], sh.inputs['A']); sh.inputs['B'].default_value = (.78, .78, .82, 1)
+        lum = N.new('ShaderNodeMath'); lum.operation = 'MULTIPLY'; lum.inputs[1].default_value = .32 * strength
+        sc_ = N.new('ShaderNodeMix'); sc_.data_type = 'RGBA'; sc_.blend_type = 'MULTIPLY'; sc_.inputs['Factor'].default_value = 1
+        L.new(sh.outputs['Result'], sc_.inputs['A']); sc_.inputs['B'].default_value = (1.1, 1.1, 1.1, 1)
+        mx = N.new('ShaderNodeMix'); mx.data_type = 'RGBA'
+        L.new(k.outputs[0], mx.inputs['Factor']); L.new(out, mx.inputs['A']); L.new(sc_.outputs['Result'], mx.inputs['B'])
+        out = mx.outputs['Result']
+    L.new(out, bg.inputs['Color'])
     bg.inputs['Strength'].default_value = strength
     return w, sky, bg, ramp
 
@@ -859,3 +891,30 @@ def drive(car_root, f0, f1, p0, p1):
         for fc in bears._fcurves(w):
             for kp in fc.keyframe_points:
                 kp.interpolation = 'LINEAR'
+
+
+def plaster_material(name, color, grime=.35, scale=1.0):
+    """Painted plaster / stucco: soft colour variation, fine grain, darker weathering toward the ground and in streaks."""
+    m, N, L, b = node_mat(name)
+    tc = N.new('ShaderNodeTexCoord'); P = tc.outputs['Object']
+    n1 = N.new('ShaderNodeTexNoise'); n1.inputs['Scale'].default_value = .6 * scale; n1.inputs['Detail'].default_value = 6; L.new(P, n1.inputs['Vector'])
+    base = N.new('ShaderNodeValToRGB'); base.color_ramp.elements[0].color = (*[c * .86 for c in color], 1)
+    base.color_ramp.elements[1].color = (*[min(1, c * 1.04) for c in color], 1); L.new(n1.outputs['Fac'], base.inputs['Fac'])
+    # vertical rain streaks and grime near the ground
+    mp = N.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (2.5 * scale, 2.5 * scale, .15 * scale); L.new(P, mp.inputs['Vector'])
+    st = N.new('ShaderNodeTexNoise'); st.inputs['Scale'].default_value = 1.5; L.new(mp.outputs['Vector'], st.inputs['Vector'])
+    stc = N.new('ShaderNodeMapRange'); stc.inputs['From Min'].default_value = .5; stc.inputs['From Max'].default_value = .75
+    stc.inputs['To Max'].default_value = grime * .6; L.new(st.outputs['Fac'], stc.inputs['Value'])
+    sep = N.new('ShaderNodeSeparateXYZ'); L.new(tc.outputs['Generated'], sep.inputs[0])
+    gnd = N.new('ShaderNodeMapRange'); gnd.inputs['From Min'].default_value = .12; gnd.inputs['From Max'].default_value = 0.0
+    gnd.inputs['To Max'].default_value = grime; L.new(sep.outputs['Z'], gnd.inputs['Value'])
+    g = N.new('ShaderNodeMath'); g.operation = 'ADD'; g.use_clamp = True; L.new(stc.outputs['Result'], g.inputs[0]); L.new(gnd.outputs['Result'], g.inputs[1])
+    dirt = N.new('ShaderNodeMix'); dirt.data_type = 'RGBA'; dirt.blend_type = 'MULTIPLY'
+    L.new(g.outputs[0], dirt.inputs['Factor']); L.new(base.outputs['Color'], dirt.inputs['A']); dirt.inputs['B'].default_value = (.45, .42, .38, 1)
+    L.new(dirt.outputs['Result'], b.inputs['Base Color'])
+    b.inputs['Roughness'].default_value = .75
+    fine = N.new('ShaderNodeTexNoise'); fine.inputs['Scale'].default_value = 60 * scale; fine.inputs['Detail'].default_value = 4; L.new(P, fine.inputs['Vector'])
+    bump = N.new('ShaderNodeBump'); bump.inputs['Strength'].default_value = .2; bump.inputs['Distance'].default_value = .01
+    L.new(fine.outputs['Fac'], bump.inputs['Height']); L.new(bump.outputs['Normal'], b.inputs['Normal'])
+    add_haze(m, N, L, b)
+    return m
