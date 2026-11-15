@@ -744,6 +744,8 @@ def key_pose(arm, frame, rot=None, interp='BEZIER'):
 
 def set_eyes(arm, state, frame):
     v = {'open': 0, 'closed': 1, 'heart': 2}[state]
+    if frame > 0 and not any(fc.data_path == '["eyes"]' for fc in _fcurves(arm)):
+        arm['eyes'] = 0.0; arm.keyframe_insert('["eyes"]', frame=0)      # eyes start open
     arm['eyes'] = float(v)
     arm.keyframe_insert('["eyes"]', frame=frame)
     if arm.animation_data and arm.animation_data.action:

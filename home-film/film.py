@@ -676,3 +676,62 @@ def import_bears():
     import bears
     importlib.reload(bears)
     return bears
+
+
+# ---------------------------------------------------------------- the magnetic hearts (scenes 6, 7, 8, 16)
+def heart_material(name='MagnetHeart', color=(.85, .05, .12), glow=0.0):
+    """Glossy red enamel heart; its 'Glow' emission strength can be keyframed (the click, the sea floor)."""
+    m, N, L, b = node_mat(name)
+    b.inputs['Base Color'].default_value = (*color, 1); b.inputs['Roughness'].default_value = .18
+    b.inputs['Coat Weight'].default_value = 1; b.inputs['Coat Roughness'].default_value = .05
+    b.inputs['Emission Color'].default_value = (1, .25, .3, 1); b.inputs['Emission Strength'].default_value = glow
+    return m
+
+
+def heart_half(name, side, size, mat_, coll=None):
+    """One half of a heart (side 'L' or 'R'); both halves share the same origin on the join line, so placing them at the
+    same location and rotation makes a whole heart. The heart stands up in the XZ plane, facing -Y."""
+    # classic heart half: a round lobe (circle) over the top, then a straight edge down to the point
+    sgn = 1 if side == 'R' else -1
+    r = .27; cx, cz = .25, .18                      # lobe circle (heart is ~1 wide, ~1 tall, origin at the centre line)
+    pts = [(0.0, cz + .02)]
+    a0 = math.atan2(.02, -cx)                       # start where the circle meets the centre line, near the notch
+    for i in range(1, 25):
+        a = a0 - (a0 + math.radians(48)) * i / 24  # sweep over the top and down the outer side
+        pts.append((cx + r * math.cos(a), cz + r * math.sin(a)))
+    pts.append((0.0, -.5))                          # the point at the bottom
+    pts = [(sgn * x * size, z * size) for x, z in pts]
+    cu = bpy.data.curves.new(name, 'CURVE'); cu.dimensions = '2D'; cu.fill_mode = 'BOTH'
+    cu.extrude = .16 * size; cu.bevel_depth = .022 * size; cu.bevel_resolution = 3
+    sp = cu.splines.new('POLY'); sp.points.add(len(pts) - 1)
+    for p, (x, z) in zip(sp.points, pts):
+        p.co = (x, z, 0, 1)
+    sp.use_cyclic_u = True
+    tmp = bpy.data.objects.new(name + '_tmp', cu); bpy.context.scene.collection.objects.link(tmp)
+    bpy.context.view_layer.update()
+    me = bpy.data.meshes.new_from_object(tmp.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    bpy.data.objects.remove(tmp); bpy.data.curves.remove(cu)
+    me.transform(Matrix.Rotation(PI / 2, 4, 'X'))          # stand it up: curve Y -> Z, facing -Y
+    me.materials.clear(); me.materials.append(mat_); me.shade_smooth()
+    return link(bpy.data.objects.new(name, me), coll)
+
+
+def key_visible(ob, frame, on):
+    """Show/hide an object from a frame on (scale 0 hides in every engine; constant keys)."""
+    s = ob.get('_s', None)
+    if s is None:
+        ob['_s'] = tuple(ob.scale); s = ob['_s']
+    ob.scale = tuple(s) if on else (1e-4, 1e-4, 1e-4)
+    ob.keyframe_insert('scale', frame=frame)
+    import bears
+    for fc in bears._fcurves(ob):
+        if fc.data_path == 'scale':
+            for kp in fc.keyframe_points:
+                kp.interpolation = 'CONSTANT'
+
+
+def attach_to_paw(ob, arm, bone, offset=(0, .03, 0), rot=(0, 0, 0)):
+    """Parent an object to a bear's paw (the tail of its forearm bone); offset is in the bone's space."""
+    ob.parent = arm; ob.parent_type = 'BONE'; ob.parent_bone = bone
+    ob.location = offset; ob.rotation_euler = rot
+    return ob
