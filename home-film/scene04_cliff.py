@@ -164,7 +164,7 @@ def rock_material():
         else: L.new(fac, x.inputs['Factor'])
         L.new(a, x.inputs['A']); L.new(b_, x.inputs['B']); return x.outputs['Result']
     # base tone: large soft variation, grey to warm pink-grey
-    base = ramp(noise(.6, 4).outputs['Fac'], [(.35, (.20, .19, .185)), (.55, (.28, .24, .22)), (.7, (.33, .29, .27))])
+    base = ramp(noise(.6, 4).outputs['Fac'], [(.35, (.17, .17, .17)), (.55, (.24, .225, .215)), (.7, (.29, .27, .26))])
     # crystals: dark mica speckles and pinkish feldspar flecks
     vor = N.new('ShaderNodeTexVoronoi'); vor.inputs['Scale'].default_value = 90; L.new(P, vor.inputs['Vector'])
     spk = ramp(vor.outputs['Distance'], [(.0, (.03, .03, .03)), (.18, (.03, .03, .03)), (.24, (1, 1, 1))])
@@ -177,8 +177,11 @@ def rock_material():
     stc = ramp(st.outputs['Fac'], [(.5, (1, 1, 1)), (.68, (.45, .42, .4))])
     col = mix(1.0, col, stc.outputs['Color'], 'MULTIPLY')
     # joint cracks
-    cr = N.new('ShaderNodeTexVoronoi'); cr.feature = 'DISTANCE_TO_EDGE'; cr.inputs['Scale'].default_value = .9; L.new(P, cr.inputs['Vector'])
-    crc = ramp(cr.outputs['Distance'], [(.0, (.08, .08, .08)), (.025, (1, 1, 1))])
+    # a few long joints: big blocks stretched vertically (granite splits in tall slabs)
+    cm = N.new('ShaderNodeMapping'); cm.inputs['Scale'].default_value = (1.0, 1.0, .22); L.new(P, cm.inputs['Vector'])
+    cr = N.new('ShaderNodeTexVoronoi'); cr.feature = 'DISTANCE_TO_EDGE'; cr.inputs['Scale'].default_value = .16
+    cr.inputs['Randomness'].default_value = .8; L.new(cm.outputs['Vector'], cr.inputs['Vector'])
+    crc = ramp(cr.outputs['Distance'], [(.0, (.12, .12, .12)), (.012, (1, 1, 1))])
     col = mix(1.0, col, crc.outputs['Color'], 'MULTIPLY')
     # lichen (pale grey-green blotches) everywhere, moss on the flat top
     lic = ramp(noise(6, 5).outputs['Fac'], [(.58, (0, 0, 0)), (.64, (1, 1, 1))])
@@ -320,9 +323,10 @@ def cliff_height(x, u):
 def face_offset(x, z, u):
     """Sideways relief of the granite wall: stepped ledges, vertical joints and slabs (it may lean in and out)."""
     k = np.clip(-u * 5, 0, 1)
-    ledges = .9 * np.sin(np.clip(z, LAKE_Z, 0) * .35 + 2 * fbm(x * .3, 0.0, 2)) ** 7      # horizontal sheeting joints
-    joints = 1.1 * np.abs(fbm(x * .45 + 7, z * .05, 3)) ** .5 * np.sign(fbm(x * .45 + 7, z * .05, 3))  # vertical blocks
-    slabs = 1.6 * fbm(x * .18 + 2, z * .09 + 5, 4)
+    ledges = 1.6 * np.clip(np.sin(np.clip(z, LAKE_Z, 0) * .3 + 2 * fbm(x * .3, 0.0, 2)), 0, 1) ** 4   # sheeting ledges
+    jn = fbm(np.floor(x * .7) * 3.1, np.floor(z * .12) * 1.7, 1)                                     # blocks stand in and out
+    joints = 2.2 * jn
+    slabs = 3.0 * fbm(x * .15 + 2, z * .07 + 5, 4)
     return k * (ledges + joints + slabs + .4 * fbm(x * 2.2, z * 1.3, 5))
 
 
@@ -555,8 +559,8 @@ def make_cameras():
     # establishing: from out over the lake, the whole granite wall with two tiny bears on top (slow rise)
     ce = bpy.data.cameras.new('Cam_Establish'); ce.lens = 30; ce.sensor_fit = 'VERTICAL'; ce.sensor_height = 24
     cam3 = bpy.data.objects.new('Cam_Establish', ce); sc.collection.objects.link(cam3)
-    for f, p in ((FRAMES[0], (-7.5, -38, -17)), (FRAMES[1], (-6.5, -36, -13))):
-        cam3.location = p; look(cam3, (0, 0, -9))
+    for f, p in ((FRAMES[0], (-26, -72, -21)), (FRAMES[1], (-24, -68, -16))):
+        cam3.location = p; look(cam3, (0, 0, -8))
         cam3.keyframe_insert('location', frame=f); cam3.keyframe_insert('rotation_euler', frame=f)
     sc.camera = cam
     return cam, cam2
