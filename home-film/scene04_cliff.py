@@ -672,28 +672,28 @@ def animate(he, she):
     f0, f1 = FRAMES
     sit_legs = {'thigh.L': (88, 0, -4), 'thigh.R': (88, 0, 4), 'shin.L': (-80, 0, 0), 'shin.R': (-80, 0, 0)}
     # arms rest beside them on the rock
-    he_rest = dict(sit_legs, **{'spine': (6, 0, 0), 'head': (-4, 0, 0), 'shoulder.L': (12, 0, -10), 'shoulder.R': (12, 0, 10),
+    he_rest = dict(sit_legs, **{'spine': (6, 0, 0), 'head': (-4, 0, 0), 'shoulder.L': (12, 0, 8), 'shoulder.R': (12, 0, -8),
                                 'forearm.L': (10, 0, 0), 'forearm.R': (10, 0, 0)})
-    she_rest = dict(sit_legs, **{'spine': (6, 0, 0), 'head': (-6, 0, 0), 'shoulder.L': (12, 0, -10), 'shoulder.R': (12, 0, 10),
+    she_rest = dict(sit_legs, **{'spine': (6, 0, 0), 'head': (-6, 0, 0), 'shoulder.L': (12, 0, 8), 'shoulder.R': (12, 0, -8),
                                  'forearm.L': (10, 0, 0), 'forearm.R': (10, 0, 0)})
     for f in (f0, 40):
         bears.key_pose(he, f, he_rest); bears.key_pose(she, f, she_rest)
     # his near paw (his right) creeps toward hers... a little hesitation... and lands on it
-    bears.key_pose(he, 78, {'shoulder.R': (14, 0, 24), 'head': (-4, -6, 0)})
-    bears.key_pose(he, 92, {'shoulder.R': (14, 0, 25), 'head': (-4, -10, 0)})
-    bears.key_pose(he, 116, {'shoulder.R': (16, 0, 36), 'forearm.R': (14, 0, 0), 'head': (-4, -4, 0)})
+    bears.key_pose(he, 78, {'shoulder.R': (14, 0, -24), 'head': (-4, -6, 0)})
+    bears.key_pose(he, 92, {'shoulder.R': (14, 0, -25), 'head': (-4, -10, 0)})
+    bears.key_pose(he, 116, {'shoulder.R': (16, 0, -36), 'forearm.R': (14, 0, 0), 'head': (-4, -4, 0)})
     # she leans in and rests her head on his shoulder
     bears.key_pose(she, 112, {'spine': (6, 0, 0), 'head': (-6, 0, 0)})
-    bears.key_pose(she, 160, {'spine': (8, 6, -14), 'head': (4, -14, -20), 'shoulder.L': (14, 0, -28)})
+    bears.key_pose(she, 160, {'spine': (8, 6, -14), 'head': (4, 14, -20), 'shoulder.L': (14, 0, 28)})
     she.keyframe_insert('location', frame=112)
     she.location.x += .07
     she.keyframe_insert('location', frame=160)
     she.location.x -= .07
     # he tilts his head toward hers
     bears.key_pose(he, 140, {'head': (-4, -4, 0), 'spine': (6, 0, 0)})
-    bears.key_pose(he, 176, {'head': (2, 8, 10), 'spine': (6, -3, 6)})
-    bears.key_pose(he, f1, {'head': (2, 8, 10), 'spine': (6, -3, 6), 'shoulder.R': (16, 0, 36), 'forearm.R': (14, 0, 0)})
-    bears.key_pose(she, f1, {'spine': (8, 6, -14), 'head': (4, -14, -20), 'shoulder.L': (14, 0, -28)})
+    bears.key_pose(he, 176, {'head': (2, -8, 10), 'spine': (6, -3, 6)})
+    bears.key_pose(he, f1, {'head': (2, -8, 10), 'spine': (6, -3, 6), 'shoulder.R': (16, 0, -36), 'forearm.R': (14, 0, 0)})
+    bears.key_pose(she, f1, {'spine': (8, 6, -14), 'head': (4, 14, -20), 'shoulder.L': (14, 0, 28)})
     # eyes: a blink each, then she closes her eyes, content
     bears.set_eyes(he, 'open', f0); bears.set_eyes(she, 'open', f0)
     bears.blink(he, 30); bears.blink(she, 58); bears.blink(he, 128)

@@ -734,7 +734,8 @@ def sit(arm, ground_z=0.0):
 
 def key_pose(arm, frame, rot=None, interp='BEZIER'):
     """rot: {bone: (x, y, z) degrees}. Bones' local axes: Y runs along the bone, Z points to the bear's front.
-    So for an arm/leg: +X swings it forward, Z swings it sideways; for spine/head: X nods forward, Z leans sideways, Y turns."""
+    So for an arm/leg: +X swings it forward; Z swings it sideways (shoulder.L: +Z out to the side, shoulder.R: -Z out);
+    for spine/head: X nods forward, Z leans sideways (- = toward the bear's left), Y turns (+ = to its left)."""
     for bn, (rx, ry, rz) in (rot or {}).items():
         pb = arm.pose.bones[bn]
         pb.rotation_euler = (math.radians(rx), math.radians(ry), math.radians(rz))
@@ -776,7 +777,7 @@ STAND = {'spine': (0, 0, 0), 'head': (0, 0, 0), 'shoulder.L': (0, 0, 0), 'should
          'forearm.L': (0, 0, 0), 'forearm.R': (0, 0, 0), 'thigh.L': (0, 0, 0), 'thigh.R': (0, 0, 0),
          'shin.L': (0, 0, 0), 'shin.R': (0, 0, 0), 'pelvis': (0, 0, 0)}
 SIT = dict(STAND, **{'thigh.L': (88, 0, -4), 'thigh.R': (88, 0, 4), 'shin.L': (-80, 0, 0), 'shin.R': (-80, 0, 0),
-                     'spine': (6, 0, 0), 'shoulder.L': (12, 0, -10), 'shoulder.R': (12, 0, 10),
+                     'spine': (6, 0, 0), 'shoulder.L': (12, 0, 8), 'shoulder.R': (12, 0, -8),
                      'forearm.L': (10, 0, 0), 'forearm.R': (10, 0, 0)})
 
 
@@ -811,7 +812,7 @@ def _constant_at(ob, frame):
             max(prev, key=lambda k: k.co.x).interpolation = 'CONSTANT'
 
 
-def walk(arm, f0, f1, p0, p1, cycle=18, stride=26, ground=None):
+def walk(arm, f0, f1, p0, p1, cycle=18, stride=26, ground=None, hold=None, phase=0):
     """Walk from p0 to p1 (x, y, z) between frames f0 and f1: legs and arms swing, the body bobs gently."""
     p0, p1 = Vector(p0), Vector(p1)
     d = p1 - p0
@@ -822,7 +823,7 @@ def walk(arm, f0, f1, p0, p1, cycle=18, stride=26, ground=None):
     f = f0; k = 0
     while f <= f1 + .01:
         t = (f - f0) / max(f1 - f0, 1)
-        ph = (k % 4) * PI / 2
+        ph = ((k + phase) % 4) * PI / 2
         s = math.sin(ph)
         pos = p0 + d * t
         bob = .012 * abs(math.cos(ph)) * arm.scale[0]
@@ -830,13 +831,17 @@ def walk(arm, f0, f1, p0, p1, cycle=18, stride=26, ground=None):
         arm.keyframe_insert('location', frame=f)
         key_pose(arm, f, {'thigh.L': (stride * s, 0, 0), 'thigh.R': (-stride * s, 0, 0),
                           'shin.L': (-max(0, -s) * 30, 0, 0), 'shin.R': (-max(0, s) * 30, 0, 0),
-                          'shoulder.L': (-14 * s, 0, -6), 'shoulder.R': (14 * s, 0, 6),
+                          'shoulder.L': (-14 * s, 0, 6), 'shoulder.R': (14 * s, 0, -6),
                           'forearm.L': (8, 0, 0), 'forearm.R': (8, 0, 0),
                           'spine': (4, 0, 3 * s), 'pelvis': (0, 0, -2 * s)})
+        if hold:
+            key_pose(arm, f, hold)
         f += q; k += 1
     arm.location = p1; arm.keyframe_insert('location', frame=f1)
     key_pose(arm, f1, {'thigh.L': (0, 0, 0), 'thigh.R': (0, 0, 0), 'shin.L': (0, 0, 0), 'shin.R': (0, 0, 0),
                        'shoulder.L': (0, 0, 0), 'shoulder.R': (0, 0, 0), 'spine': (0, 0, 0), 'pelvis': (0, 0, 0)})
+    if hold:
+        key_pose(arm, f1, hold)
     for fc in _fcurves(arm):
         if fc.data_path == 'location':
             for kp in fc.keyframe_points:
