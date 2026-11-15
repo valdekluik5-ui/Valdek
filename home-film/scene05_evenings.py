@@ -125,6 +125,39 @@ def living_room(coll):
         a = rng.uniform(0, 2 * PI); r = rng.uniform(0, .12)
         blob(f'Corn{i}', T(math.cos(a) * r, 1.08 + math.sin(a) * r, .66 + rng.uniform(0, .04)), (.022, .022, .02), coll, corn, sub=1, rough=.3, seed=i)
     film.area_light('LRFill', T(0, -1.0, 2.2), T(0, 1.2, .5), 12, 2, (1, .7, .5))
+    # a lived-in living room: plants, a coffee table with candles and books, a wall of pictures, a window with the dusk
+    pot = mat('LRPot', (.55, .28, .15), rough=.8); leaf = mat('LRLeaf', (.04, .12, .03), rough=.6, sss=.1)
+    rng = np.random.default_rng(21)
+    for i, (x, y, h) in enumerate(((-2.4, 1.7, 1.2), (2.5, -2.6, .9), (-2.5, -2.4, .6))):
+        cylinder(f'LRPlantPot{i}', .18, .3, T(x, y, 0), pot, coll, n=16, r2=.22)
+        for k in range(14):
+            a = rng.uniform(0, 6.3); r = rng.uniform(.05, .3)
+            blob(f'LRPlantLeaf{i}{k}', T(x + math.cos(a) * r, y + math.sin(a) * r, .3 + rng.uniform(.1, h)), (.12, .05, .03), coll, leaf, sub=1, seed=k + i * 20)
+    wood = mat('CoffeeTable', (.3, .17, .08), rough=.4)
+    box('CoffeeTable', (1.0, .5, .04), T(0, -.2, .36), wood, coll)
+    for x in (-.45, .45):
+        for y in (-.4, 0):
+            box(f'CTLeg{x}{y}', (.04, .04, .36), T(x, y, 0), wood, coll)
+    for i, (c, h) in enumerate((((.7, .2, .15), .05), ((.15, .3, .45), .04), ((.8, .75, .6), .035))):
+        box(f'CTBook{i}', (.24, .17, h), T(-.25, -.2, .4 + sum(x[1] for x in [(0, .05), (0, .04)][:i])), mat(f'CTBookM{i}', c, rough=.6), coll)
+    flame = emit_mat('LRFlame', (1, .6, .25), 30); candle = mat('LRCandle', (.95, .9, .8), rough=.6)
+    for i, x in enumerate((.15, .28, .4)):
+        cylinder(f'LRCandle{i}', .03, .06 + .03 * i, T(x, -.15, .4), candle, coll, n=10)
+        blob(f'LRFlame{i}', T(x, -.15, .48 + .03 * i), (.01, .01, .022), coll, flame, sub=1)
+    film.point_light('LRCandleGlow', T(.28, -.15, .6), 10, (1, .6, .3), .05)
+    for i, (x, z, w_, h_) in enumerate(((-.6, 1.55, .45, .35), (0, 1.6, .55, .45), (.6, 1.5, .4, .5), (-.3, 1.15, .3, .22), (.35, 1.1, .3, .25))):
+        box(f'LRFrame{i}', (w_, .03, h_), T(x, 2.13, z), mat('LRPicFrame', (.6, .45, .25), rough=.4, metal=.5), coll)
+        box(f'LRPic{i}', (w_ - .05, .03, h_ - .05), T(x, 2.12, z + .025), mat(f'LRPicM{i}', [(.5, .4, .3), (.3, .45, .55), (.6, .5, .35), (.4, .3, .4), (.35, .5, .35)][i], rough=.5), coll)
+    knit2 = mat('Pillow2', (.65, .45, .2), rough=.95)
+    for sx in (-1, 1):
+        blob(f'SofaPillow{sx}', T(sx * .82, 1.45, .62), (.16, .1, .16), coll, knit2, sub=2, rough=.1, seed=sx + 30)
+    # rug pattern: stripes
+    m, N, L, b = film.node_mat('RugPattern')
+    tcn = N.new('ShaderNodeTexCoord'); wv = N.new('ShaderNodeTexWave'); wv.inputs['Scale'].default_value = 3; wv.inputs['Distortion'].default_value = 1
+    L.new(tcn.outputs['Object'], wv.inputs['Vector'])
+    rp = N.new('ShaderNodeValToRGB'); rp.color_ramp.elements[0].color = (.45, .18, .12, 1); rp.color_ramp.elements[1].color = (.75, .6, .4, 1)
+    L.new(wv.outputs['Fac'], rp.inputs['Fac']); L.new(rp.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = 1
+    bpy.data.objects['Rug'].data.materials[0] = m
 
 
 def build():
