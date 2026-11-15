@@ -45,7 +45,7 @@ def arch(coll):
             a = PI * i / n
             for r in (r1, r2):
                 for y in (-depth / 2, depth / 2):
-                    V.append((math.cos(a) * r, y + 60, math.sin(a) * r - 6))
+                    V.append((math.cos(a) * r, y + 34, math.sin(a) * r - 6))
         for i in range(n):
             o = i * 4; p = o + 4
             F += [(o, p, p + 1, o + 1), (o + 2, o + 3, p + 3, p + 2), (o, o + 2, p + 2, p), (o + 1, p + 1, p + 3, o + 3)]
@@ -145,7 +145,7 @@ def build():
     film.key_visible(boxo, c + 30, False)
     bears.set_eyes(she, 'closed', c + 56); bears.set_eyes(he, 'closed', c + 60)
     # ---- cameras
-    A = film.camera('Cam14a_Arch', [(SHOTS['a'], (-14, -26, DECK + 3), (-2, 30, DECK + 12)), (SHOTS['b'] - 1, (-11, -22, DECK + 2.5), (-1, 30, DECK + 10))], lens=20, fstop=8, focus=24.0)
+    A = film.camera('Cam14a_Arch', [(SHOTS['a'], (-2.6, -.75, DECK + .55), (-14, 5.5, DECK + 3.5)), (80, (2.2, -.75, DECK + .55), (-9, 5.5, DECK + 3.5)), (SHOTS['b'] - 1, (2.3, -.75, DECK + .55), (-9, 5.5, DECK + 3.5))], lens=18, fstop=5.6, focus=2.7)
     B = film.camera('Cam14b_Kneel', [(SHOTS['b'], (bx + 2.6, -.2, DECK + .8), (bx, -.05, DECK + .45)), (SHOTS['c'] - 1, (bx + 2.2, -.15, DECK + .75), (bx, -.05, DECK + .45))],
                     lens=32, fstop=2.0, focus=2.2)
     C = film.camera('Cam14c_Yes', [(SHOTS['c'], (bx + 2.6, -.4, DECK + .95), (bx, 0, DECK + .65)), (SHOTS['end'], (bx + 4.2, -.6, DECK + 1.5), (bx, 0, DECK + .85))],

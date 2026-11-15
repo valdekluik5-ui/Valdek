@@ -168,7 +168,7 @@ def build():
     bears.place(she, d + 84, (sx_, sy, gz(sx_, sy)), 0, sitting=True, pose={'shoulder.L': (14, 0, 30), 'spine': (8, 0, 10), 'head': (6, -14, 14)})
     bears.set_eyes(she, 'closed', d + 140)
     # ---- cameras
-    A = film.camera('Cam13a_Hill', [(SHOTS['a'], (14, -26, 4.5), (0, 0, 4)), (SHOTS['b'] - 1, (12, -24, 4.0), (2, -4, 3))], lens=26, fstop=8, focus=24.0)
+    A = film.camera('Cam13a_Hill', [(SHOTS['a'], (7, -14, 4.0), (0, -1, 4.2)), (SHOTS['b'] - 1, (6, -14, 3.8), (2, -5, 3.4))], lens=26, fstop=8, focus=13.0)
     B = film.camera('Cam13b_Apart', [(SHOTS['b'], (9.5, -19.0, gz(9.5, -19) + 1.0), (5.5, -13, gz(5.5, -13) + .5)),
                                      (SHOTS['c'] - 1, (9.0, -18.6, gz(9, -18.6) + .95), (5.5, -13, gz(5.5, -13) + .5))], lens=30, fstop=4, focus=5.0)
     mid = (pS + pH) / 2
