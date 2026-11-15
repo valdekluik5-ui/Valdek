@@ -43,7 +43,8 @@ import bears
 importlib.reload(bears)
 
 FPS = 24
-FRAMES = (1, 216)          # 9 seconds
+FRAMES = (1, 624)          # 26 s (song 1:02-1:28)
+CUTS = dict(establish=1, wide=131, faces=361, night=501)
 SUN_ELEV = 3.8             # degrees above the horizon
 SUN_AZ = -8.0              # degrees: 0 = straight ahead of the bears (over the lake), + = to their left
 LAKE_Z = -28.0             # the lake surface, ~45 m below the granite knoll (1 unit ~ 1.6 m, a bear is about a person tall)
@@ -52,12 +53,14 @@ EDGE_Y = -0.12             # the granite lip in front of the bears
 
 def args():
     a = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
-    o = dict(frames=None, camera='wide', engine='eevee', percent=100, samples=None, out=os.path.join(HERE, 'renders', 'scene04'), gpu=False)
+    o = dict(frames=None, camera='edit', engine='eevee', percent=100, samples=None, out=os.path.join(HERE, 'renders', 'scene04'), gpu=False)
     i = 0
     while i < len(a):
         k = a[i].lstrip('-')
         if k == 'gpu':
             o['gpu'] = True; i += 1; continue
+        if k == 'nosave':
+            o['nosave'] = True; i += 1; continue
         o[k] = a[i + 1]; i += 2
     return o
 
@@ -676,28 +679,29 @@ def animate(he, she):
                                 'forearm.L': (10, 0, 0), 'forearm.R': (10, 0, 0)})
     she_rest = dict(sit_legs, **{'spine': (6, 0, 0), 'head': (-6, 0, 0), 'shoulder.L': (12, 0, 8), 'shoulder.R': (12, 0, -8),
                                  'forearm.L': (10, 0, 0), 'forearm.R': (10, 0, 0)})
-    for f in (f0, 40):
+    P, Lx = 130, 258        # the paw beat plays in the wide shot, the lean in the close shot
+    for f in (f0, 40 + P):
         bears.key_pose(he, f, he_rest); bears.key_pose(she, f, she_rest)
     # his near paw (his right) creeps toward hers... a little hesitation... and lands on it
-    bears.key_pose(he, 78, {'shoulder.R': (14, 0, -24), 'head': (-4, -6, 0)})
-    bears.key_pose(he, 92, {'shoulder.R': (14, 0, -25), 'head': (-4, -10, 0)})
-    bears.key_pose(he, 116, {'shoulder.R': (16, 0, -36), 'forearm.R': (14, 0, 0), 'head': (-4, -4, 0)})
+    bears.key_pose(he, 78 + P, {'shoulder.R': (14, 0, -24), 'head': (-4, -6, 0)})
+    bears.key_pose(he, 92 + P, {'shoulder.R': (14, 0, -25), 'head': (-4, -10, 0)})
+    bears.key_pose(he, 116 + P, {'shoulder.R': (16, 0, -36), 'forearm.R': (14, 0, 0), 'head': (-4, -4, 0)})
     # she leans in and rests her head on his shoulder
-    bears.key_pose(she, 112, {'spine': (6, 0, 0), 'head': (-6, 0, 0)})
-    bears.key_pose(she, 160, {'spine': (8, 6, -14), 'head': (4, 14, -20), 'shoulder.L': (14, 0, 28)})
-    she.keyframe_insert('location', frame=112)
+    bears.key_pose(she, 112 + Lx, {'spine': (6, 0, 0), 'head': (-6, 0, 0)})
+    bears.key_pose(she, 160 + Lx, {'spine': (8, 6, -14), 'head': (4, 14, -20), 'shoulder.L': (14, 0, 28)})
+    she.keyframe_insert('location', frame=112 + Lx)
     she.location.x += .07
-    she.keyframe_insert('location', frame=160)
+    she.keyframe_insert('location', frame=160 + Lx)
     she.location.x -= .07
     # he tilts his head toward hers
-    bears.key_pose(he, 140, {'head': (-4, -4, 0), 'spine': (6, 0, 0)})
-    bears.key_pose(he, 176, {'head': (2, -8, 10), 'spine': (6, -3, 6)})
+    bears.key_pose(he, 140 + Lx, {'head': (-4, -4, 0), 'spine': (6, 0, 0)})
+    bears.key_pose(he, 176 + Lx, {'head': (2, -8, 10), 'spine': (6, -3, 6)})
     bears.key_pose(he, f1, {'head': (2, -8, 10), 'spine': (6, -3, 6), 'shoulder.R': (16, 0, -36), 'forearm.R': (14, 0, 0)})
     bears.key_pose(she, f1, {'spine': (8, 6, -14), 'head': (4, 14, -20), 'shoulder.L': (14, 0, 28)})
     # eyes: a blink each, then she closes her eyes, content
     bears.set_eyes(he, 'open', f0); bears.set_eyes(she, 'open', f0)
-    bears.blink(he, 30); bears.blink(she, 58); bears.blink(he, 128)
-    bears.set_eyes(she, 'closed', 164)
+    bears.blink(he, 100); bears.blink(she, 150); bears.blink(he, 300)
+    bears.set_eyes(she, 'closed', 164 + Lx)
     # soft breathing on both (a gentle rise of the spine)
     for b, ph in ((he, 0), (she, 1.3)):
         pb = b.pose.bones['pelvis']
@@ -723,7 +727,7 @@ def make_cameras():
     cd.dof.use_dof = True; cd.dof.aperture_fstop = 5.6
     cam = bpy.data.objects.new('Cam_Wide', cd); sc.collection.objects.link(cam)
     tgt = Vector((-2.4, -16.9, -1.3))
-    for f, p in ((FRAMES[0], (.75, 5.0, 1.55)), (FRAMES[1], (.55, 4.1, 1.35))):
+    for f, p in ((CUTS['wide'], (.75, 5.0, 1.55)), (CUTS['faces'] - 1, (.55, 4.1, 1.35))):
         cam.location = p; look(cam, tgt)
         cam.keyframe_insert('location', frame=f); cam.keyframe_insert('rotation_euler', frame=f)
     focus = bpy.data.objects.new('Focus_Bears', None); sc.collection.objects.link(focus); focus.location = (0, 0, .45)
@@ -732,17 +736,80 @@ def make_cameras():
     cf = bpy.data.cameras.new('Cam_Faces'); cf.lens = 35; cf.sensor_fit = 'VERTICAL'; cf.sensor_height = 24
     cf.dof.use_dof = True; cf.dof.aperture_fstop = 2.0; cf.dof.focus_object = focus
     cam2 = bpy.data.objects.new('Cam_Faces', cf); sc.collection.objects.link(cam2)
-    for f, p in ((FRAMES[0], (.12, -2.75, .62)), (FRAMES[1], (.07, -2.5, .56))):
+    for f, p in ((CUTS['faces'], (.12, -2.75, .62)), (CUTS['night'] - 1, (.07, -2.5, .56))):
         cam2.location = p; look(cam2, (.04, 0, .4))
         cam2.keyframe_insert('location', frame=f); cam2.keyframe_insert('rotation_euler', frame=f)
     # establishing: from out over the lake, the whole granite wall with two tiny bears on top (slow rise)
     ce = bpy.data.cameras.new('Cam_Establish'); ce.lens = 30; ce.sensor_fit = 'VERTICAL'; ce.sensor_height = 24
     cam3 = bpy.data.objects.new('Cam_Establish', ce); sc.collection.objects.link(cam3)
-    for f, p in ((FRAMES[0], (-9, -80, -19)), (FRAMES[1], (-8, -74, -15))):
+    for f, p in ((CUTS['establish'], (-9, -80, -19)), (CUTS['wide'] - 1, (-8, -74, -15))):
         cam3.location = p; look(cam3, (0, 0, -8))
         cam3.keyframe_insert('location', frame=f); cam3.keyframe_insert('rotation_euler', frame=f)
+    # night: behind them again, slowly pulling back and up as the stars come out and the fireflies rise
+    cn = bpy.data.cameras.new('Cam_Night'); cn.lens = 26; cn.sensor_fit = 'VERTICAL'; cn.sensor_height = 24
+    cn.dof.use_dof = True; cn.dof.aperture_fstop = 4; cn.dof.focus_object = focus
+    cam4 = bpy.data.objects.new('Cam_Night', cn); sc.collection.objects.link(cam4)
+    for f, p, t in ((CUTS['night'], (.55, 3.6, 1.2), (-1.6, -16.9, 1.6)), (FRAMES[1], (.85, 5.6, 2.0), (-1.6, -16.9, 3.5))):
+        cam4.location = p; look(cam4, t)
+        cam4.keyframe_insert('location', frame=f); cam4.keyframe_insert('rotation_euler', frame=f)
     sc.camera = cam
     return cam, cam2
+
+
+def nightfall():
+    """The sun goes down after the lean; stars come out; fireflies drift up from the slope."""
+    import film
+    n0, n1 = CUTS['night'] - 30, FRAMES[1] - 20
+    sun = bpy.data.objects['Sun']; w = bpy.context.scene.world; N, L = w.node_tree.nodes, w.node_tree.links
+    bg = N['Background']
+    sky = next(n for n in N if n.bl_idname == 'ShaderNodeTexSky')
+    for f, el in ((1, SUN_ELEV), (n0, SUN_ELEV), (n1 - 40, -.6), (n1, -1.4)):
+        sky.sun_elevation = math.radians(el); sky.keyframe_insert('sun_elevation', frame=f)
+        sun.rotation_euler = (math.radians(90 - el), 0, math.radians(SUN_AZ)); sun.keyframe_insert('rotation_euler', frame=f)
+    for f, en, st in ((1, sun.data.energy, bg.inputs['Strength'].default_value), (n0, sun.data.energy, bg.inputs['Strength'].default_value), (n1, .15, .12)):
+        sun.data.energy = en; sun.data.keyframe_insert('energy', frame=f)
+        bg.inputs['Strength'].default_value = st; bg.inputs['Strength'].keyframe_insert('default_value', frame=f)
+    for n in ('SkyFill', 'BackBounce'):
+        o = bpy.data.objects[n]; e0 = o.data.energy
+        for f, e in ((1, e0), (n0, e0), (n1, e0 * .25)):
+            o.data.energy = e; o.data.keyframe_insert('energy', frame=f)
+    # the evening haze darkens with the light (every material's haze emission)
+    for m in bpy.data.materials:
+        if not m.node_tree:
+            continue
+        for nd in m.node_tree.nodes:
+            if nd.bl_idname == 'ShaderNodeEmission' and m.name not in ('Firefly',) and any(l.to_node.bl_idname == 'ShaderNodeMixShader' for l in nd.outputs[0].links):
+                sv = nd.inputs['Strength']; v0 = sv.default_value
+                for f, v in ((1, v0), (n0, v0), (n1, v0 * .12)):
+                    sv.default_value = v; sv.keyframe_insert('default_value', frame=f)
+    # stars: tiny bright points high in the sky, faded in
+    link_in = bg.inputs['Color'].links[0].from_socket
+    tc = N.new('ShaderNodeTexCoord'); vo = N.new('ShaderNodeTexVoronoi'); vo.inputs['Scale'].default_value = 260
+    L.new(tc.outputs['Generated'], vo.inputs['Vector'])
+    st = N.new('ShaderNodeMapRange'); st.inputs['From Min'].default_value = .05; st.inputs['From Max'].default_value = 0.0; st.inputs['To Max'].default_value = 40.0
+    L.new(vo.outputs['Distance'], st.inputs['Value'])
+    sep = N.new('ShaderNodeSeparateXYZ'); L.new(tc.outputs['Generated'], sep.inputs[0])
+    hz = N.new('ShaderNodeMapRange'); hz.inputs['From Min'].default_value = .06; hz.inputs['From Max'].default_value = .25; L.new(sep.outputs['Z'], hz.inputs['Value'])
+    k = N.new('ShaderNodeMath'); k.operation = 'MULTIPLY'; L.new(st.outputs['Result'], k.inputs[0]); L.new(hz.outputs['Result'], k.inputs[1])
+    fade = N.new('ShaderNodeMath'); fade.operation = 'MULTIPLY'; L.new(k.outputs[0], fade.inputs[0])
+    for f, v in ((1, 0.0), (CUTS['night'] + 10, 0.0), (n1, 1.0)):
+        fade.inputs[1].default_value = v; fade.inputs[1].keyframe_insert('default_value', frame=f)
+    add = N.new('ShaderNodeMix'); add.data_type = 'RGBA'; add.blend_type = 'ADD'
+    L.new(fade.outputs[0], add.inputs['Factor']); L.new(link_in, add.inputs['A']); add.inputs['B'].default_value = (.85, .9, 1, 1)
+    L.new(add.outputs['Result'], bg.inputs['Color'])
+    # fireflies
+    glow = film.emit_mat('Firefly', (1, .85, .35), 30)
+    col = new_coll('Fireflies'); rng = np.random.default_rng(13)
+    for i in range(36):
+        base = Vector((rng.uniform(-4, 4), rng.uniform(-6, -1.2), rng.uniform(-3, .6)))
+        o = film.blob(f'Firefly{i}', base, (.012, .012, .012), col, glow, sub=1, rough=0)
+        film.key_visible(o, 1, False); film.key_visible(o, int(CUTS['night'] + rng.uniform(5, 60)), True)
+        for f in range(CUTS['night'], FRAMES[1] + 1, 12):
+            o.location = base + Vector((.3 * math.sin(f / 23 + i), .3 * math.cos(f / 29 + 2 * i), (f - CUTS['night']) * .004 + .15 * math.sin(f / 17 + i)))
+            o.keyframe_insert('location', frame=f)
+    gl = bpy.data.materials['Firefly'].node_tree.nodes['Emission'].inputs['Strength']
+    for f in range(CUTS['night'], FRAMES[1] + 1, 6):
+        gl.default_value = 18 + 14 * math.sin(f * .9); gl.keyframe_insert('default_value', frame=f)
 
 
 def camera_sights():
@@ -811,7 +878,8 @@ def build():
     he, she = place_bears()
     animate(he, she)
     make_cameras()
-    sc.frame_set(170)
+    nightfall()
+    sc.frame_set(400)
     print(f'Scene 4 built in {time.time() - t:.1f} s')
     return he, she
 
@@ -834,20 +902,21 @@ if __name__ == '__main__':
     sc = bpy.context.scene
     if o['camera'] == 'edit':
         # a little cut: establishing -> wide -> faces (timeline markers switch the camera)
-        for f, name in ((FRAMES[0], 'Cam_Establish'), (64, 'Cam_Wide'), (150, 'Cam_Faces')):
+        for f, name in ((CUTS['establish'], 'Cam_Establish'), (CUTS['wide'], 'Cam_Wide'), (CUTS['faces'], 'Cam_Faces'), (CUTS['night'], 'Cam_Night')):
             mk = sc.timeline_markers.new(name, frame=f); mk.camera = bpy.data.objects[name]
         sc.camera = bpy.data.objects['Cam_Establish']
     else:
         sc.camera = bpy.data.objects['Cam_' + o['camera'].capitalize()]
-    try:
-        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, 'scene04_cliff.blend'))
-    except Exception as ex:
-        print('Could not save the .blend:', ex)
+    if not o.get('nosave'):
+        try:
+            bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, 'scene04_cliff.blend'))
+        except Exception as ex:
+            print('Could not save the .blend:', ex)
     if bpy.app.background:
-        frames = parse_frames(o['frames'], 170)
+        frames = parse_frames(o['frames'], 400)
         os.makedirs(o['out'], exist_ok=True)
         for f in frames:
-            path = os.path.join(o['out'], f"{o['camera']}_{f:04d}.png")
+            path = os.path.join(o['out'], f"{f:04d}.png" if o['camera'] == 'edit' else f"{o['camera']}_{f:04d}.png")
             if os.path.exists(path):
                 print('skip', path); continue
             sc.frame_set(f); sc.render.filepath = path
