@@ -342,16 +342,20 @@ def _const(idb):
 
 
 # ---------------------------------------------------------------- cameras
-def look(cam, target):
-    cam.rotation_euler = (Vector(target) - cam.location).to_track_quat('-Z', 'Y').to_euler()
+def look(cam, target, prev=None):
+    """Aim at target. With prev (the previous key's rotation) the angles stay continuous, so the camera never spins the
+    long way round between two keys."""
+    q = (Vector(target) - cam.location).to_track_quat('-Z', 'Y')
+    cam.rotation_euler = q.to_euler('XYZ', prev) if prev is not None else q.to_euler()
 
 
 def camera(name, keys, lens=35, fstop=None, focus=None):
     """keys: [(frame, location, target), ...] (a slow move between them). Returns the camera object."""
     cd = bpy.data.cameras.new(name); cd.lens = lens; cd.sensor_fit = 'VERTICAL'; cd.sensor_height = 24
     cam = link(bpy.data.objects.new(name, cd))
+    prev = None
     for f, loc, tgt in keys:
-        cam.location = loc; look(cam, tgt)
+        cam.location = loc; look(cam, tgt, prev); prev = cam.rotation_euler.copy()
         cam.keyframe_insert('location', frame=f); cam.keyframe_insert('rotation_euler', frame=f)
     if fstop:
         cd.dof.use_dof = True; cd.dof.aperture_fstop = fstop
@@ -622,6 +626,8 @@ def parse_args(sid):
             o[k] = True; i += 1; continue
         if k == 'nosave':
             o['save'] = False; i += 1; continue
+        if k == 'preview':
+            o['preview'] = True; i += 1; continue
         o[k] = a[i + 1]; i += 2
     return o
 
@@ -637,6 +643,62 @@ def parse_frames(s, default):
     return [int(v) for v in s.split(',')]
 
 
+def bring_to_life(f0, f1, seed=0):
+    """Life on top of each scene's acting, for every bear: breathing, natural blinks while the eyes are open, and a
+    small, slow drift of the head and body (so a bear is never frozen). Added as F-curve modifiers, so it stacks on top of
+    the keyed animation instead of replacing it."""
+    import bears
+    rng = np.random.default_rng(seed)
+    for k, arm in enumerate([o for o in bpy.data.objects if o.type == 'ARMATURE' and 'who' in o.keys()]):
+        if not arm.animation_data or not arm.animation_data.action:
+            arm.keyframe_insert('location', frame=f0)
+        def fc_for(path, idx):
+            for fc in bears._fcurves(arm):
+                if fc.data_path == path and fc.array_index == idx:
+                    return fc
+            return None
+        # make sure the channels exist
+        for bn in ('pelvis', 'spine', 'head'):
+            pb = arm.pose.bones[bn]
+            if fc_for(f'pose.bones["{bn}"].rotation_euler', 0) is None:
+                pb.keyframe_insert('rotation_euler', frame=f0)
+        if fc_for('pose.bones["pelvis"].scale', 1) is None:
+            arm.pose.bones['pelvis'].keyframe_insert('scale', frame=f0)
+        # breathing: a slow swell of the body (about every 3.6 s), each bear in its own rhythm
+        fc = fc_for('pose.bones["pelvis"].scale', 1)
+        if not any(m.type == 'FNGENERATOR' for m in fc.modifiers):
+            m = fc.modifiers.new('FNGENERATOR'); m.function_type = 'SIN'; m.use_additive = True
+            m.amplitude = .013; m.phase_multiplier = 2 * PI / (24 * rng.uniform(3.2, 4.0)); m.phase_offset = rng.uniform(0, 6)
+        # head and body drift: gentle noise on the keyed rotations
+        for bn, amp, sc_ in (('head', .05, 70), ('spine', .02, 110)):
+            for idx in range(3):
+                fc = fc_for(f'pose.bones["{bn}"].rotation_euler', idx)
+                if fc is None or any(m.type == 'NOISE' for m in fc.modifiers):
+                    continue
+                m = fc.modifiers.new('NOISE'); m.blend_type = 'ADD'; m.strength = amp * (1 if idx != 1 else 1.4)
+                m.scale = sc_ * rng.uniform(.8, 1.2); m.phase = rng.uniform(0, 100); m.offset = rng.uniform(0, 500)
+        # blinks every 2.5-5 s while the eyes are open, never right next to an acted eye change
+        efc = fc_for('["eyes"]', 0)
+        acted = sorted(kp.co.x for kp in efc.keyframe_points) if efc else []
+        f = f0 + int(rng.uniform(20, 70))
+        while f < f1 - 6:
+            open_now = efc is None or (round(efc.evaluate(f)) == 0 and round(efc.evaluate(f + 4)) == 0)
+            if open_now and all(abs(f - a) > 10 for a in acted):
+                bears.blink(arm, f, 3 + int(rng.integers(0, 2)))
+                efc = fc_for('["eyes"]', 0)
+            f += int(rng.uniform(60, 120))
+
+
+def preview_mode(samples=8):
+    """Lighter settings for quick moving previews on a CPU: thinner fur and grass, fewer samples."""
+    for ps in bpy.data.particles:
+        if ps.type == 'HAIR' and ps.render_type == 'PATH':
+            ps.rendered_child_count = min(ps.rendered_child_count, 10)
+    sc = bpy.context.scene
+    if sc.render.engine == 'CYCLES':
+        sc.cycles.samples = samples; sc.cycles.use_denoising = True
+
+
 def run(build, sid, still_frame=None):
     """Build the scene, set up rendering, save the .blend and (in background mode) render the requested frames."""
     o = parse_args(sid)
@@ -645,7 +707,10 @@ def run(build, sid, still_frame=None):
     clear_scene()
     bpy.context.scene.name = f"S{sid}_{TIMELINE[sid]['name']}"
     build()
+    bring_to_life(f0, f1, seed=int(sid))
     setup_render(o['engine'], o['percent'], o['samples'], o['gpu'], (f0, f1))
+    if o.get('preview'):
+        preview_mode(int(o['samples'] or 8))
     sc = bpy.context.scene
     if o['camera'] != 'edit':
         sc.timeline_markers.clear(); sc.camera = bpy.data.objects[o['camera']]

@@ -716,8 +716,11 @@ def animate(he, she):
 
 
 # ---------------------------------------------------------------- cameras
-def look(cam, target):
-    cam.rotation_euler = (Vector(target) - cam.location).to_track_quat('-Z', 'Y').to_euler()
+def look(cam, target, prev=None):
+    q = (Vector(target) - cam.location).to_track_quat('-Z', 'Y')
+    from mathutils import Euler
+    cam.rotation_euler = q.to_euler('XYZ', Euler(tuple(prev))) if prev is not None else q.to_euler()
+    return cam.rotation_euler.copy()
 
 
 def make_cameras():
@@ -728,7 +731,7 @@ def make_cameras():
     cam = bpy.data.objects.new('Cam_Wide', cd); sc.collection.objects.link(cam)
     tgt = Vector((-2.4, -16.9, -1.3))
     for f, p in ((CUTS['wide'], (.75, 5.0, 1.55)), (CUTS['faces'] - 1, (.55, 4.1, 1.35))):
-        cam.location = p; look(cam, tgt)
+        cam.location = p; look(cam, tgt, cam.get('_prev')); cam['_prev'] = cam.rotation_euler.copy()
         cam.keyframe_insert('location', frame=f); cam.keyframe_insert('rotation_euler', frame=f)
     focus = bpy.data.objects.new('Focus_Bears', None); sc.collection.objects.link(focus); focus.location = (0, 0, .45)
     cd.dof.focus_object = focus
@@ -737,20 +740,20 @@ def make_cameras():
     cf.dof.use_dof = True; cf.dof.aperture_fstop = 2.0; cf.dof.focus_object = focus
     cam2 = bpy.data.objects.new('Cam_Faces', cf); sc.collection.objects.link(cam2)
     for f, p in ((CUTS['faces'], (.12, -2.75, .62)), (CUTS['night'] - 1, (.07, -2.5, .56))):
-        cam2.location = p; look(cam2, (.04, 0, .4))
+        cam2.location = p; look(cam2, (.04, 0, .4), cam2.get('_prev')); cam2['_prev'] = cam2.rotation_euler.copy()
         cam2.keyframe_insert('location', frame=f); cam2.keyframe_insert('rotation_euler', frame=f)
     # establishing: from out over the lake, the whole granite wall with two tiny bears on top (slow rise)
     ce = bpy.data.cameras.new('Cam_Establish'); ce.lens = 30; ce.sensor_fit = 'VERTICAL'; ce.sensor_height = 24
     cam3 = bpy.data.objects.new('Cam_Establish', ce); sc.collection.objects.link(cam3)
     for f, p in ((CUTS['establish'], (-9, -80, -19)), (CUTS['wide'] - 1, (-8, -74, -15))):
-        cam3.location = p; look(cam3, (0, 0, -8))
+        cam3.location = p; look(cam3, (0, 0, -8), cam3.get('_prev')); cam3['_prev'] = cam3.rotation_euler.copy()
         cam3.keyframe_insert('location', frame=f); cam3.keyframe_insert('rotation_euler', frame=f)
     # night: behind them again, slowly pulling back and up as the stars come out and the fireflies rise
     cn = bpy.data.cameras.new('Cam_Night'); cn.lens = 26; cn.sensor_fit = 'VERTICAL'; cn.sensor_height = 24
     cn.dof.use_dof = True; cn.dof.aperture_fstop = 4; cn.dof.focus_object = focus
     cam4 = bpy.data.objects.new('Cam_Night', cn); sc.collection.objects.link(cam4)
     for f, p, t in ((CUTS['night'], (.55, 3.6, 1.2), (-1.6, -16.9, 1.6)), (FRAMES[1], (.85, 5.6, 2.0), (-1.6, -16.9, 3.5))):
-        cam4.location = p; look(cam4, t)
+        cam4.location = p; look(cam4, t, cam4.get('_prev')); cam4['_prev'] = cam4.rotation_euler.copy()
         cam4.keyframe_insert('location', frame=f); cam4.keyframe_insert('rotation_euler', frame=f)
     sc.camera = cam
     return cam, cam2

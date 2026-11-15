@@ -54,13 +54,20 @@ def snowy(name, base, rough=.6, noise_scale=1.0, speck=None, cobbles=False, bias
     L.new(P, nz.inputs['Vector']); L.new(nz.outputs['Fac'], col.inputs['Fac'])
     base_col = col.outputs['Color']
     if cobbles:
-        vo = N.new('ShaderNodeTexVoronoi'); vo.feature = 'DISTANCE_TO_EDGE'; vo.inputs['Scale'].default_value = 9
+        vo = N.new('ShaderNodeTexVoronoi'); vo.feature = 'DISTANCE_TO_EDGE'; vo.inputs['Scale'].default_value = 11
         L.new(P, vo.inputs['Vector'])
-        jr = N.new('ShaderNodeValToRGB'); jr.color_ramp.elements[0].color = (.25, .25, .25, 1); jr.color_ramp.elements[1].position = .08
+        vc = N.new('ShaderNodeTexVoronoi'); vc.inputs['Scale'].default_value = 11; L.new(P, vc.inputs['Vector'])
+        sc_ = N.new('ShaderNodeMapRange'); sc_.inputs['To Min'].default_value = .7; sc_.inputs['To Max'].default_value = 1.25
+        L.new(vc.outputs['Distance'], sc_.inputs['Value'])
+        jr = N.new('ShaderNodeValToRGB'); jr.color_ramp.elements[0].color = (.12, .12, .12, 1); jr.color_ramp.elements[1].position = .05
+        stone = N.new('ShaderNodeMix'); stone.data_type = 'RGBA'; stone.blend_type = 'MULTIPLY'; stone.inputs['Factor'].default_value = 1
+        L.new(base_col, stone.inputs['A']); L.new(vc.outputs['Color'], stone.inputs['B'])
+        st2 = N.new('ShaderNodeMix'); st2.data_type = 'RGBA'; st2.inputs['Factor'].default_value = .75
+        L.new(stone.outputs['Result'], st2.inputs['A']); L.new(base_col, st2.inputs['B']); base_col = st2.outputs['Result']
         L.new(vo.outputs['Distance'], jr.inputs['Fac'])
         mx = N.new('ShaderNodeMix'); mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = 1
         L.new(base_col, mx.inputs['A']); L.new(jr.outputs['Color'], mx.inputs['B']); base_col = mx.outputs['Result']
-        bump = N.new('ShaderNodeBump'); bump.inputs['Strength'].default_value = .4
+        bump = N.new('ShaderNodeBump'); bump.inputs['Strength'].default_value = .3; bump.inputs['Distance'].default_value = .02
         L.new(vo.outputs['Distance'], bump.inputs['Height']); L.new(bump.outputs['Normal'], b.inputs['Normal'])
     L.new(base_col, b.inputs['Base Color'])
     # puddles: wet and glossy
@@ -93,21 +100,58 @@ def snowy(name, base, rough=.6, noise_scale=1.0, speck=None, cobbles=False, bias
 
 
 def facade_material(name, wall, axis):
-    """Neoclassical facade: wall colour with a grid of dark windows (Brick texture). axis 'x' = wall faces +-X."""
+    """Neoclassical facade: pastel plaster with framed, reflective windows in a grid, a cornice band at every floor,
+    and a darker plinth. axis 'x' = the wall faces +-X. (The Brick texture lays out the window grid.)"""
     m, N, L, b = node_mat(name)
     tc = N.new('ShaderNodeTexCoord'); sep = N.new('ShaderNodeSeparateXYZ'); L.new(tc.outputs['Object'], sep.inputs[0])
     cmb = N.new('ShaderNodeCombineXYZ')
     L.new(sep.outputs['Y' if axis == 'x' else 'X'], cmb.inputs['X']); L.new(sep.outputs['Z'], cmb.inputs['Y'])
-    br = N.new('ShaderNodeTexBrick'); br.offset = 0; br.squash = 1
-    br.inputs['Scale'].default_value = 1; br.inputs['Brick Width'].default_value = 1.1; br.inputs['Row Height'].default_value = 1.9
-    br.inputs['Mortar Size'].default_value = .65; br.inputs['Mortar Smooth'].default_value = .05
-    br.inputs['Color1'].default_value = (.03, .035, .045, 1); br.inputs['Color2'].default_value = (.05, .055, .07, 1)
-    br.inputs['Mortar'].default_value = (*wall, 1)
-    mp = N.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (.42, .42, 1)
-    L.new(cmb.outputs['Vector'], mp.inputs['Vector']); L.new(mp.outputs['Vector'], br.inputs['Vector'])
-    L.new(br.outputs['Color'], b.inputs['Base Color'])
-    rr = N.new('ShaderNodeMapRange'); rr.inputs['To Min'].default_value = .1; rr.inputs['To Max'].default_value = .75
-    L.new(br.outputs['Fac'], rr.inputs['Value']); L.new(rr.outputs['Result'], b.inputs['Roughness'])
+    mp = N.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (.42, .42, 1); mp.inputs['Location'].default_value = (0, -.25, 0)
+    L.new(cmb.outputs['Vector'], mp.inputs['Vector'])
+
+    def grid(mortar):
+        br = N.new('ShaderNodeTexBrick'); br.offset = 0; br.squash = 1
+        br.inputs['Scale'].default_value = 1; br.inputs['Brick Width'].default_value = 1.1; br.inputs['Row Height'].default_value = 1.9
+        br.inputs['Mortar Size'].default_value = mortar; br.inputs['Mortar Smooth'].default_value = 0
+        br.inputs['Color1'].default_value = (1, 1, 1, 1); br.inputs['Color2'].default_value = (1, 1, 1, 1); br.inputs['Mortar'].default_value = (0, 0, 0, 1)
+        L.new(mp.outputs['Vector'], br.inputs['Vector'])
+        return br
+    glass = grid(.68); frame = grid(.6)                        # Fac: 1 = mortar (wall), 0 = brick (window)
+    win = N.new('ShaderNodeMath'); win.operation = 'SUBTRACT'; win.inputs[0].default_value = 1; L.new(glass.outputs['Fac'], win.inputs[1])
+    fr = N.new('ShaderNodeMath'); fr.operation = 'SUBTRACT'; fr.inputs[0].default_value = 1; L.new(frame.outputs['Fac'], fr.inputs[1])
+    # plaster with a soft variation and a cornice line at each floor
+    nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = .8; L.new(tc.outputs['Object'], nz.inputs['Vector'])
+    pl = N.new('ShaderNodeValToRGB'); pl.color_ramp.elements[0].color = (*[c * .85 for c in wall], 1); pl.color_ramp.elements[1].color = (*[min(1, c * 1.08) for c in wall], 1)
+    L.new(nz.outputs['Fac'], pl.inputs['Fac'])
+    band = N.new('ShaderNodeMath'); band.operation = 'PINGPONG'; band.inputs[1].default_value = 2.26
+    L.new(sep.outputs['Z'], band.inputs[0])
+    bl = N.new('ShaderNodeMath'); bl.operation = 'LESS_THAN'; bl.inputs[1].default_value = .12; L.new(band.outputs[0], bl.inputs[0])
+    trim = [min(1, c * 1.22) for c in wall]
+    col = N.new('ShaderNodeMix'); col.data_type = 'RGBA'; L.new(bl.outputs[0], col.inputs['Factor'])
+    L.new(pl.outputs['Color'], col.inputs['A']); col.inputs['B'].default_value = (*trim, 1)
+    # plinth (ground floor up to 1 m) darker
+    pz = N.new('ShaderNodeMath'); pz.operation = 'LESS_THAN'; pz.inputs[1].default_value = 1.0; L.new(sep.outputs['Z'], pz.inputs[0])
+    col2 = N.new('ShaderNodeMix'); col2.data_type = 'RGBA'; L.new(pz.outputs[0], col2.inputs['Factor'])
+    L.new(col.outputs['Result'], col2.inputs['A']); col2.inputs['B'].default_value = (.18, .17, .16, 1)
+    # window frame (white) and glass (dark, glossy, a hint of warm reflection)
+    c3 = N.new('ShaderNodeMix'); c3.data_type = 'RGBA'; L.new(fr.outputs[0], c3.inputs['Factor'])
+    L.new(col2.outputs['Result'], c3.inputs['A']); c3.inputs['B'].default_value = (.82, .8, .76, 1)
+    c4 = N.new('ShaderNodeMix'); c4.data_type = 'RGBA'; L.new(win.outputs[0], c4.inputs['Factor'])
+    L.new(c3.outputs['Result'], c4.inputs['A']); c4.inputs['B'].default_value = (.02, .025, .035, 1)
+    L.new(c4.outputs['Result'], b.inputs['Base Color'])
+    rr = N.new('ShaderNodeMapRange'); rr.inputs['To Min'].default_value = .8; rr.inputs['To Max'].default_value = .06
+    L.new(win.outputs[0], rr.inputs['Value']); L.new(rr.outputs['Result'], b.inputs['Roughness'])
+    mt = N.new('ShaderNodeMapRange'); mt.inputs['To Max'].default_value = .6; L.new(win.outputs[0], mt.inputs['Value']); L.new(mt.outputs['Result'], b.inputs['Metallic'])
+    # relief: windows set back, frames proud
+    hsum = N.new('ShaderNodeMath'); hsum.operation = 'SUBTRACT'; L.new(fr.outputs[0], hsum.inputs[0]); L.new(win.outputs[0], hsum.inputs[1])
+    bump = N.new('ShaderNodeBump'); bump.inputs['Strength'].default_value = .6; bump.inputs['Distance'].default_value = .05
+    L.new(hsum.outputs[0], bump.inputs['Height']); L.new(bump.outputs['Normal'], b.inputs['Normal'])
+    # keep a node named like the old Brick texture, so night scenes can light the windows
+    br_old = N.new('ShaderNodeTexBrick'); br_old.label = 'window grid'
+    L.new(mp.outputs['Vector'], br_old.inputs['Vector'])
+    for k, v in (('Brick Width', 1.1), ('Row Height', 1.9), ('Mortar Size', .68), ('Scale', 1)):
+        br_old.inputs[k].default_value = v
+    br_old.offset = 0; br_old.squash = 1
     add_haze(m, N, L, b)
     return m
 
@@ -133,14 +177,14 @@ def build_cathedral(coll):
     zinc = mat('ZincStatue', (.12, .13, .13), rough=.5, metal=.6, haze=True)
     cx, cy = CATH
     # platform and the great steps
-    stairs_m = snowy('Steps', (.3, .29, .28), rough=.55, noise_scale=1.3, bias=.14)
+    stairs_m = snowy('Steps', (.24, .23, .22), rough=.5, noise_scale=1.6, bias=.0)
     box('Platform', (62, 43.5, Z0), (cx, cy, 0), granite, coll)
     box('PlatformTop', (62, 43.5, .02), (cx, cy, Z0), stairs_m, coll)
     for k in range(40):
         z, y = step_top(k)
-        box(f'Step{k:02d}', (36, 31.5 - y, z), (0, y + (31.5 - y) / 2, 0), stairs_m, coll)
+        box(f'Step{k:02d}', (61, 31.5 - y, z), (0, y + (31.5 - y) / 2, 0), stairs_m, coll)
     for sx in (-1, 1):
-        box(f'StairWall{sx}', (1.6, 14.4, Z0 + .5), (sx * 18.8, STEP_Y0 + 7.0, 0), granite, coll)
+        box(f'StairWall{sx}', (1.0, 14.4, Z0 + .3), (sx * 30.9, STEP_Y0 + 7.0, 0), granite, coll)
     # core, cornice, drum, dome, lantern, cross
     box('Core', (24, 24, 16), (cx, cy, Z0), white, coll)
     box('Cornice', (25.2, 25.2, .9), (cx, cy, Z0 + 15.3), white, coll)
@@ -206,7 +250,8 @@ def lamp_post(name, loc, coll, m_iron, m_glass, icicles=0, rng=None):
     cylinder(name + '_cap', .34, .18, (x, y, z + 4.55), m_iron, coll, n=8, r2=.05)
     cylinder(name + '_bottom', .26, .08, (x, y, z + 3.93), m_iron, coll, n=8)
     obs = []
-    ice = mat('Ice', (.75, .85, .95), rough=.04, transmission=.9)
+    ice = mat('Ice', (.85, .93, 1.0), rough=.08, transmission=1.0)
+    ice.node_tree.nodes['Principled BSDF'].inputs['IOR'].default_value = 1.31
     for i in range(icicles):
         a = 2 * PI * i / max(icicles, 1)
         L = .25 + .2 * (rng.random() if rng is not None else .5) + (.12 if i == 0 else 0)
@@ -241,6 +286,9 @@ def build_city(coll):
     facade_building('NorthWest', (26, 18, 13), (-44, 70, 0), (.7, .58, .38), coll, False)
     # the market side by the harbour (behind the south houses)
     facade_building('HarbourRow', (70, 12, 14), (-10, -112, 0), (.66, .5, .36), coll, False)
+    # melt water: a wide shallow puddle in front of the low camera
+    film.mesh_obj('MeltPuddle', [(-24, -34, .004), (-4, -34, .004), (-4, -18, .004), (-24, -18, .004)], [(0, 1, 2, 3)], coll,
+                  [film.water_material('MeltWater', color=(.02, .022, .025), rough=.02, wave=.04, scale=2)])
     # the statue in the middle of the square
     granite = bpy.data.materials['GraniteBase']; bronze = mat('Bronze', (.05, .08, .07), rough=.4, metal=.7, haze=True)
     box('StatueBase', (6, 6, 1.2), (0, -2, 0), granite, coll)
@@ -267,6 +315,21 @@ def build_city(coll):
     box('QuayEdge', (240, 2.0, 2.4), (0, -151, -2.4), quay, coll)
     film.mesh_obj('Sea', [(-400, -152, -1.6), (400, -152, -1.6), (400, -700, -1.6), (-400, -700, -1.6)], [(0, 1, 2, 3)], coll,
                   [film.water_material('Sea', color=(.01, .018, .025), rough=.05, wave=.12)])
+    # boats moored along the quay and out on the water, and the islands on the horizon
+    hullc = [(.75, .74, .7), (.12, .2, .35), (.55, .12, .1), (.85, .84, .8)]
+    for i, (x, y, L_, rz) in enumerate(((-26, -156, 7, .05), (-14, -158, 5, -.04), (18, -157, 9, .02), (32, -159, 6, 0), (-60, -210, 22, .3), (40, -260, 30, -.2))):
+        hm_ = mat(f'Hull{i}', hullc[i % 4], rough=.35, coat=.4, haze=True)
+        hull = box(f'Hull{i}', (L_ * .32, L_, L_ * .12), (x, y, -1.75), hm_, coll, bevel=L_ * .05); hull.rotation_euler = (0, 0, PI / 2 + rz)
+        cab = box(f'Cabin{i}', (L_ * .2, L_ * .35, L_ * .1), (x, y, -1.75 + L_ * .12), mat(f'Cabin{i}', (.85, .84, .8), rough=.5, haze=True), coll, bevel=L_ * .02)
+        cab.rotation_euler = (0, 0, PI / 2 + rz)
+        if L_ < 12:
+            cylinder(f'Mast{i}', .04, L_ * .9, (x, y, -1.75 + L_ * .12), mat('Mast', (.8, .8, .78), rough=.4, haze=True), coll, n=6)
+    isle = mat('Island', (.06, .08, .05), rough=.9, haze=True)
+    for i, (x, w_, h_) in enumerate(((-140, 120, 9), (30, 160, 12), (190, 110, 7))):
+        blob(f'Island{i}', (x, -520, -2.5), (w_ / 2, 30, h_), coll, isle, sub=3, rough=.3, seed=300 + i)
+    gull = mat('Gull', (.9, .9, .9), rough=.6, haze=True)
+    for i in range(12):
+        g = blob(f'Gull{i}', (rng.uniform(-30, 30), rng.uniform(-170, -160), -1.5), (.12, .3, .1), coll, gull, sub=1)
     floe = mat('Floe', (.75, .8, .86), rough=.35, sss=.3, haze=True)
     for i in range(70):
         x = rng.uniform(-60, 60); y = -154 - rng.exponential(25)
@@ -378,6 +441,7 @@ def animate_bears(bears):
 def build():
     bears = film.import_bears()
     film.HAZE.update(color=(.75, .78, .85), start=40.0, dist=320.0, strength=.4)
+    bpy.context.scene.view_settings.exposure = -.6
     sets = film.new_coll('Helsinki')
     build_cathedral(sets)
     build_city(sets)
@@ -386,16 +450,17 @@ def build():
     he, she = animate_bears(bears)
     # the jump down from the platform for bears walking on the square uses ground z = 0
     # ---- cameras
-    A = film.camera('Cam1a_Cathedral', [(SHOTS['a'], (17, -46, 1.4), (0, 40, 16)), (SHOTS['b'] - 1, (12.5, -32, 1.9), (0, 40, 17))], lens=30)
-    B = film.camera('Cam1b_Icicle', [(SHOTS['b'], (tx - .75, ty - .8, tz - .55), (tx, ty, tz + .22)),
-                                     (SHOTS['c'] - 1, (tx - .68, ty - .74, tz - .5), (tx, ty, tz + .2))], lens=55, fstop=2.0, focus=(tx, ty, tz))
+    A = film.camera('Cam1a_Cathedral', [(SHOTS['a'], (2.0, -62, 1.3), (0, 40, 15)), (SHOTS['b'] - 1, (1.0, -50, 1.6), (0, 40, 16))], lens=24)
+    # the thaw: low over the wet cobbles, the cathedral mirrored in the melt water, drifting slowly sideways
+    B = film.camera('Cam1b_Reflection', [(SHOTS['b'], (-16.0, -33, .2), (-3.0, 40, 10)), (SHOTS['c'] - 1, (-12.5, -33, .24), (-1.0, 40, 10))],
+                    lens=30, fstop=2.8, focus=40.0)
     zs, ys = step_top(11)
-    C = film.camera('Cam1c_Steps', [(SHOTS['c'], (-.6, 14.4, 1.35), (-2.1, 20.3, 1.5)), (SHOTS['d'] - 1, (-1.0, 14.8, 1.3), (-2.2, 20.3, 1.5))],
-                    lens=35, fstop=4, focus=(-2, 20, 1.5))
-    D = film.camera('Cam1d_Square', [(SHOTS['d'], (1.2, -18.5, 1.05), (0, -10.8, .75)), (SHOTS['e'] - 1, (-.4, -18.2, 1.0), (0, -10.8, .75))],
-                    lens=32, fstop=4, focus=(0, -11, .6))
-    E = film.camera('Cam1e_Harbour', [(SHOTS['e'], (-.1, -152.8, .85), (-.1, -146.8, .55)), (SHOTS['end'], (.4, -152.4, .82), (.5, -146.8, .55))],
-                    lens=30, fstop=4, focus=(0, -146.8, .5))
+    C = film.camera('Cam1c_Steps', [(SHOTS['c'], (2.2, 11.6, 1.25), (-1.2, 20.0, 1.55)), (SHOTS['d'] - 1, (1.4, 12.2, 1.2), (-1.6, 20.0, 1.55))],
+                    lens=26, fstop=4, focus=(-1, 19, 1.2))
+    D = film.camera('Cam1d_Square', [(SHOTS['d'], (5.5, -24.5, .9), (0, -10.8, 1.6)), (SHOTS['e'] - 1, (4.6, -23.5, .9), (0, -10.8, 1.6))],
+                    lens=40, fstop=4, focus=(0, -11, .6))
+    E = film.camera('Cam1e_Harbour', [(SHOTS['e'], (.1, -142.4, 1.2), (0, -170, .1)), (SHOTS['end'], (1.6, -141.6, 1.3), (2.6, -170, .1))],
+                    lens=20, fstop=4, focus=(0, -146.8, .5))
     for f, cam in ((SHOTS['a'], A), (SHOTS['b'], B), (SHOTS['c'], C), (SHOTS['d'], D), (SHOTS['e'], E)):
         film.cut(f, cam)
 
