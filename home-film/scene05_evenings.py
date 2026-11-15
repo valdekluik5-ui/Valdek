@@ -153,8 +153,8 @@ def build():
     bears.key_pose(he, c + 70, {'head': (12, -10, 18), 'spine': (6, 0, 6)}); bears.key_pose(he, SHOTS['end'], {'head': (14, -10, 20), 'spine': (6, 0, 6)})
     bears.set_eyes(she, 'closed', c + 30); bears.blink(he, c + 40); bears.set_eyes(he, 'closed', c + 62)
     # cameras
-    A = film.camera('Cam5a_Balcony', [(SHOTS['a'], (B.x + .25, B.y - .72, B.z + 1.25), (B.x - 1.5, B.y + 12, B.z - 1.0)),
-                                      (SHOTS['b'] - 1, (B.x + .15, B.y - .7, B.z + 1.15), (B.x - 1.5, B.y + 12, B.z - 1.1))], lens=18, fstop=5.6,
+    A = film.camera('Cam5a_Balcony', [(SHOTS['a'], (B.x + .05, B.y - .78, B.z + 1.7), (B.x - 1.0, B.y + 14, B.z - 1.6)),
+                                      (SHOTS['b'] - 1, (B.x, B.y - .78, B.z + 1.55), (B.x - 1.0, B.y + 14, B.z - 1.7))], lens=20, fstop=5.6,
                     focus=(B.x, B.y, B.z + .5))
     Bc = film.camera('Cam5b_Movie', [(SHOTS['b'], (LR.x + .35, LR.y - 1.4, LR.z + .78), (LR.x, LR.y + 1.18, LR.z + .72)),
                                      (SHOTS['c'] - 1, (LR.x + .25, LR.y - 1.25, LR.z + .78), (LR.x, LR.y + 1.18, LR.z + .72))], lens=35, fstop=2.8,

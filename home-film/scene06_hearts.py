@@ -63,7 +63,7 @@ def bedroom(coll):
     win = film.area_light('WindowLight', T(2.6, -.1, 1.4), T(0, -.1, .6), 250, 1.0, (.45, .55, 1.0))
     fill = film.area_light('BRFill', T(0, -2.5, 2.2), T(0, 0, .6), 8, 2, (.4, .5, .9))
     lamp = film.point_light('BRLamp', T(-1.15, .7, .85), 0, (1, .6, .3), .1)
-    for f, (we, wc, fe, fc, le) in ((SHOTS['c'], (250, (.45, .55, 1.0), 25, (.4, .5, .9), 10)),
+    for f, (we, wc, fe, fc, le) in ((SHOTS['c'], (700, (.45, .55, 1.0), 60, (.4, .5, .9), 25)),
                                     (SHOTS['d'], (900, (1, .8, .55), 40, (1, .8, .65), 0))):
         film.key_light(win, f, energy=we, color=wc); film.key_light(fill, f, energy=fe, color=fc); film.key_light(lamp, f, energy=le)
 
@@ -170,8 +170,8 @@ def build():
                     focus=(B.x, B.y, B.z + .6))
     Bc = film.camera('Cam6b_Click', [(SHOTS['b'], meet + Vector((.04, 1.0, .08)), meet), (SHOTS['c'] - 1, meet + Vector((.02, .85, .06)), meet)],
                      lens=55, fstop=2.0, focus=tuple(meet))
-    C = film.camera('Cam6c_Night', [(SHOTS['c'], (BR.x + .2, BR.y - 1.5, BR.z + 2.0), (BR.x, BR.y + .35, BR.z + .65)),
-                                    (SHOTS['d'] - 1, (BR.x + .15, BR.y - 1.2, BR.z + 1.9), (BR.x, BR.y + .35, BR.z + .65))], lens=28, fstop=4,
+    C = film.camera('Cam6c_Night', [(SHOTS['c'], (BR.x + .4, BR.y - 2.3, BR.z + 1.9), (BR.x, BR.y + .3, BR.z + .6)),
+                                    (SHOTS['d'] - 1, (BR.x + .3, BR.y - 2.0, BR.z + 1.8), (BR.x, BR.y + .25, BR.z + .65))], lens=28, fstop=4,
                     focus=(BR.x, BR.y + .2, BR.z + .7))
     D = film.camera('Cam6d_Morning', [(SHOTS['d'], (BR.x, BR.y + .38, BR.z + 2.7), (BR.x, BR.y + .4, BR.z + .6)),
                                       (SHOTS['end'], (BR.x, BR.y + .38, BR.z + 2.45), (BR.x, BR.y + .4, BR.z + .6))], lens=26, fstop=4,

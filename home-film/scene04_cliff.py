@@ -736,11 +736,11 @@ def make_cameras():
     focus = bpy.data.objects.new('Focus_Bears', None); sc.collection.objects.link(focus); focus.location = (0, 0, .45)
     cd.dof.focus_object = focus
     # faces: out over the drop, looking back at them, sunset light on their fur
-    cf = bpy.data.cameras.new('Cam_Faces'); cf.lens = 35; cf.sensor_fit = 'VERTICAL'; cf.sensor_height = 24
+    cf = bpy.data.cameras.new('Cam_Faces'); cf.lens = 26; cf.sensor_fit = 'VERTICAL'; cf.sensor_height = 24
     cf.dof.use_dof = True; cf.dof.aperture_fstop = 2.0; cf.dof.focus_object = focus
     cam2 = bpy.data.objects.new('Cam_Faces', cf); sc.collection.objects.link(cam2)
-    for f, p in ((CUTS['faces'], (.12, -2.75, .62)), (CUTS['night'] - 1, (.07, -2.5, .56))):
-        cam2.location = p; look(cam2, (.04, 0, .4), cam2.get('_prev')); cam2['_prev'] = cam2.rotation_euler.copy()
+    for f, p in ((CUTS['faces'], (0.0, -3.4, .55)), (CUTS['night'] - 1, (0.0, -3.1, .52))):
+        cam2.location = p; look(cam2, (0.0, 0, .42), cam2.get('_prev')); cam2['_prev'] = cam2.rotation_euler.copy()
         cam2.keyframe_insert('location', frame=f); cam2.keyframe_insert('rotation_euler', frame=f)
     # establishing: from out over the lake, the whole granite wall with two tiny bears on top (slow rise)
     ce = bpy.data.cameras.new('Cam_Establish'); ce.lens = 30; ce.sensor_fit = 'VERTICAL'; ce.sensor_height = 24
@@ -769,12 +769,12 @@ def nightfall():
     for f, el in ((1, SUN_ELEV), (n0, SUN_ELEV), (n1 - 40, -.6), (n1, -1.4)):
         sky.sun_elevation = math.radians(el); sky.keyframe_insert('sun_elevation', frame=f)
         sun.rotation_euler = (math.radians(90 - el), 0, math.radians(SUN_AZ)); sun.keyframe_insert('rotation_euler', frame=f)
-    for f, en, st in ((1, sun.data.energy, bg.inputs['Strength'].default_value), (n0, sun.data.energy, bg.inputs['Strength'].default_value), (n1, .15, .12)):
+    for f, en, st in ((1, sun.data.energy, bg.inputs['Strength'].default_value), (n0, sun.data.energy, bg.inputs['Strength'].default_value), (n1, .5, .45)):
         sun.data.energy = en; sun.data.keyframe_insert('energy', frame=f)
         bg.inputs['Strength'].default_value = st; bg.inputs['Strength'].keyframe_insert('default_value', frame=f)
     for n in ('SkyFill', 'BackBounce'):
         o = bpy.data.objects[n]; e0 = o.data.energy
-        for f, e in ((1, e0), (n0, e0), (n1, e0 * .25)):
+        for f, e in ((1, e0), (n0, e0), (n1, e0 * .5)):
             o.data.energy = e; o.data.keyframe_insert('energy', frame=f)
     # the evening haze darkens with the light (every material's haze emission)
     for m in bpy.data.materials:
@@ -818,7 +818,7 @@ def nightfall():
 def camera_sights():
     """Lines from each camera to the bears that trees must not block (used before planting)."""
     bears_at = (0, .06, .45)
-    SIGHTS[:] = [((.75, 5.0, 1.55), bears_at), ((.55, 4.1, 1.35), bears_at), ((.12, -2.75, .62), bears_at),
+    SIGHTS[:] = [((.75, 5.0, 1.55), bears_at), ((.55, 4.1, 1.35), bears_at), ((.12, -3.4, .55), bears_at),
                  ((-9, -80, -19), bears_at), ((-8, -74, -15), bears_at)]
 
 
