@@ -5,7 +5,7 @@ These are Python scripts that build the film in Blender. Each script builds a fu
 | File | What it is |
 |---|---|
 | `bears.py` | The two plush bears from Quiet Moon, rebuilt in Blender with the same sculpted body as the app (`sculptBear`/`buildBear`). They have a 12-bone rig, real hair fur, glossy eyes, closed eyes, heart eyes, a nose, a stitched mouth and paw pads. She also has her blush, three eyelashes and the rose. |
-| `scene04_cliff.py` | Test shot for scene 4, the first date. The bears sit on granite cliffs about 45 m above a still lake, among pines, at sunset. His paw creeps to hers and she leans on his shoulder. It has three cameras: `Cam_Wide` (from behind, sun beyond), `Cam_Faces` (close, from over the drop) and `Cam_Establish` (the whole cliff from over the lake). |
+| `scene04_cliff.py` | Test shot for scene 4, the first date, set at Lake Kaitalampi (Nuuksio). The bears sit on the bare granite lip of a knoll about 45 m above a long, narrow forest lake. Below them a steep slope with granite outcrops, Scots pines, spruces and birches falls to the water. Forested shores run along both sides and the sun sets at the far end of the lake. His paw creeps to hers and she leans on his shoulder. It has three cameras: `Cam_Wide` (from behind, down the lake), `Cam_Faces` (close, from over the slope) and `Cam_Establish` (the knoll from over the water). |
 
 ## Run it on the laptop (EEVEE)
 

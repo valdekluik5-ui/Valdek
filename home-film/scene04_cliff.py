@@ -17,6 +17,7 @@ HOW TO RUN (Blender 5.3)
 """
 import os, sys, math, time, importlib
 import bpy
+import bmesh
 import numpy as np
 from mathutils import Vector, Matrix
 
@@ -44,9 +45,9 @@ importlib.reload(bears)
 FPS = 24
 FRAMES = (1, 216)          # 9 seconds
 SUN_ELEV = 3.8             # degrees above the horizon
-SUN_AZ = -36.0             # degrees: 0 = straight ahead of the bears (over the lake), + = to their left
-LAKE_Z = -28.0             # the lake surface: granite cliffs ~45 m high (1 unit ~ 1.6 m, a bear is about a person tall)
-EDGE_Y = -0.12             # the cliff lip in front of the bears
+SUN_AZ = -8.0              # degrees: 0 = straight ahead of the bears (over the lake), + = to their left
+LAKE_Z = -28.0             # the lake surface, ~45 m below the granite knoll (1 unit ~ 1.6 m, a bear is about a person tall)
+EDGE_Y = -0.12             # the granite lip in front of the bears
 
 
 def args():
@@ -130,11 +131,11 @@ def node_mat(name):
     return m, m.node_tree.nodes, m.node_tree.links, m.node_tree.nodes['Principled BSDF']
 
 
-def add_haze(m, N, L, bsdf, color=(.95, .55, .45), dist=160.0, strength=.7):
+def add_haze(m, N, L, bsdf, color=(.95, .55, .45), dist=260.0, strength=.6):
     """Aerial perspective: far things fade into the warm evening haze (works in EEVEE and Cycles)."""
     out = N['Material Output']
     cd = N.new('ShaderNodeCameraData')
-    mr = N.new('ShaderNodeMapRange'); mr.inputs['From Min'].default_value = 8; mr.inputs['From Max'].default_value = dist
+    mr = N.new('ShaderNodeMapRange'); mr.inputs['From Min'].default_value = 30; mr.inputs['From Max'].default_value = dist
     mr.inputs['To Max'].default_value = strength; mr.interpolation_type = 'SMOOTHERSTEP'
     L.new(cd.outputs['View Distance'], mr.inputs['Value'])
     em = N.new('ShaderNodeEmission'); em.inputs['Color'].default_value = (*color, 1); em.inputs['Strength'].default_value = 1
@@ -187,14 +188,18 @@ def rock_material():
     lic = ramp(noise(6, 5).outputs['Fac'], [(.58, (0, 0, 0)), (.64, (1, 1, 1))])
     col = mix(lic.outputs['Color'], col,
               ramp(noise(30, 3).outputs['Fac'], [(.3, (.32, .34, .27)), (.7, (.42, .43, .35))]).outputs['Color'])
-    geo = N.new('ShaderNodeNewGeometry'); sep = N.new('ShaderNodeSeparateXYZ'); L.new(geo.outputs['Normal'], sep.inputs[0])
-    flat = N.new('ShaderNodeMapRange'); flat.inputs['From Min'].default_value = .8; flat.inputs['From Max'].default_value = .95
-    L.new(sep.outputs['Z'], flat.inputs['Value'])
-    patch = N.new('ShaderNodeMath'); patch.operation = 'MULTIPLY'; patch.use_clamp = True
-    pn = ramp(noise(1.4, 5).outputs['Fac'], [(.45, (0, 0, 0)), (.55, (1, 1, 1))])
-    L.new(flat.outputs['Result'], patch.inputs[0]); L.new(pn.outputs['Color'], patch.inputs[1])
-    moss = ramp(noise(14, 6).outputs['Fac'], [(.3, (.035, .045, .012)), (.7, (.14, .13, .04))])
-    col = mix(patch.outputs[0], col, moss.outputs['Color'])
+    # sandy soil with pine needles, moss patches; the 'rock' attribute (from the terrain build) says where granite shows
+    soil = ramp(noise(7, 6).outputs['Fac'], [(.3, (.07, .045, .025)), (.55, (.15, .1, .055)), (.75, (.22, .15, .08))])
+    needles = N.new('ShaderNodeTexWave'); needles.inputs['Scale'].default_value = 60; needles.inputs['Distortion'].default_value = 12
+    L.new(P, needles.inputs['Vector'])
+    ndl = ramp(needles.outputs['Fac'], [(.4, (.6, .5, .4)), (.6, (1, 1, 1))])
+    soil_c = mix(1.0, soil.outputs['Color'], ndl.outputs['Color'], 'MULTIPLY')
+    moss = ramp(noise(14, 6).outputs['Fac'], [(.3, (.03, .04, .012)), (.7, (.11, .11, .035))])
+    mpatch = ramp(noise(.9, 4).outputs['Fac'], [(.5, (0, 0, 0)), (.6, (1, 1, 1))])
+    soil_c = mix(mpatch.outputs['Color'], soil_c, moss.outputs['Color'])
+    at = N.new('ShaderNodeAttribute'); at.attribute_name = 'rock'
+    edge = ramp(at.outputs['Fac'], [(.35, (0, 0, 0)), (.55, (1, 1, 1))])
+    col = mix(edge.outputs['Color'], soil_c, col)
     L.new(col, b.inputs['Base Color'])
     b.inputs['Roughness'].default_value = .78
     # relief: cracks + grain
@@ -222,37 +227,17 @@ def water_material():
 
 def land_material():
     m, N, L, b = node_mat('FarLand')
-    b.inputs['Base Color'].default_value = (.02, .025, .012, 1); b.inputs['Roughness'].default_value = 1
-    add_haze(m, N, L, b, dist=260, strength=.78)
-    return m
-
-
-def pine_material():
-    m, N, L, b = node_mat('Pine')
-    oi = N.new('ShaderNodeObjectInfo')
-    pi_ = N.new('ShaderNodeParticleInfo')
+    tc = N.new('ShaderNodeTexCoord'); sep = N.new('ShaderNodeSeparateXYZ'); L.new(tc.outputs['Object'], sep.inputs[0])
+    nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = .15; L.new(tc.outputs['Object'], nz.inputs['Vector'])
+    add = N.new('ShaderNodeMath'); add.operation = 'MULTIPLY_ADD'; add.inputs[1].default_value = 2.0
+    L.new(nz.outputs['Fac'], add.inputs[0]); L.new(sep.outputs['Z'], add.inputs[2])
     ramp = N.new('ShaderNodeValToRGB'); r = ramp.color_ramp
-    r.elements[0].color = (.008, .022, .012, 1); r.elements[1].color = (.03, .05, .02, 1)
-    add = N.new('ShaderNodeMath'); add.operation = 'FRACT'
-    s = N.new('ShaderNodeMath'); s.operation = 'ADD'
-    L.new(oi.outputs['Random'], s.inputs[0]); L.new(pi_.outputs['Random'], s.inputs[1]); L.new(s.outputs[0], add.inputs[0])
-    L.new(add.outputs[0], ramp.inputs['Fac'])
-    # needles a touch lighter where they face the sky
-    L.new(ramp.outputs['Color'], b.inputs['Base Color'])
-    b.inputs['Roughness'].default_value = .75
-    b.inputs['Sheen Weight'].default_value = .4; b.inputs['Sheen Tint'].default_value = (.5, .45, .2, 1)
-    tc = N.new('ShaderNodeTexCoord'); n = N.new('ShaderNodeTexNoise'); n.inputs['Scale'].default_value = 40; n.inputs['Detail'].default_value = 6
-    L.new(tc.outputs['Object'], n.inputs['Vector'])
-    bump = N.new('ShaderNodeBump'); bump.inputs['Strength'].default_value = .7
-    L.new(n.outputs['Fac'], bump.inputs['Height']); L.new(bump.outputs['Normal'], b.inputs['Normal'])
-    add_haze(m, N, L, b, dist=200, strength=.9)
-    return m
-
-
-def bark_material():
-    m, N, L, b = node_mat('Bark')
-    b.inputs['Base Color'].default_value = (.05, .03, .02, 1); b.inputs['Roughness'].default_value = .9
-    add_haze(m, N, L, b, dist=200, strength=.9)
+    r.elements[0].position = 0; r.elements[0].color = (.16, .15, .14, 1)        # granite at the water's edge
+    r.elements[1].position = 1; r.elements[1].color = (.02, .025, .012, 1)      # dark forest floor
+    mr = N.new('ShaderNodeMapRange'); mr.inputs['From Min'].default_value = LAKE_Z + 1.0; mr.inputs['From Max'].default_value = LAKE_Z + 3.0
+    L.new(add.outputs[0], mr.inputs['Value']); L.new(mr.outputs['Result'], ramp.inputs['Fac'])
+    L.new(ramp.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = .9
+    add_haze(m, N, L, b, dist=260, strength=.78)
     return m
 
 
@@ -286,7 +271,7 @@ SUN_ROT_SKY = 180 - SUN_AZ
 
 
 def make_sun():
-    ld = bpy.data.lights.new('Sun', 'SUN'); ld.energy = 3.2; ld.color = (1.0, .62, .38); ld.angle = math.radians(1.5)
+    ld = bpy.data.lights.new('Sun', 'SUN'); ld.energy = 2.5; ld.color = (1.0, .7, .5); ld.angle = math.radians(1.5)
     sun = bpy.data.objects.new('Sun', ld); bpy.context.scene.collection.objects.link(sun)
     # the light travels from the sun (over the lake, -Y) towards the bears
     sun.rotation_euler = (math.radians(90 - SUN_ELEV), 0, math.radians(SUN_AZ))
@@ -303,172 +288,366 @@ def make_sun():
     return sun
 
 
-# ---------------------------------------------------------------- the cliff
+# ---------------------------------------------------------------- the land: Lake Kaitalampi (Nuuksio)
+# The bears sit on the bare granite lip of a knoll at the head of a long, narrow forest lake. In front of them a steep
+# slope with granite outcrops and pines, spruces and birches falls ~45 m to the water; the lake runs away from them
+# between forested shores, and the sun sets at its far end.
 def edge_y(x):
-    """The lip of the cliff curves away behind the bears, so the cliff face shows to the sides."""
-    return EDGE_Y + .035 * x * x + .05 * fbm(x * .7, 3.1, 3)
+    """The lip of the knoll curves back on both sides of the bears."""
+    return EDGE_Y + .03 * x * x + .06 * fbm(x * .7, 3.1, 3)
 
 
-def cliff_height(x, u):
-    """u = distance behind the lip (>0 on the top, <0 out over the drop)."""
-    near = np.exp(-(x * x) / 1.2 - np.maximum(u - .4, 0) ** 2 / 1.0)        # flat seat where the bears are
-    top = .02 * np.maximum(u, 0) + .9 * np.clip(u - 3, 0, None) ** 1.2 * .15 + (1 - near) * .25 * fbm(x * .8, u * .8 + 11)
-    top = top + np.clip(np.abs(x) - 5, 0, None) * .08
-    lip = .06 * (np.tanh(u / .05) - 1)                                       # rounded lip
-    drop = np.where(u < 0, -np.minimum(-u * 9 + (-u) ** 2 * 10, -LAKE_Z + 2.5), 0)     # rounded brow, then near vertical
-    face = np.where(u < 0, 1.2 * fbm(x * .9, drop * .12, 6) * np.clip(-u * 6, 0, 1), 0)
-    return np.where(u >= 0, top, 0) + lip + drop + face
+def knoll_height(x, y):
+    u = y - edge_y(x)
+    s = np.maximum(-u, 0)                                         # distance out from the lip
+    seat = np.exp(-(x * x) / 1.5)
+    r = .7 - .6 * seat                                            # a crisp edge where they sit, rounded brows elsewhere
+    brow = 1.25 * (s - r * (1 - np.exp(-s / r)))
+    terr = 1.1 * np.sin(.9 * s + 3 * fbm(x * .15, 1.0, 2)) * (1 - np.exp(-s / 2.5))     # granite steps and ledges
+    step = .6 * seat * np.clip((s - .06) / .12, 0, 1)              # a little drop under their feet so the legs dangle
+    down = -(brow + terr + step) + .9 * fbm(x * .45, s * .45 + 4, 5) * np.clip(s / 2, 0, 1)
+    up = np.maximum(u, 0)
+    calm = np.exp(-(x * x) / 2.5 - up * up / 2)                    # keep the seat flat
+    top = .02 * up + .4 * fbm(x * .45, up * .45 + 11, 5) * (1 - calm) + .18 * np.clip(up - 6, 0, None)
+    side = -.45 * np.clip(np.abs(x) - 7, 0, None)
+    return np.maximum(side + np.where(u >= 0, top, down), LAKE_Z - 8)
 
 
-def face_offset(x, z, u):
-    """Sideways relief of the granite wall: stepped ledges, vertical joints and slabs (it may lean in and out)."""
-    k = np.clip(-u * 5, 0, 1)
-    ledges = 1.6 * np.clip(np.sin(np.clip(z, LAKE_Z, 0) * .3 + 2 * fbm(x * .3, 0.0, 2)), 0, 1) ** 4   # sheeting ledges
-    jn = fbm(np.floor(x * .7) * 3.1, np.floor(z * .12) * 1.7, 1)                                     # blocks stand in and out
-    joints = 2.2 * jn
-    slabs = 3.0 * fbm(x * .15 + 2, z * .07 + 5, 4)
-    return k * (ledges + joints + slabs + .4 * fbm(x * 2.2, z * 1.3, 5))
+def shore_height(x, y):
+    """The other shores: the lake is a long channel running away from the bears (-Y), forest hills on both sides."""
+    xc = 14 * np.sin(-y / 90) * np.clip((-y - 10) / 40, 0, 1)
+    W = 30 + 8 * np.sin(-y / 55 + 1)
+    dist = np.abs(x - xc)
+    rise = np.clip((dist - W) / 9, 0, 1) + np.clip((y - 12) / 15, 0, 1) + np.clip((-y - 380) / 40, 0, 1)
+    hills = 16 + 9 * fbm(x / 40, y / 40, 4) + 6 * fbm(x / 14 + 5, y / 14, 4)
+    return LAKE_Z - 3 + np.clip(rise, 0, 1) * hills
 
 
-def make_cliff(coll, mat):
-    s = np.linspace(-1, 1, 361); X1 = 14 * np.sinh(2.6 * s) / np.sinh(2.6)
-    t = np.linspace(0, 1, 260); U1 = -0.6 + (28.6) * (np.sinh(3.4 * t - 0.2) - np.sinh(-0.2)) / (np.sinh(3.2) - np.sinh(-0.2))
-    U1 = np.concatenate([-0.002 - 1.7 * np.linspace(1, 0, 150) ** 1.6, U1[U1 > -0.002]])
-    Xg, Ug = np.meshgrid(X1, U1)
-    Yg = edge_y(Xg) + Ug
-    Zg = cliff_height(Xg, Ug)
-    # the face also leans out a little, and is rough sideways (not only up and down)
-    Yg = Yg - face_offset(Xg, Zg, Ug)
-    ob = grid_mesh('Cliff', Xg, Yg, Zg, coll, mat)
-    # grass and needles only on the flat top near the bears
-    w = np.clip(Ug / .25, 0, 1) * np.exp(-(Xg ** 2) / 10 - np.maximum(Ug - 1, 0) ** 2 / 8)
-    w = w * np.clip((fbm(Xg * 1.3 + 9, Ug * 1.3, 4) + .05) * 6, 0, 1)        # moss and grass in patches on bare granite
-    vgroup(ob, 'grass', w.ravel())
-    return ob
+def land_z(x, y):
+    return np.maximum(knoll_height(x, y), shore_height(x, y))
 
 
 def ground_z(x, y):
-    """Height of the cliff top at world (x, y) (for placing trees and bears)."""
-    u = y - edge_y(np.array(x))
-    return float(cliff_height(np.array(x), np.array(u)))
+    return float(land_z(np.array(float(x)), np.array(float(y))))
 
 
-def make_grass(cliff):
-    m, N, L, b = node_mat('Grass')
+def in_knoll(x, y, margin=0.0):
+    u = y - edge_y(x)
+    return (np.abs(x) < 30 - margin) & (u > -45 + margin) & (u < 30 - margin)
+
+
+def color_attr(ob, name, vals):
+    a = ob.data.color_attributes.new(name, 'FLOAT_COLOR', 'POINT')
+    v = np.repeat(np.asarray(vals, np.float32)[:, None], 4, 1); v[:, 3] = 1
+    a.data.foreach_set('color', v.ravel())
+
+
+def make_knoll(coll, mat):
+    s = np.linspace(-1, 1, 401); X1 = 30 * np.sinh(3 * s) / np.sinh(3)
+    t1 = np.linspace(0, 1, 230); t2 = np.linspace(0, 1, 140)
+    U1 = np.concatenate([-45 * t1[::-1] ** 2.2, 30 * t2[1:] ** 2.2])
+    Xg, Ug = np.meshgrid(X1, U1)
+    Yg = edge_y(Xg) + Ug
+    Zg = land_z(Xg, Yg)
+    ob = grid_mesh('Knoll', Xg, Yg, Zg, coll, mat)
+    # bare granite where it is steep, big glacier-smoothed slabs on the top, sandy soil, needles and moss elsewhere
+    e = .05
+    gx = (land_z(Xg + e, Yg) - land_z(Xg - e, Yg)) / (2 * e); gy = (land_z(Xg, Yg + e) - land_z(Xg, Yg - e)) / (2 * e)
+    g = np.sqrt(gx * gx + gy * gy)
+    rock = np.clip((g - 1.7) / .6, 0, 1) * np.clip((fbm(Xg * .3, Yg * .3 + 7, 3) + .12) * 6, 0, 1) + np.clip((g - 2.6) / .5, 0, 1)
+    rock = np.clip(rock, 0, 1)
+    slabs = np.clip((fbm(Xg * .22 + 3, Yg * .22, 4) + .03) * 7, 0, 1) * np.clip((1.0 - g) / .4, 0, 1)
+    seat = np.exp(-(Xg ** 2) / 3 - (np.maximum(Ug, 0) - .3) ** 2 / 1.2) * (Ug > -1.5)
+    rock = np.maximum(np.maximum(rock, slabs), np.clip(seat * 1.6, 0, 1))
+    color_attr(ob, 'rock', rock.ravel())
+    near = np.exp(-((Xg - .3) ** 2 + (Yg - 1.5) ** 2) / 120)
+    patch = np.clip((fbm(Xg * 1.1 + 9, Yg * 1.1, 4) + .08) * 5, 0, 1)
+    vgroup(ob, 'shrubs', ((1 - rock) * patch * near).ravel())
+    return ob
+
+
+def make_shores(coll, mat):
+    xs = np.linspace(-230, 230, 231); ys = np.linspace(-430, 130, 281)
+    Xg, Yg = np.meshgrid(xs, ys)
+    Zg = land_z(Xg, Yg)
+    Zg = np.where(in_knoll(Xg, Yg, 1.0), np.minimum(Zg, LAKE_Z - 1) , Zg)      # the detailed knoll mesh covers this part
+    ob = grid_mesh('Shores', Xg, Yg, Zg, coll, mat)
+    wood = np.clip((Zg - LAKE_Z - .8) / 1.2, 0, 1) * (~in_knoll(Xg, Yg, -2.0))
+    vgroup(ob, 'forest', wood.ravel())
+    return ob
+
+
+def make_shrubs(knoll):
+    """Low blueberry and heather between the rocks on the knoll."""
+    m, N, L, b = node_mat('Shrubs')
     hi = N.new('ShaderNodeHairInfo'); ramp = N.new('ShaderNodeValToRGB'); r = ramp.color_ramp
-    r.elements[0].color = (.02, .025, .008, 1); r.elements[1].color = (.28, .22, .07, 1)
+    r.elements[0].color = (.015, .02, .008, 1); r.elements[1].color = (.1, .12, .035, 1)
+    e = r.elements.new(.8); e.color = (.16, .09, .04, 1)
     L.new(hi.outputs['Intercept'], ramp.inputs['Fac']); L.new(ramp.outputs['Color'], b.inputs['Base Color'])
-    b.inputs['Roughness'].default_value = .7
-    cliff.data.materials.append(m)
-    mod = cliff.modifiers.new('Grass', 'PARTICLE_SYSTEM'); s = mod.particle_system.settings
-    s.type = 'HAIR'; s.count = 18000; s.use_advanced_hair = True
-    s.normal_factor = .035; s.factor_random = .03; s.object_align_factor = (0, 0, .01)
-    s.material_slot = 'Grass'; s.render_step = 3; s.display_step = 2
-    s.child_type = 'INTERPOLATED'; s.child_percent = 2; s.rendered_child_count = 6; s.child_radius = .05
-    s.roughness_2 = .02; s.roughness_endpoint = .02; s.clump_factor = .4
-    s.radius_scale = .004; s.root_radius = 1; s.tip_radius = 0; s.use_close_tip = True
+    b.inputs['Roughness'].default_value = .6
+    knoll.data.materials.append(m)
+    mod = knoll.modifiers.new('Shrubs', 'PARTICLE_SYSTEM'); s = mod.particle_system.settings
+    s.type = 'HAIR'; s.count = 9000; s.use_advanced_hair = True
+    s.normal_factor = .05; s.factor_random = .04; s.object_align_factor = (0, 0, .02)
+    s.material_slot = 'Shrubs'; s.render_step = 3; s.display_step = 2
+    s.child_type = 'INTERPOLATED'; s.child_percent = 2; s.rendered_child_count = 14; s.child_radius = .09
+    s.roughness_2 = .03; s.roughness_endpoint = .03; s.clump_factor = .5; s.kink = 'CURL'; s.kink_amplitude = .01
+    s.radius_scale = .005; s.root_radius = 1; s.tip_radius = .3
     s.length_random = .6; s.display_percentage = 20
-    mod.particle_system.vertex_group_density = 'grass'
-    mod.particle_system.vertex_group_length = 'grass'
+    mod.particle_system.vertex_group_density = 'shrubs'
+    mod.particle_system.vertex_group_length = 'shrubs'
 
 
-# ---------------------------------------------------------------- pines
-def pine_mesh(name, seed, tiers=11, height=1.0, mats=None):
-    """A spruce/pine: trunk + stacked star-shaped drooping branch tiers (jagged silhouette against the sky)."""
-    rng = np.random.default_rng(seed)
-    V, Fc, Mi = [], [], []
+# ---------------------------------------------------------------- trees
+def _cyl(V, F, M, p0, p1, r0, r1, n, mi):
+    p0, p1 = np.array(p0, float), np.array(p1, float); d = p1 - p0; d /= np.linalg.norm(d)
+    a = np.array([1., 0, 0]) if abs(d[0]) < .9 else np.array([0, 1., 0])
+    u = np.cross(d, a); u /= np.linalg.norm(u); w = np.cross(d, u)
+    o = len(V)
+    for p, r in ((p0, r0), (p1, r1)):
+        for i in range(n):
+            t = 2 * PI * i / n; V.append(tuple(p + r * (math.cos(t) * u + math.sin(t) * w)))
+    for i in range(n):
+        F.append((o + i, o + (i + 1) % n, o + n + (i + 1) % n, o + n + i)); M.append(mi)
 
-    def add(verts, faces, mi):
-        o = len(V); V.extend(verts); Fc.extend([tuple(i + o for i in f) for f in faces]); Mi.extend([mi] * len(faces))
 
-    # trunk
-    n = 8; r0, r1 = .022 * height, .006 * height
-    vs = [(math.cos(2 * PI * i / n) * r0, math.sin(2 * PI * i / n) * r0, 0) for i in range(n)] + \
-         [(math.cos(2 * PI * i / n) * r1, math.sin(2 * PI * i / n) * r1, height * .95) for i in range(n)]
-    add(vs, [(i, (i + 1) % n, (i + 1) % n + n, i + n) for i in range(n)], 1)
-    for k in range(tiers):
-        f = k / (tiers - 1)
-        zb = height * (.12 + .82 * f) + rng.normal(0, .008)
-        R = height * (.27 * (1 - f) ** .95 + .03) * rng.uniform(.85, 1.15)
-        hgt = height * (.09 + .04 * (1 - f))
-        spikes = int(rng.integers(13, 19))
-        ring = []
-        rot = rng.uniform(0, 2 * PI)
-        for i in range(spikes * 2):
-            a = rot + PI * i / spikes + rng.normal(0, .08)
-            rr = R * (1 if i % 2 == 0 else .42) * rng.uniform(.7, 1.25)
-            droop = -.25 * rr if i % 2 == 0 else -.05 * rr
-            ring.append((math.cos(a) * rr, math.sin(a) * rr, zb + droop))
-        apex = (rng.normal(0, .01 * height), rng.normal(0, .01 * height), zb + hgt)
-        inner = [(x * .35, y * .35, z + hgt * .25) for x, y, z in ring]
-        m = len(ring)
-        verts = ring + inner + [apex]
-        faces = [(i, (i + 1) % m, (i + 1) % m + m, i + m) for i in range(m)] + [(i + m, (i + 1) % m + m, 2 * m) for i in range(m)]
-        # underside so we never look into a hollow cone
-        under = (0, 0, zb - .02 * height)
-        verts.append(under)
-        faces += [((i + 1) % m, i, 2 * m + 1) for i in range(m)]
-        add(verts, faces, 0)
-    me = bpy.data.meshes.new(name); me.from_pydata(V, [], Fc); me.update()
-    me.polygons.foreach_set('material_index', Mi)
+def _clump(V, F, M, c, r, squash, rng, mi, sub):
+    """A lumpy ball of needles/leaves."""
+    bm = bmesh.new(); bmesh.ops.create_icosphere(bm, subdivisions=sub, radius=1)
+    bm.verts.ensure_lookup_table(); bm.verts.index_update()
+    o = len(V)
+    for v in bm.verts:
+        k = 1 + rng.uniform(-.3, .3)
+        V.append((c[0] + v.co.x * r * k, c[1] + v.co.y * r * k, c[2] + v.co.z * r * squash * k))
+    for f in bm.faces:
+        F.append(tuple(o + v.index for v in f.verts)); M.append(mi)
+    bm.free()
+
+
+def _finish(name, V, F, M, mats):
+    me = bpy.data.meshes.new(name); me.from_pydata(V, [], F); me.update()
+    me.polygons.foreach_set('material_index', M)
     for mt in mats:
         me.materials.append(mt)
+    me.shade_smooth()
     return me
 
 
-def make_pines(coll, pine_m, bark_m):
-    lib = new_coll('PineLibrary')
-    meshes = [pine_mesh(f'Pine{k}', 100 + k, tiers=17 + k % 4, mats=[pine_m, bark_m]) for k in range(4)]
-    protos = []
-    for k, me in enumerate(meshes):
-        o = bpy.data.objects.new(f'PineProto{k}', me); lib.objects.link(o); o.location = (0, 0, -100); protos.append(o)
+def scots_pine(name, seed, mats, lod=0):
+    """Scots pine as in Nuuksio: a tall bare trunk (dark below, orange above) and a high, airy crown of needle clumps."""
+    rng = np.random.default_rng(seed)
+    V, F, M = [], [], []
+    lean = rng.normal(0, .035, 2)
+    zs = np.linspace(0, .97, 7)
+    pts = [(lean[0] * z + .01 * math.sin(z * 9 + seed), lean[1] * z + .01 * math.cos(z * 7 + seed), z) for z in zs]
+    n = 8 if lod == 0 else 5
+    for a, b_, z in zip(pts[:-1], pts[1:], zs[:-1]):
+        _cyl(V, F, M, a, b_, .02 * (1 - z * .78), .02 * (1 - (z + .16) * .78), n, 1)
+    def trunk_at(z):
+        return np.array([lean[0] * z, lean[1] * z, z])
+    c0 = rng.uniform(.6, .72)
+    nb = 10 if lod == 0 else 6
+    for k in range(nb):
+        z = c0 + (.94 - c0) * k / (nb - 1) + rng.normal(0, .015)
+        az = k * 2.4 + rng.normal(0, .4)
+        L = (.07 + .17 * (1 - (z - c0) / (1 - c0))) * rng.uniform(.7, 1.25)
+        up = rng.uniform(.15, .55)
+        base = trunk_at(z); end = base + L * np.array([math.cos(az), math.sin(az), up])
+        if lod == 0:
+            _cyl(V, F, M, base, end, .006, .0025, 5, 1)
+        _clump(V, F, M, end + [0, 0, .015], rng.uniform(.05, .075), .72, rng, 0, 2 if lod == 0 else 1)
+        if lod == 0:
+            _clump(V, F, M, end + rng.normal(0, .03, 3) + [0, 0, .03], rng.uniform(.035, .05), .8, rng, 0, 1)
+        if lod == 0 and L > .12:
+            mid = base + .6 * (end - base)
+            _clump(V, F, M, mid + [0, 0, .02], rng.uniform(.045, .06), .55, rng, 0, 1)
+    _clump(V, F, M, trunk_at(.98) + [0, 0, .02], .06, .7, rng, 0, 2 if lod == 0 else 1)
+    return _finish(name, V, F, M, mats)
+
+
+def spruce(name, seed, mats, lod=0):
+    """Norway spruce: dense dark cone of drooping star-shaped branch tiers."""
+    rng = np.random.default_rng(seed)
+    V, F, M = [], [], []
+    _cyl(V, F, M, (0, 0, 0), (0, 0, .95), .02, .005, 6, 1)
+    tiers = 18 if lod == 0 else 8
+    for k in range(tiers):
+        f = k / (tiers - 1)
+        zb = .1 + .84 * f + rng.normal(0, .006)
+        R = (.21 * (1 - f) ** .95 + .025) * rng.uniform(.85, 1.15)
+        hgt = .09 + .04 * (1 - f)
+        spikes = int(rng.integers(13, 19)) if lod == 0 else 8
+        ring = []; rot = rng.uniform(0, 2 * PI)
+        for i in range(spikes * 2):
+            a = rot + PI * i / spikes + rng.normal(0, .08)
+            rr = R * (1 if i % 2 == 0 else .42) * rng.uniform(.7, 1.25)
+            ring.append((math.cos(a) * rr, math.sin(a) * rr, zb - (.25 if i % 2 == 0 else .05) * rr))
+        m = len(ring); o = len(V)
+        V.extend(ring); V.extend([(x * .35, y * .35, z + hgt * .25) for x, y, z in ring])
+        V.append((rng.normal(0, .008), rng.normal(0, .008), zb + hgt)); V.append((0, 0, zb - .02))
+        for i in range(m):
+            F.append((o + i, o + (i + 1) % m, o + (i + 1) % m + m, o + i + m)); M.append(0)
+            F.append((o + i + m, o + (i + 1) % m + m, o + 2 * m)); M.append(0)
+            F.append((o + (i + 1) % m, o + i, o + 2 * m + 1)); M.append(0)
+    return _finish(name, V, F, M, mats)
+
+
+def birch(name, seed, mats, lod=0):
+    """Slender birch: white trunk, airy light-green crown."""
+    rng = np.random.default_rng(seed)
+    V, F, M = [], [], []
+    lean = rng.normal(0, .05, 2)
+    _cyl(V, F, M, (0, 0, 0), (lean[0] * .9, lean[1] * .9, .9), .012, .004, 7 if lod == 0 else 5, 1)
+    for k in range(12 if lod == 0 else 6):
+        z = rng.uniform(.45, .95); rr = .16 * (1 - (z - .45) / .6) + .04
+        a = rng.uniform(0, 2 * PI)
+        c = (lean[0] * z + math.cos(a) * rr * rng.uniform(.3, 1), lean[1] * z + math.sin(a) * rr * rng.uniform(.3, 1), z)
+        _clump(V, F, M, c, rng.uniform(.05, .08), .75, rng, 0, 2 if lod == 0 else 1)
+    return _finish(name, V, F, M, mats)
+
+
+def foliage_material(name, c0, c1, tint=(.6, .55, .25)):
+    m, N, L, b = node_mat(name)
+    oi = N.new('ShaderNodeObjectInfo'); pi_ = N.new('ShaderNodeParticleInfo')
+    add = N.new('ShaderNodeMath'); add.operation = 'ADD'; fr = N.new('ShaderNodeMath'); fr.operation = 'FRACT'
+    L.new(oi.outputs['Random'], add.inputs[0]); L.new(pi_.outputs['Random'], add.inputs[1]); L.new(add.outputs[0], fr.inputs[0])
+    tc = N.new('ShaderNodeTexCoord'); nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = 25
+    L.new(tc.outputs['Object'], nz.inputs['Vector'])
+    mx = N.new('ShaderNodeMath'); mx.operation = 'MULTIPLY_ADD'; mx.inputs[1].default_value = .6
+    L.new(fr.outputs[0], mx.inputs[0]); L.new(nz.outputs['Fac'], mx.inputs[2])
+    ramp = N.new('ShaderNodeValToRGB'); r = ramp.color_ramp
+    r.elements[0].color = (*c0, 1); r.elements[1].color = (*c1, 1)
+    L.new(mx.outputs[0], ramp.inputs['Fac']); L.new(ramp.outputs['Color'], b.inputs['Base Color'])
+    b.inputs['Roughness'].default_value = .7
+    b.inputs['Sheen Weight'].default_value = .5; b.inputs['Sheen Tint'].default_value = (*tint, 1)
+    bump = N.new('ShaderNodeBump'); bump.inputs['Strength'].default_value = .8
+    n2 = N.new('ShaderNodeTexNoise'); n2.inputs['Scale'].default_value = 120; L.new(tc.outputs['Object'], n2.inputs['Vector'])
+    L.new(n2.outputs['Fac'], bump.inputs['Height']); L.new(bump.outputs['Normal'], b.inputs['Normal'])
+    add_haze(m, N, L, b)
+    return m
+
+
+def pine_bark_material():
+    """Scots pine bark: grey-brown and furrowed low down, thin flaky orange high up."""
+    m, N, L, b = node_mat('PineBark')
+    tc = N.new('ShaderNodeTexCoord'); sep = N.new('ShaderNodeSeparateXYZ'); L.new(tc.outputs['Object'], sep.inputs[0])
+    ramp = N.new('ShaderNodeValToRGB'); r = ramp.color_ramp
+    r.elements[0].position = .35; r.elements[0].color = (.045, .035, .028, 1)
+    r.elements[1].position = .6; r.elements[1].color = (.36, .14, .05, 1)
+    L.new(sep.outputs['Z'], ramp.inputs['Fac']); L.new(ramp.outputs['Color'], b.inputs['Base Color'])
+    b.inputs['Roughness'].default_value = .85
+    add_haze(m, N, L, b)
+    return m
+
+
+def birch_bark_material():
+    m, N, L, b = node_mat('BirchBark')
+    tc = N.new('ShaderNodeTexCoord'); mp = N.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (6, 6, 60)
+    L.new(tc.outputs['Object'], mp.inputs['Vector'])
+    nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = 1.5; L.new(mp.outputs['Vector'], nz.inputs['Vector'])
+    ramp = N.new('ShaderNodeValToRGB'); r = ramp.color_ramp
+    r.elements[0].position = .62; r.elements[0].color = (.55, .54, .5, 1)
+    r.elements[1].position = .66; r.elements[1].color = (.03, .03, .03, 1)
+    L.new(nz.outputs['Fac'], ramp.inputs['Fac']); L.new(ramp.outputs['Color'], b.inputs['Base Color'])
+    b.inputs['Roughness'].default_value = .6
+    add_haze(m, N, L, b)
+    return m
+
+
+def make_tree_library():
+    pn = foliage_material('PineNeedles', (.02, .04, .012), (.07, .095, .03))
+    sn = foliage_material('SpruceNeedles', (.008, .02, .01), (.025, .045, .018), tint=(.3, .4, .2))
+    bl = foliage_material('BirchLeaves', (.06, .13, .025), (.17, .26, .05), tint=(.8, .8, .3))
+    rust = foliage_material('DryNeedles', (.25, .06, .015), (.5, .16, .04), tint=(1, .5, .2))
+    pb, bb = pine_bark_material(), birch_bark_material()
+    hi = {
+        'pine': [scots_pine(f'ScotsPine{k}', 10 + k, [pn, pb]) for k in range(4)],
+        'spruce': [spruce(f'Spruce{k}', 20 + k, [sn, pb]) for k in range(3)],
+        'birch': [birch(f'Birch{k}', 30 + k, [bl, bb]) for k in range(3)],
+        'rust': [scots_pine('DryPine', 41, [rust, pb])],
+    }
+    lib = new_coll('ForestLibrary')
+    lo = [scots_pine('ScotsPineLo0', 50, [pn, pb], 1), scots_pine('ScotsPineLo1', 51, [pn, pb], 1),
+          spruce('SpruceLo0', 60, [sn, pb], 1), spruce('SpruceLo1', 61, [sn, pb], 1), spruce('SpruceLo2', 62, [sn, pb], 1),
+          birch('BirchLo0', 70, [bl, bb], 1)]
+    for k, me in enumerate(lo):
+        o = bpy.data.objects.new(me.name, me); lib.objects.link(o)
     bpy.context.view_layer.layer_collection.children[lib.name].exclude = True
-    # pines on the cliff top: behind and beside the bears (they frame the sky)
-    spots = [(-3.2, 5.0, 8.0), (2.4, 5.6, 8.5), (-5.6, 3.4, 8.0), (4.6, 1.2, 6.5), (-1.6, 6.4, 9.0), (-.9, 12.0, 8.0),
-             (4.6, 6.8, 9.5), (-5.2, 7.6, 9.0), (2.6, 9.8, 10), (-4.6, 1.2, 5.5), (5.9, 3.2, 7.0), (-7.0, 4.6, 7.5),
-             (6.9, 8.0, 9), (-2.4, 10.0, 10), (1.2, 12.5, 11), (-7.8, 9.4, 10), (8.4, 10.5, 10), (.4, 7.4, 9.5)]
-    # keep every camera's view of the bears clear
-    sight = [((2.75, 3.75), (0, .06)), ((2.2, 3.0), (0, .06)), ((.1, -2.7), (0, .06))]
-
-    def blocks(x, y, h):
-        for (ax, ay), (bx, by) in sight:
-            dx, dy = bx - ax, by - ay; t = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)))
-            if math.hypot(x - ax - dx * t, y - ay - dy * t) < .3 * h + .6:
-                return True
-        return False
-    spots = [sp for sp in spots if not blocks(*sp)]
-    rng = np.random.default_rng(3)
-    for i, (x, y, h) in enumerate(spots):
-        o = bpy.data.objects.new(f'Pine_{i}', meshes[i % 4]); coll.objects.link(o)
-        h *= 1.5
-        o.location = (x, y, ground_z(x, y) - .05); o.scale = (h * rng.uniform(.9, 1.1), h * rng.uniform(.9, 1.1), h)
-        o.rotation_euler = (rng.normal(0, .03), rng.normal(0, .03), rng.uniform(0, 2 * PI))
-    return lib
+    return hi, lib
 
 
-def make_far_land(coll, land_m, lib):
-    """Distant shores: forested hills around the lake, fading into the warm haze."""
-    xs = np.linspace(-320, 320, 260); ys = np.linspace(-420, 30, 220)
-    Xg, Yg = np.meshgrid(xs, ys)
-    far = np.clip((-Yg - 110) / 40, 0, 1)                    # the far shore
-    side = np.clip((np.abs(Xg + 15 * np.sin(Yg / 60)) - 38 + Yg * .08) / 30, 0, 1)   # side shores, nearer
-    hills = 10 * fbm(Xg / 70, Yg / 70, 5) + 6 * fbm(Xg / 25 + 3, Yg / 25, 4)
-    H = far * (9 + 1.6 * hills + 12 * np.clip((-Yg - 260) / 140, 0, 1)) - 2.5
-    H = np.maximum(H, side * (3.2 + .5 * hills) - 2.5)
-    H = np.where((np.abs(Xg) < 16) & (Yg > -12), -8, H)      # keep the water clear below the cliff
-    Z = LAKE_Z + H
-    ob = grid_mesh('FarShores', Xg, Yg, Z, coll, land_m)
-    wood = np.clip((H - .6) / 1.5, 0, 1).ravel()
-    vgroup(ob, 'forest', wood)
-    mod = ob.modifiers.new('Forest', 'PARTICLE_SYSTEM'); s = mod.particle_system.settings
-    s.type = 'HAIR'; s.count = 26000; s.hair_length = 1
+SIGHTS = []     # (camera position, target) pairs whose view must stay clear; filled by make_cameras()
+
+
+def tree_blocks(x, y, z0, h):
+    top = z0 + h
+    for a, b_ in SIGHTS:
+        ax, ay, az = a; bx, by, bz = b_
+        dx, dy = bx - ax, by - ay
+        t = max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)))
+        if math.hypot(x - ax - dx * t, y - ay - dy * t) < .22 * h + .8 and top > az + (bz - az) * t - .5:
+            return True
+    return False
+
+
+def plant_trees(coll, hi):
+    """Trees on the knoll top and down the slope (individual objects; the far shores use particles)."""
+    rng = np.random.default_rng(5)
+    n = 0; rusty = False
+    xs = np.arange(-29, 29, 2.4); ys = np.arange(-40, 30, 2.4)
+    for gx in xs:
+        for gy in ys:
+            x = gx + rng.uniform(-1, 1); y = gy + rng.uniform(-1, 1)
+            if not in_knoll(np.array(x), np.array(y), 1.0):
+                continue
+            z = ground_z(x, y)
+            if z < LAKE_Z + .6:
+                continue
+            u = y - float(edge_y(np.array(x)))
+            if abs(x) < 2.2 and -1 < u < 2.5:      # their seat on the rock
+                continue
+            top_area = u > 0
+            if rng.random() > (.33 if top_area else .7):
+                continue
+            r = rng.random()
+            if top_area:
+                kind = 'pine' if r < .82 else ('spruce' if r < .93 else 'birch'); h = rng.uniform(12, 17)
+            else:
+                kind = 'pine' if r < .42 else ('spruce' if r < .74 else 'birch'); h = rng.uniform(8, 15)
+                if rng.random() < .18:
+                    h = rng.uniform(1.5, 5)      # young trees
+            if kind == 'birch':
+                h *= .8
+            # keep the bears' view down the lake open: trees in front must stay below their eye line
+            sd = max(-u, 0)
+            if not top_area and abs(x) < 4 + .6 * sd:
+                limit = (.3 - .55 * sd) - z - .6
+                if limit < 1.5:
+                    continue
+                h = min(h, limit)
+            if tree_blocks(x, y, z, h):
+                continue
+            meshes = hi[kind]
+            if kind == 'pine' and not rusty and not top_area and z < -8:
+                rusty = True
+                meshes = hi['rust']                   # one dry, rust-coloured pine (like in the photo)
+            o = bpy.data.objects.new(f'Tree_{n:03d}', meshes[n % len(meshes)]); coll.objects.link(o)
+            o.location = (x, y, z - .15)
+            o.scale = (h * rng.uniform(.85, 1.15), h * rng.uniform(.85, 1.15), h)
+            o.rotation_euler = (rng.normal(0, .03), rng.normal(0, .03), rng.uniform(0, 2 * PI))
+            n += 1
+    print('trees on the knoll:', n)
+
+
+def make_forest(shores, lib):
+    mod = shores.modifiers.new('Forest', 'PARTICLE_SYSTEM'); s = mod.particle_system.settings
+    s.type = 'HAIR'; s.count = 16000; s.hair_length = 1
     s.render_type = 'COLLECTION'; s.instance_collection = lib; s.use_collection_pick_random = True
-    s.particle_size = 11; s.size_random = .45
+    s.particle_size = 13; s.size_random = .4
     s.use_rotations = True; s.rotation_mode = 'NONE'; s.use_rotation_instance = True
-    s.display_percentage = 15; s.use_emit_random = True; s.distribution = 'RAND'
+    s.display_percentage = 10; s.use_emit_random = True; s.distribution = 'RAND'
     mod.particle_system.vertex_group_density = 'forest'
     mod.particle_system.seed = 11
-    return ob
 
 
 def make_lake(coll, mat):
@@ -540,11 +719,11 @@ def look(cam, target):
 def make_cameras():
     sc = bpy.context.scene
     # wide: behind them and a little to the side, the lake and the sun beyond; a slow push-in
-    cd = bpy.data.cameras.new('Cam_Wide'); cd.lens = 32; cd.sensor_fit = 'VERTICAL'; cd.sensor_height = 24
+    cd = bpy.data.cameras.new('Cam_Wide'); cd.lens = 26; cd.sensor_fit = 'VERTICAL'; cd.sensor_height = 24
     cd.dof.use_dof = True; cd.dof.aperture_fstop = 5.6
     cam = bpy.data.objects.new('Cam_Wide', cd); sc.collection.objects.link(cam)
-    tgt = Vector((-3.9, -5.4, -.2))
-    for f, p in ((FRAMES[0], (2.75, 3.75, 1.35)), (FRAMES[1], (2.2, 3.0, 1.18))):
+    tgt = Vector((-2.4, -16.9, -1.3))
+    for f, p in ((FRAMES[0], (.75, 5.0, 1.55)), (FRAMES[1], (.55, 4.1, 1.35))):
         cam.location = p; look(cam, tgt)
         cam.keyframe_insert('location', frame=f); cam.keyframe_insert('rotation_euler', frame=f)
     focus = bpy.data.objects.new('Focus_Bears', None); sc.collection.objects.link(focus); focus.location = (0, 0, .45)
@@ -559,11 +738,18 @@ def make_cameras():
     # establishing: from out over the lake, the whole granite wall with two tiny bears on top (slow rise)
     ce = bpy.data.cameras.new('Cam_Establish'); ce.lens = 30; ce.sensor_fit = 'VERTICAL'; ce.sensor_height = 24
     cam3 = bpy.data.objects.new('Cam_Establish', ce); sc.collection.objects.link(cam3)
-    for f, p in ((FRAMES[0], (-26, -72, -21)), (FRAMES[1], (-24, -68, -16))):
+    for f, p in ((FRAMES[0], (-9, -80, -19)), (FRAMES[1], (-8, -74, -15))):
         cam3.location = p; look(cam3, (0, 0, -8))
         cam3.keyframe_insert('location', frame=f); cam3.keyframe_insert('rotation_euler', frame=f)
     sc.camera = cam
     return cam, cam2
+
+
+def camera_sights():
+    """Lines from each camera to the bears that trees must not block (used before planting)."""
+    bears_at = (0, .06, .45)
+    SIGHTS[:] = [((.75, 5.0, 1.55), bears_at), ((.55, 4.1, 1.35), bears_at), ((.12, -2.75, .62), bears_at),
+                 ((-9, -80, -19), bears_at), ((-8, -74, -15), bears_at)]
 
 
 # ---------------------------------------------------------------- render settings
@@ -614,10 +800,13 @@ def build():
     clear_scene()
     sc = bpy.context.scene; sc.name = 'S04_FirstDate'
     make_world(); make_sun()
-    env = new_coll('Set')
-    cliff = make_cliff(env, rock_material()); make_grass(cliff)
-    lib = make_pines(env, pine_material(), bark_material())
-    make_far_land(env, land_material(), lib)
+    env = new_coll('Set'); trees = new_coll('Trees')
+    ground = rock_material()
+    knoll = make_knoll(env, ground); make_shrubs(knoll)
+    shores = make_shores(env, land_material())
+    hi, lib = make_tree_library()
+    make_forest(shores, lib)
+    camera_sights(); plant_trees(trees, hi)
     make_lake(env, water_material())
     he, she = place_bears()
     animate(he, she)
