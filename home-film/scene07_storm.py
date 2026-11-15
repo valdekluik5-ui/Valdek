@@ -152,7 +152,7 @@ def street(coll):
     glass = mat('LampGlass', (.9, .85, .7), rough=.1, emission=(1, .7, .4), strength=12, transmission=.4)
     for i, y in enumerate((2, 12, 22, 32, 42)):
         s1.lamp_post(f'StreetLamp{i}', T(3.3, y, 0), coll, iron, glass)
-        ld = bpy.data.lights.new(f'StreetCone{i}', 'SPOT'); ld.energy = 2600; ld.color = (1, .66, .38); ld.spot_size = math.radians(80)
+        ld = bpy.data.lights.new(f'StreetCone{i}', 'SPOT'); ld.energy = 6000; ld.color = (1, .66, .38); ld.spot_size = math.radians(80)
         ld.spot_blend = .8; ld.shadow_soft_size = .2
         o = link(bpy.data.objects.new(f'StreetCone{i}', ld), coll); o.location = T(3.3, y, 4.0)
     # the car parked at the curb
@@ -172,7 +172,8 @@ def street(coll):
     rain_sheet('StreetRain1', T(3.2, -1.0, 1.5), (5, 4), (0, 0, 0), coll, strength=.6)
     rain_sheet('StreetRain2', T(3.4, 4.0, 2.5), (9, 6), (0, 0, 0), coll, speed=.45, strength=.5)
     rain_sheet('StreetRain3', T(3.4, 12.0, 3.5), (14, 9), (0, 0, 0), coll, speed=.4, strength=.4)
-    film.area_light('StreetMoon', T(-6, -6, 10), T(3, 6, 0), 1400, 8, (.4, .5, .8))
+    film.area_light('StreetMoon', T(-6, -6, 10), T(3, 6, 0), 3500, 8, (.4, .5, .8))
+    film.area_light('StreetBack', T(4, 18, 3), T(4, 4, .5), 900, 4, (1, .65, .4))
 
 
 def build():

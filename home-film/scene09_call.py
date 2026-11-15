@@ -119,14 +119,14 @@ def build():
     bears.key_pose(he, SHOTS['end'], {'head': (6, 10, -12), 'spine': (6, 0, -4)})
     bears.set_eyes(she, 'closed', c + 60)
     # ---- cameras
-    A0 = film.camera('Cam9a_Alone', [(SHOTS['a'], (BR.x + .55, BR.y - 2.85, BR.z + 1.05), (BR.x + .15, BR.y - 1.0, BR.z + .55)),
-                                     (44, (BR.x + .5, BR.y - 2.7, BR.z + 1.0), (BR.x + .15, BR.y - 1.0, BR.z + .55))], lens=30, fstop=2.8,
+    A0 = film.camera('Cam9a_Alone', [(SHOTS['a'], (BR.x + .25, BR.y - 2.85, BR.z + 1.05), (BR.x + .25, BR.y - 1.0, BR.z + .55)),
+                                     (44, (BR.x + .25, BR.y - 2.7, BR.z + 1.0), (BR.x + .25, BR.y - 1.0, BR.z + .55))], lens=30, fstop=2.8,
                      focus=(BR.x, BR.y - 1.1, BR.z + .6))
     A = film.camera('Cam9a_Phone', [(45, pp + Vector((.0, -.05, .42)), pp), (SHOTS['b'] - 1, pp + Vector((.0, -.04, .34)), pp)],
                     lens=40, fstop=2.8, focus=.38)
     Bc = film.camera('Cam9b_Bench', [(SHOTS['b'], (.0, -152.2, .9), (0, -146.75, .55)), (SHOTS['c'] - 1, (.1, -151.6, .85), (0, -146.75, .55))],
                      lens=32, fstop=4, focus=(0, -146.75, .5))
-    C = film.camera('Cam9c_Dawn', [(SHOTS['c'], (2.6, -149.5, .9), (-.6, -146.6, .55)), (SHOTS['end'], (2.2, -149.9, .95), (-.8, -146.6, .55))],
+    C = film.camera('Cam9c_Dawn', [(SHOTS['c'], (.1, -142.6, 1.2), (0, -170, .3)), (SHOTS['end'], (.1, -143.6, 1.1), (0, -170, .4))],
                     lens=30, fstop=4, focus=(0, -146.75, .5))
     for f, cam in ((SHOTS['a'], A0), (45, A), (SHOTS['b'], Bc), (SHOTS['c'], C)):
         film.cut(f, cam)

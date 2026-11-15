@@ -202,7 +202,7 @@ def build():
     # ---- cameras
     A = film.camera('Cam8a_Shore', [(SHOTS['a'], (3.5, 9.0, 1.5), (-.6, -6, .2)), (SHOTS['b'] - 1, (3.1, 8.0, 1.4), (-.5, -6, .2))], lens=28, fstop=5.6,
                     focus=(0, -1.6, .4))
-    Bc = film.camera('Cam8b_Throw', [(SHOTS['b'], (2.0, 1.8, .95), (-.6, -6, 1.1)), (SHOTS['c'] - 1, (1.9, 1.6, .95), (-.5, -7, 1.0))], lens=24, fstop=5.6,
+    Bc = film.camera('Cam8b_Throw', [(SHOTS['b'], (3.2, 2.6, 1.3), (-.3, -4.5, 1.2)), (SHOTS['c'] - 1, (3.0, 2.3, 1.3), (-.2, -6, 1.1))], lens=20, fstop=5.6,
                      focus=(0, -2, .6))
     track = [(SHOTS['c'], 5.4), (250, 2.5), (click - 4, .82), (click, .76), (SHOTS['d'] - 1, .05)]     # follow the sinking halves
     C = film.camera('Cam8c_Sinking', [(f, rest + Vector((.15, -1.7, z + .15)), rest + Vector((0, 0, z))) for f, z in track], lens=40, fstop=2.8,
