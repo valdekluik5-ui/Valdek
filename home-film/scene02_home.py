@@ -88,7 +88,7 @@ def night_city(coll):
     cx, cy = s1.CATH
     for i, (x, y, z, tgt) in enumerate([(-22, 6, 1, (0, 32, 14)), (22, 6, 1, (0, 32, 14)), (0, -4, 1, (0, 30, 10)),
                                         (-30, 20, 3, (0, cy, 32)), (30, 20, 3, (0, cy, 32))]):
-        ld = bpy.data.lights.new(f'Flood{i}', 'SPOT'); ld.energy = 2.6e5; ld.color = (1, .86, .65); ld.spot_size = math.radians(40)
+        ld = bpy.data.lights.new(f'Flood{i}', 'SPOT'); ld.energy = 3e4; ld.color = (1, .86, .65); ld.spot_size = math.radians(40)
         ld.spot_blend = .6; ld.shadow_soft_size = 1
         o = link(bpy.data.objects.new(f'Flood{i}', ld), coll); o.location = (x, y, z)
         o.rotation_euler = (Vector(tgt) - Vector((x, y, z))).to_track_quat('-Z', 'Y').to_euler()
@@ -103,7 +103,7 @@ def night_city(coll):
 
 def room(coll):
     """The little room: walls with a deep window, a window seat with cushions, a blanket, fairy lights, a lamp."""
-    wall = mat('RoomWall', (.55, .42, .32), rough=.85)
+    wall = mat('RoomWall', (.36, .26, .2), rough=.85)
     wood = mat('Floor', (.22, .12, .06), rough=.5)
     frame = mat('WindowFrame', (.75, .72, .66), rough=.5)
     seat = mat('SeatWood', (.4, .28, .18), rough=.55)
@@ -131,7 +131,7 @@ def room(coll):
     cush = mat('Cushion', (.55, .25, .2), rough=.9); cush2 = mat('Cushion2', (.7, .6, .45), rough=.9)
     blob('CushionL', T(-1.05, -.05, SILL + .18), (.14, .2, .2), coll, cush, rough=.12, seed=1)
     blob('CushionR', T(1.05, -.05, SILL + .18), (.14, .2, .2), coll, cush2, rough=.12, seed=2)
-    knit = mat('Blanket', (.62, .48, .36), rough=1.0, sss=.1)
+    knit = mat('Blanket', (.42, .2, .16), rough=1.0, sss=.1)
     bl = blob('Blanket', T(0, -.08, SILL + .07), (.7, .3, .1), coll, knit, sub=4, rough=.18, seed=3)
     blob('BlanketDrape', T(.15, -.43, SILL - .12), (.5, .06, .18), coll, knit, sub=3, rough=.2, seed=4)
     mug = mat('Mug', (.7, .2, .15), rough=.3, coat=.5)
@@ -160,8 +160,8 @@ def room(coll):
     cylinder('LampShade', .14, .16, T(1.75, -.35, SILL + .32), shade, coll, n=24, r2=.09, cap=False)
     film.point_light('LampLight', T(1.75, -.35, SILL + .4), 60, (1, .58, .28), .1)
     film.area_light('RoomBounce', T(0, -3.5, 1.5), T(0, 0, .8), 15, 2.5, (1, .6, .35))
-    film.area_light('NightFill', T(-.4, 1.8, 1.3), T(0, -.2, SILL + .35), 25, 1.5, (.55, .65, 1.0))      # cool city glow on their faces
-    film.area_light('FaceWarm', T(.5, .9, SILL + 1.2), T(0, -.2, SILL + .35), 12, .6, (1, .6, .3))      # the fairy lights from the front
+    film.area_light('NightFill', T(-.4, 1.8, 1.3), T(0, -.2, SILL + .35), 9, 1.5, (.55, .65, 1.0))      # cool city glow on their faces
+    film.area_light('FaceWarm', T(.5, .9, SILL + 1.2), T(0, -.2, SILL + .35), 7, .6, (1, .6, .3))      # the fairy lights from the front
 
 
 def build():
@@ -192,8 +192,8 @@ def build():
     A = film.camera('Cam2a_Behind', [(SHOTS['a'], (R.x + .4, R.y - 3.7, R.z + 1.5), (R.x, R.y + 8, R.z + 1.15)),
                                      (SHOTS['b'] - 1, (R.x + .3, R.y - 3.1, R.z + 1.42), (R.x, R.y + 8, R.z + 1.12))], lens=24, fstop=4,
                     focus=(R.x, R.y - .2, R.z + .9))
-    B = film.camera('Cam2b_Window', [(SHOTS['b'], (R.x - .8, R.y + 2.7, R.z + 1.05), (R.x, R.y - .16, R.z + .88)),
-                                     (SHOTS['c'] - 1, (R.x - .65, R.y + 2.45, R.z + 1.03), (R.x, R.y - .16, R.z + .88))], lens=30, fstop=2.8,
+    B = film.camera('Cam2b_Window', [(SHOTS['b'], (R.x - .8, R.y + 2.7, R.z + 1.2), (R.x, R.y - .16, R.z + 1.02)),
+                                     (SHOTS['c'] - 1, (R.x - .65, R.y + 2.45, R.z + 1.18), (R.x, R.y - .16, R.z + 1.02))], lens=30, fstop=2.8,
                     focus=(R.x, R.y - .16, R.z + .85))
     C = film.camera('Cam2c_Close', [(SHOTS['c'], (R.x + .35, R.y + 2.4, R.z + 1.05), (R.x - .02, R.y - .16, R.z + .92)),
                                     (SHOTS['end'], (R.x + .3, R.y + 2.15, R.z + 1.03), (R.x - .02, R.y - .16, R.z + .92))], lens=36, fstop=2.0,

@@ -77,7 +77,7 @@ def park(coll):
         for sx in (-1, 1):
             film.place_tree(coll, trees[(i + sx) % 3], (sx * rng.uniform(3.4, 4.0), y + rng.uniform(-.6, .6), 0), rng.uniform(8, 10), rng)
     iron = mat('Iron', (.02, .025, .025), rough=.35, metal=.6, haze=True)
-    glass = mat('LampGlass', (.9, .85, .7), rough=.1, emission=(1, .7, .4), strength=10, transmission=.4)
+    glass = mat('LampGlass', (.9, .85, .7), rough=.1, emission=(1, .7, .4), strength=3, transmission=.4)
     for i in range(10):
         y = -2 + i * 7
         for sx in (-1, 1):
@@ -139,8 +139,8 @@ def build():
     # cameras
     A = film.camera('Cam3a_Offer', [(SHOTS['a'], (.1, 3.3, .72), (0, y, .52)), (SHOTS['b'] - 1, (.05, 3.6, .7), (0, y, .52))], lens=30, fstop=2.8,
                     focus=(0, y, .5))
-    B = film.camera('Cam3b_Paws', [(SHOTS['b'], paw + Vector((.1, -.8, .02)), paw), (SHOTS['c'] - 1, paw + Vector((.08, -.72, .02)), paw)],
-                    lens=42, fstop=2.0, focus=tuple(paw))
+    B = film.camera('Cam3b_Paws', [(SHOTS['b'], paw + Vector((.15, -1.5, .25)), paw + Vector((0, 0, .18))), (SHOTS['c'] - 1, paw + Vector((.1, -1.3, .22)), paw + Vector((0, 0, .18)))],
+                    lens=40, fstop=2.8, focus=1.5)
     C = film.camera('Cam3c_Away', [(SHOTS['c'], (.3, 3.0, 1.05), (0, 14, .5)), (SHOTS['end'], (.25, 4.6, 1.0), (0, 16, .5))], lens=30, fstop=4,
                     focus=(0, 8.5, .5))
     for f, cam in ((SHOTS['a'], A), (SHOTS['b'], B), (SHOTS['c'], C)):
