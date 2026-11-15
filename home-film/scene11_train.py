@@ -118,9 +118,9 @@ def fields(coll):
 def build():
     bears = film.import_bears()
     film.HAZE.update(color=(1.0, .9, .75), start=60.0, dist=700.0, strength=.3)
-    w, sky, bg, ramp = film.make_sky(elev=35, az=-30, strength=.75, low=(1, .9, .8), mid=(1, .95, .9), high=(.8, .88, 1.0), aerosol=1.5)
+    w, sky, bg, ramp = film.make_sky(elev=35, az=-30, strength=.3, low=(1, .9, .8), mid=(1, .95, .9), high=(.8, .88, 1.0), aerosol=1.5)
     sun = film.make_sun(elev=35, az=-30, energy=2.6, color=(1, .92, .8))
-    bpy.context.scene.view_settings.exposure = -.8          # bright June midday: a touch darker so the colours stay rich
+    bpy.context.scene.view_settings.exposure = -.3          # bright June midday: a touch darker so the colours stay rich
     st = film.new_coll('Station'); station(st)
     fc = film.new_coll('Fields'); fields(fc)
     tr = film.new_coll('Train')
