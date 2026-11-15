@@ -658,7 +658,7 @@ def run(build, sid, still_frame=None):
         except Exception as ex:
             print('Could not save the .blend:', ex)
     if bpy.app.background:
-        frames = parse_frames(o['frames'], still_frame or (f0 + f1) // 2)
+        frames = [f for f in parse_frames(o['frames'], still_frame or (f0 + f1) // 2) if f0 <= f <= f1]
         os.makedirs(o['out'], exist_ok=True)
         for f in frames:
             path = os.path.join(o['out'], f"{f:04d}.png")

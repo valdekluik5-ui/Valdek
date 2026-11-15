@@ -913,7 +913,7 @@ if __name__ == '__main__':
         except Exception as ex:
             print('Could not save the .blend:', ex)
     if bpy.app.background:
-        frames = parse_frames(o['frames'], 400)
+        frames = [f for f in parse_frames(o['frames'], 400) if FRAMES[0] <= f <= FRAMES[1]]
         os.makedirs(o['out'], exist_ok=True)
         for f in frames:
             path = os.path.join(o['out'], f"{f:04d}.png" if o['camera'] == 'edit' else f"{o['camera']}_{f:04d}.png")
