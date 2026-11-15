@@ -140,6 +140,33 @@ def room(coll):
     cylinder('Pot', .09, .14, T(-1.05, .14, SILL), pot, coll, n=16, r2=.11)
     for i in range(7):
         blob(f'Leaf{i}', T(-1.05 + .06 * math.cos(i * 2.4), .14 + .06 * math.sin(i * 2.4), SILL + .2 + .03 * i), (.05, .02, .08), coll, leaf, sub=2, seed=10 + i)
+    # curtains framing the window, a bookshelf, pictures and a rug: a lived-in room
+    cloth = mat('Curtain', (.55, .32, .25), rough=.95, sss=.15)
+    for sx in (-1, 1):
+        for k in range(5):
+            blob(f'Curtain{sx}{k}', T(sx * (ww + .12 + k * .07), -.12, 1.15), (.06, .05, 1.15), coll, cloth, sub=3, rough=.08, seed=k + (sx > 0) * 10)
+    shelf = mat('Shelf', (.3, .18, .1), rough=.6)
+    for i, z in enumerate((.3, .75, 1.2, 1.65)):
+        box(f'Shelf{i}', (1.6, .3, .03), T(-1.7, -4.0, z), shelf, coll)
+    box('ShelfSideL', (.03, .3, 1.75), T(-2.5, -4.0, 0), shelf, coll); box('ShelfSideR', (.03, .3, 1.75), T(-.9, -4.0, 0), shelf, coll)
+    bookc = [(.5, .12, .1), (.1, .25, .35), (.6, .5, .25), (.2, .3, .15), (.7, .65, .55), (.35, .1, .2)]
+    rngb = np.random.default_rng(3)
+    for i, z in enumerate((.33, .78, 1.23)):
+        x = -2.45
+        while x < -1.0:
+            w_ = rngb.uniform(.03, .07); h_ = rngb.uniform(.22, .34)
+            box(f'Book{i}_{x:.2f}', (w_, .2, h_), T(x + w_ / 2, -3.98, z), mat(f'BookM{i}{int(x * 100)}', bookc[rngb.integers(6)], rough=.6), coll)
+            x += w_ + .005
+    for i, (x, z, w_, h_) in enumerate(((.6, 1.2, .5, .4), (1.3, 1.35, .35, .45), (.95, .8, .3, .25))):
+        box(f'Frame{i}', (w_, .03, h_), T(x, -4.13, z), mat('PicFrame', (.6, .45, .25), rough=.4, metal=.5), coll)
+        box(f'Picture{i}', (w_ - .06, .03, h_ - .06), T(x, -4.12, z + .03), mat(f'Pic{i}', [(.4, .5, .6), (.6, .45, .3), (.3, .45, .3)][i], rough=.5), coll)
+    rugm = mat('RoomRug', (.4, .12, .1), rough=1.0)
+    box('RoomRug', (2.4, 1.6, .012), T(0, -1.6, 0), rugm, coll)
+    candle = mat('Candle', (.95, .9, .8), rough=.6); flame = emit_mat('Flame', (1, .6, .25), 30)
+    for i, x in enumerate((-.25, .25)):
+        cylinder(f'Candle{i}', .025, .08 + i * .03, T(x * 3.2, .18, SILL), candle, coll, n=10)
+        blob(f'Flame{i}', T(x * 3.2, .18, SILL + .1 + i * .03), (.008, .008, .018), coll, flame, sub=1)
+    film.point_light('CandleGlow', T(0, .1, SILL + .2), 6, (1, .6, .3), .05)
     # fairy lights around the window
     bulb = emit_mat('FairyBulb', (1, .65, .3), 25)
     pts = []
@@ -189,8 +216,8 @@ def build():
     bears.key_pose(he, SHOTS['end'], {'head': (6, -12, 12), 'spine': (6, 0, 4)})
     bears.set_eyes(she, 'closed', 338); bears.set_eyes(he, 'closed', 362)
     # cameras
-    A = film.camera('Cam2a_Behind', [(SHOTS['a'], (R.x + .4, R.y - 3.7, R.z + 1.5), (R.x, R.y + 8, R.z + 1.15)),
-                                     (SHOTS['b'] - 1, (R.x + .3, R.y - 3.1, R.z + 1.42), (R.x, R.y + 8, R.z + 1.12))], lens=24, fstop=4,
+    A = film.camera('Cam2a_Behind', [(SHOTS['a'], (R.x + 1.6, R.y - 3.6, R.z + 1.35), (R.x - .3, R.y + 6, R.z + 1.0)),
+                                     (SHOTS['b'] - 1, (R.x + 1.2, R.y - 3.0, R.z + 1.3), (R.x - .2, R.y + 6, R.z + 1.0))], lens=18, fstop=4,
                     focus=(R.x, R.y - .2, R.z + .9))
     B = film.camera('Cam2b_Window', [(SHOTS['b'], (R.x - .8, R.y + 2.7, R.z + 1.2), (R.x, R.y - .16, R.z + 1.02)),
                                      (SHOTS['c'] - 1, (R.x - .65, R.y + 2.45, R.z + 1.18), (R.x, R.y - .16, R.z + 1.02))], lens=30, fstop=2.8,
