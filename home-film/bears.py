@@ -769,3 +769,81 @@ def _fcurves(ob):
 
 def blink(arm, frame, length=4):
     set_eyes(arm, 'closed', frame); set_eyes(arm, 'open', frame + length)
+
+
+# ---------------------------------------------------------------- movement helpers used by all scenes
+STAND = {'spine': (0, 0, 0), 'head': (0, 0, 0), 'shoulder.L': (0, 0, 0), 'shoulder.R': (0, 0, 0),
+         'forearm.L': (0, 0, 0), 'forearm.R': (0, 0, 0), 'thigh.L': (0, 0, 0), 'thigh.R': (0, 0, 0),
+         'shin.L': (0, 0, 0), 'shin.R': (0, 0, 0), 'pelvis': (0, 0, 0)}
+SIT = dict(STAND, **{'thigh.L': (88, 0, -4), 'thigh.R': (88, 0, 4), 'shin.L': (-80, 0, 0), 'shin.R': (-80, 0, 0),
+                     'spine': (6, 0, 0), 'shoulder.L': (12, 0, -10), 'shoulder.R': (12, 0, 10),
+                     'forearm.L': (10, 0, 0), 'forearm.R': (10, 0, 0)})
+
+
+def facing(dx, dy):
+    """rotation_z that makes a bear (front = -Y) face the direction (dx, dy)."""
+    return math.atan2(dx, -dy)
+
+
+def place(arm, frame, loc, rot_z=None, sitting=False, pose=None):
+    """Put the bear somewhere at a frame (a hard jump: use at shot starts). Keys location/rotation and a full pose."""
+    x, y, z = loc
+    if sitting:
+        z = z - arm['sitDrop'] + .1 * arm.scale[0]
+    arm.location = (x, y, z)
+    if rot_z is not None:
+        arm.rotation_euler = (0, 0, rot_z)
+    arm.keyframe_insert('location', frame=frame); arm.keyframe_insert('rotation_euler', frame=frame)
+    key_pose(arm, frame, dict(SIT if sitting else STAND, **(pose or {})))
+    _constant_at(arm, frame)
+
+
+def hold(arm, frame):
+    """Key the current transform again (so motion starts from here)."""
+    arm.keyframe_insert('location', frame=frame); arm.keyframe_insert('rotation_euler', frame=frame)
+
+
+def _constant_at(ob, frame):
+    """Make the key just BEFORE `frame` jump (no blending across a cut)."""
+    for fc in _fcurves(ob):
+        prev = [kp for kp in fc.keyframe_points if kp.co.x < frame - .5]
+        if prev:
+            max(prev, key=lambda k: k.co.x).interpolation = 'CONSTANT'
+
+
+def walk(arm, f0, f1, p0, p1, cycle=18, stride=26, ground=None):
+    """Walk from p0 to p1 (x, y, z) between frames f0 and f1: legs and arms swing, the body bobs gently."""
+    p0, p1 = Vector(p0), Vector(p1)
+    d = p1 - p0
+    rz = facing(d.x, d.y)
+    arm.rotation_euler = (0, 0, rz); arm.location = p0
+    arm.keyframe_insert('location', frame=f0); arm.keyframe_insert('rotation_euler', frame=f0)
+    q = cycle / 4
+    f = f0; k = 0
+    while f <= f1 + .01:
+        t = (f - f0) / max(f1 - f0, 1)
+        ph = (k % 4) * PI / 2
+        s = math.sin(ph)
+        pos = p0 + d * t
+        bob = .012 * abs(math.cos(ph)) * arm.scale[0]
+        arm.location = (pos.x, pos.y, pos.z + bob)
+        arm.keyframe_insert('location', frame=f)
+        key_pose(arm, f, {'thigh.L': (stride * s, 0, 0), 'thigh.R': (-stride * s, 0, 0),
+                          'shin.L': (-max(0, -s) * 30, 0, 0), 'shin.R': (-max(0, s) * 30, 0, 0),
+                          'shoulder.L': (-14 * s, 0, -6), 'shoulder.R': (14 * s, 0, 6),
+                          'forearm.L': (8, 0, 0), 'forearm.R': (8, 0, 0),
+                          'spine': (4, 0, 3 * s), 'pelvis': (0, 0, -2 * s)})
+        f += q; k += 1
+    arm.location = p1; arm.keyframe_insert('location', frame=f1)
+    key_pose(arm, f1, {'thigh.L': (0, 0, 0), 'thigh.R': (0, 0, 0), 'shin.L': (0, 0, 0), 'shin.R': (0, 0, 0),
+                       'shoulder.L': (0, 0, 0), 'shoulder.R': (0, 0, 0), 'spine': (0, 0, 0), 'pelvis': (0, 0, 0)})
+    for fc in _fcurves(arm):
+        if fc.data_path == 'location':
+            for kp in fc.keyframe_points:
+                if f0 - .5 <= kp.co.x <= f1 + .5:
+                    kp.interpolation = 'LINEAR'
+
+
+def turn_head(arm, frame, yaw=0, nod=0, tilt=0):
+    """Head turn in degrees: yaw + = to the bear's left, nod + = down, tilt + = toward its right shoulder."""
+    key_pose(arm, frame, {'head': (nod, yaw, tilt)})
