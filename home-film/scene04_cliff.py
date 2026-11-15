@@ -10,7 +10,7 @@ HOW TO RUN (Blender 5.3)
   B) From a terminal (Windows: cmd in this folder), builds + renders, prints the time per frame:
      "C:\\Program Files\\Blender Foundation\\Blender 5.3\\blender.exe" -b --python scene04_cliff.py -- --frames 170 --percent 50
      Options after "--":
-       --frames 170 | 1-216 | 1-216x8  (every 8th)     --camera wide | faces | establish
+       --frames 170 | 1-216 | 1-216x8  (every 8th)     --camera wide | faces | establish | edit (cuts between all three)
        --engine eevee | cycles                          --percent 50 (of 1080x1920)
        --samples N                                      --out renders/scene04/   (existing frames are skipped)
        --gpu    (Cycles on GPU: OptiX/CUDA, for Colab)
@@ -832,7 +832,13 @@ if __name__ == '__main__':
     build()
     setup_render(o['engine'], o['percent'], o['samples'], o['gpu'])
     sc = bpy.context.scene
-    sc.camera = bpy.data.objects['Cam_' + o['camera'].capitalize()]
+    if o['camera'] == 'edit':
+        # a little cut: establishing -> wide -> faces (timeline markers switch the camera)
+        for f, name in ((FRAMES[0], 'Cam_Establish'), (64, 'Cam_Wide'), (150, 'Cam_Faces')):
+            mk = sc.timeline_markers.new(name, frame=f); mk.camera = bpy.data.objects[name]
+        sc.camera = bpy.data.objects['Cam_Establish']
+    else:
+        sc.camera = bpy.data.objects['Cam_' + o['camera'].capitalize()]
     try:
         bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, 'scene04_cliff.blend'))
     except Exception as ex:
