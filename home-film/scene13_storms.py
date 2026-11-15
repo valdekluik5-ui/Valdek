@@ -55,16 +55,15 @@ def build_world(coll):
     s.type = 'HAIR'; s.count = 14000; s.use_advanced_hair = True; s.normal_factor = .1; s.factor_random = .04; s.object_align_factor = (.03, 0, 0)
     s.material_slot = 'Blades'; s.child_type = 'INTERPOLATED'; s.rendered_child_count = 8; s.child_percent = 2; s.child_radius = .1
     s.roughness_2 = .03; s.radius_scale = .005; s.root_radius = 1; s.tip_radius = 0; s.length_random = .5
+    film.meadow('HillMeadow', (2, -6), (22, 26), coll, z_fn=hill_z, density=.6, seed=13, keep_clear=[(0, -1.6, 1.2)])
     # the big tree: a broad old tree (trunk and branches + leafy clumps)
     bark = mat('OakBark', (.06, .045, .035), rough=.9, haze=True)
     leaves = film.foliage_material('OakLeaves', (.04, .1, .02), (.12, .22, .04), tint=(.8, .9, .4))
     me = film.bare_tree('BigTree', 7, [bark])
-    tree = link(bpy.data.objects.new('BigTree', me), coll); tree.location = (0, 1.2, gz(0, 1.2) - .1); tree.scale = (9, 9, 9)
+    tree = link(bpy.data.objects.new('BigTree', me), coll); tree.location = (0, 1.2, gz(0, 1.2) - .1); tree.scale = (8, 8, 6.5)
     rng = np.random.default_rng(5)
-    for i in range(70):
-        a = rng.uniform(0, 2 * PI); r = rng.uniform(0, 3.6)
-        blob(f'Leaves{i}', (math.cos(a) * r, 1.2 + math.sin(a) * r, gz(0, 1.2) + 4.6 + rng.uniform(-.8, 1.4) - r * .25),
-             (rng.uniform(.8, 1.4),) * 2 + (rng.uniform(.6, 1.0),), coll, leaves, sub=2, rough=.3, seed=i)
+    leaves.node_tree.nodes['Principled BSDF'].inputs['Subsurface Weight'].default_value = .25     # light glows through the leaves
+    film.leafy_crown('Crown', (0, 1.2, gz(0, 1.2) + 5.4), 4.4, coll, leaves, height=3.2, clusters=48000, leaf=.13, seed=5)
     return land
 
 

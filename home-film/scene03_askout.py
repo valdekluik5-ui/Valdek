@@ -68,6 +68,8 @@ def park(coll):
     s.material_slot = 'GrassBlade'; s.child_type = 'INTERPOLATED'; s.rendered_child_count = 8; s.child_percent = 2; s.child_radius = .1
     s.roughness_2 = .02; s.radius_scale = .004; s.root_radius = 1; s.tip_radius = 0; s.length_random = .5
     mod.particle_system.vertex_group_density = 'grass'
+    for sx in (-1, 1):
+        film.meadow(f'ParkMeadow{sx}', (sx * 5.5, 8), (7, 28), coll, density=.8, seed=3 + sx, colors=((.05, .13, .03), (.16, .28, .06)))
     # rows of trees in fresh spring leaf, lamps, benches
     fresh = film.foliage_material('SpringLeaves', (.07, .16, .03), (.2, .32, .07), tint=(.8, .9, .4))
     bark = film.bark_material('LindenBark', (.05, .045, .04), (.09, .08, .07))

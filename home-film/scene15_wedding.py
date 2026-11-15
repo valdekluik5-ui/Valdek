@@ -40,6 +40,17 @@ def garden(coll):
     film.scatter_instances(land, lib, 'forest', 2500, 14, seed=15)
     lake = film.water_material('WeddingLake', color=(.04, .07, .09), rough=.05, wave=.15)
     film.mesh_obj('WeddingLake', [(-300, -26, -.6), (300, -26, -.6), (300, -300, -.6), (-300, -300, -.6)], [(0, 1, 2, 3)], coll, [lake])
+    film.meadow('WeddingMeadow', (0, 0), (24, 30), coll, keep_clear=[(0, -4, 1.6), (0, 2.5, 1.0)], seed=15)
+    # rose bushes and lanterns along the aisle
+    bush = mat('RoseBush', (.04, .12, .03), rough=.6); bloom = mat('RoseBloom', (.85, .35, .4), rough=.5, sss=.3)
+    lant = film.emit_mat('Lantern', (1, .75, .45), 8)
+    for i, y in enumerate((0.0, 2.4, 4.8, 7.2)):
+        for sx in (-1, 1):
+            blob(f'Bush{i}{sx}', (sx * 3.3, y, .3), (.35, .35, .32), coll, bush, sub=2, rough=.3, seed=i * 2 + (sx > 0))
+            for k in range(5):
+                blob(f'BushBloom{i}{sx}{k}', (sx * 3.3 + .25 * math.cos(k * 1.3), y + .25 * math.sin(k * 1.3), .45 + .08 * (k % 2)), (.05, .05, .05), coll, bloom, sub=1, seed=k)
+            cylinder(f'LanternPole{i}{sx}', .015, .9, (sx * .8, y + 1.2, 0), mat('LanternIron', (.05, .05, .05), rough=.4, metal=.6), coll, n=6)
+            blob(f'LanternGlow{i}{sx}', (sx * .8, y + 1.2, .95), (.05, .05, .07), coll, lant, sub=1)
     # the arch: two posts and a curved top, covered in white and blush roses with green leaves
     white = mat('ArchWood', (.85, .84, .8), rough=.6)
     for sx in (-1, 1):

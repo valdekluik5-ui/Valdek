@@ -426,15 +426,28 @@ def _cyl(V, F, M, p0, p1, r0, r1, n, mi):
 
 
 def _clump(V, F, M, c, r, squash, rng, mi, sub):
-    bm = bmesh.new(); bmesh.ops.create_icosphere(bm, subdivisions=sub, radius=1)
+    """A tuft of foliage: a small dark core plus a spray of leaf/needle cards around it (detailed silhouette,
+    light through the gaps). sub=1 (low detail, far away) keeps fewer cards."""
+    bm = bmesh.new(); bmesh.ops.create_icosphere(bm, subdivisions=1, radius=1)
     bm.verts.ensure_lookup_table(); bm.verts.index_update()
     o = len(V)
     for v in bm.verts:
-        k = 1 + rng.uniform(-.3, .3)
+        k = .62 + rng.uniform(-.1, .1)
         V.append((c[0] + v.co.x * r * k, c[1] + v.co.y * r * k, c[2] + v.co.z * r * squash * k))
     for f in bm.faces:
         F.append(tuple(o + v.index for v in f.verts)); M.append(mi)
     bm.free()
+    n = 46 if sub >= 2 else 14
+    s = r * (.32 if sub >= 2 else .5)
+    for _ in range(n):
+        d = rng.normal(0, 1, 3); d /= np.linalg.norm(d)
+        p = np.array(c) + np.array([d[0] * r, d[1] * r, d[2] * r * squash]) * rng.uniform(.75, 1.15)
+        nn = rng.normal(0, 1, 3); nn /= np.linalg.norm(nn)
+        t = np.cross(nn, [0, 0, 1.0]); t = t / (np.linalg.norm(t) + 1e-9); u = np.cross(nn, t)
+        o = len(V)
+        for a, b_ in ((1, .45), (-1, .45), (-1, -.45), (1, -.45)):
+            V.append(tuple(p + t * s * a + u * s * b_))
+        F.append((o, o + 1, o + 2, o + 3)); M.append(mi)
 
 
 def _finish(name, V, F, M, mats):
@@ -494,6 +507,12 @@ def spruce(name, seed, mats, lod=0):
             F.append((o + i, o + (i + 1) % m, o + (i + 1) % m + m, o + i + m)); M.append(0)
             F.append((o + i + m, o + (i + 1) % m + m, o + 2 * m)); M.append(0)
             F.append((o + (i + 1) % m, o + i, o + 2 * m + 1)); M.append(0)
+        if lod == 0:      # needle tufts along each branch tip, so the tiers are soft and feathery
+            for i in range(0, m, 2):
+                tip = ring[i]
+                for k in (.55, .85):
+                    p = (tip[0] * k, tip[1] * k, zb - .02 + (tip[2] - zb) * k)
+                    _clump(V, F, M, p, R * .16, .6, rng, 0, 2)
     return _finish(name, V, F, M, mats)
 
 
@@ -918,3 +937,86 @@ def plaster_material(name, color, grime=.35, scale=1.0):
     L.new(fine.outputs['Fac'], bump.inputs['Height']); L.new(bump.outputs['Normal'], b.inputs['Normal'])
     add_haze(m, N, L, b)
     return m
+
+
+def meadow(name, center, size, coll, z_fn=None, density=1.0, flowers=True, colors=((.06, .15, .03), (.2, .3, .07)), seed=1, keep_clear=None):
+    """A patch of real grass blades with wildflowers dotted in it (particle hair + flower instances).
+    keep_clear: list of (x, y, r) circles left free of flowers (where bears stand)."""
+    cx, cy = center; sx, sy = size
+    n = max(8, int(sx * 2)); m_ = max(8, int(sy * 2))
+    X, Y = np.meshgrid(np.linspace(cx - sx / 2, cx + sx / 2, n), np.linspace(cy - sy / 2, cy + sy / 2, m_))
+    Z = z_fn(X, Y) if z_fn else np.zeros_like(X)
+    gm = mat(name + '_soil', (.05, .08, .03), rough=.9, haze=True)
+    bed = grid_mesh(name, X, Y, Z - .005, coll, gm)
+    blade = node_mat(name + '_blade')
+    m, N, L, b = blade
+    hi = N.new('ShaderNodeHairInfo'); rp = N.new('ShaderNodeValToRGB')
+    rp.color_ramp.elements[0].color = (*colors[0], 1); rp.color_ramp.elements[1].color = (*colors[1], 1)
+    L.new(hi.outputs['Intercept'], rp.inputs['Fac'])
+    vr = N.new('ShaderNodeMapRange'); vr.inputs['To Min'].default_value = .75; vr.inputs['To Max'].default_value = 1.2; L.new(hi.outputs['Random'], vr.inputs['Value'])
+    mul = N.new('ShaderNodeMix'); mul.data_type = 'RGBA'; mul.blend_type = 'MULTIPLY'; mul.inputs['Factor'].default_value = 1
+    cmb = N.new('ShaderNodeCombineColor')
+    for k in ('Red', 'Green', 'Blue'):
+        L.new(vr.outputs['Result'], cmb.inputs[k])
+    L.new(rp.outputs['Color'], mul.inputs['A']); L.new(cmb.outputs['Color'], mul.inputs['B']); L.new(mul.outputs['Result'], b.inputs['Base Color'])
+    b.inputs['Roughness'].default_value = .55; b.inputs['Sheen Weight'].default_value = .5
+    add_haze(m, N, L, b)
+    bed.data.materials.append(m)
+    vgroup(bed, 'g', np.ones(X.size))
+    mod = bed.modifiers.new('Grass', 'PARTICLE_SYSTEM'); s = mod.particle_system.settings
+    s.type = 'HAIR'; s.count = int(sx * sy * 25 * density); s.use_advanced_hair = True
+    s.normal_factor = .12; s.factor_random = .05; s.object_align_factor = (.02, 0, 0)
+    s.material_slot = m.name; s.child_type = 'INTERPOLATED'; s.rendered_child_count = 10; s.child_percent = 2; s.child_radius = .12
+    s.roughness_2 = .03; s.roughness_endpoint = .03; s.radius_scale = .005; s.root_radius = 1; s.tip_radius = 0; s.length_random = .6
+    s.display_percentage = 10; mod.particle_system.seed = seed
+    if flowers:
+        lib = new_coll(name + '_flowers')
+        stem = mat('FlowerStem', (.05, .15, .03), rough=.6)
+        pal = [(.95, .95, .9), (.95, .8, .1), (.7, .2, .55), (.3, .35, .85), (.95, .45, .5)]
+        for i, c in enumerate(pal):
+            fm = mat(f'Petal{i}', c, rough=.5, sss=.2)
+            st_ = cylinder(f'FStem{i}', .004, .16, (0, 0, 0), stem, lib, n=5)
+            hd = blob(f'FHead{i}', (0, 0, .17), (.025, .025, .012), lib, fm, sub=1, rough=.1, seed=i)
+            hd.parent = st_
+        bpy.context.view_layer.layer_collection.children[lib.name].exclude = True
+        fl = np.ones(X.size)
+        if keep_clear:
+            for kx, ky, kr in keep_clear:
+                fl *= (np.hypot(X - kx, Y - ky) > kr).ravel()
+        vgroup(bed, 'flowers', fl)
+        stems = new_coll(name + '_stems_lib')
+        for o in list(lib.objects):
+            if o.name.startswith('FStem'):
+                lib.objects.unlink(o); stems.objects.link(o)
+                for ch in o.children:
+                    lib.objects.unlink(ch); stems.objects.link(ch)
+        bpy.context.view_layer.layer_collection.children[stems.name].exclude = True
+        fm2 = bed.modifiers.new('Flowers', 'PARTICLE_SYSTEM'); s2 = fm2.particle_system.settings
+        s2.type = 'HAIR'; s2.count = int(sx * sy * 1.2 * density); s2.hair_length = 1
+        s2.render_type = 'COLLECTION'; s2.instance_collection = stems; s2.use_collection_pick_random = True
+        s2.particle_size = 1.0; s2.size_random = .4; s2.use_rotations = True; s2.rotation_mode = 'NONE'; s2.use_rotation_instance = True
+        s2.use_emit_random = True; s2.distribution = 'RAND'
+        fm2.particle_system.vertex_group_density = 'flowers'; fm2.particle_system.seed = seed + 7
+    return bed
+
+
+def leafy_crown(name, center, radius, coll, leaf_mat, height=None, clusters=900, leaf=.09, seed=0):
+    """A broad tree crown made of many small leaf cards scattered in a lumpy dome (light shines through gaps,
+    so it reads as foliage, not as solid blobs). Built as one mesh."""
+    rng = np.random.default_rng(seed)
+    height = height or radius * .75
+    V, F = [], []
+    lobes = [Vector((rng.normal(0, radius * .45), rng.normal(0, radius * .45), rng.normal(0, height * .3))) for _ in range(9)]
+    for i in range(clusters):
+        lb = lobes[rng.integers(len(lobes))]
+        d = Vector(rng.normal(0, 1, 3)); d.normalize()
+        p = Vector(center) + lb + Vector((d.x * radius * .55, d.y * radius * .55, d.z * height * .5)) * rng.uniform(.6, 1.0)
+        n = Vector(rng.normal(0, 1, 3)).normalized()
+        t = n.orthogonal().normalized(); u = n.cross(t)
+        s = leaf * rng.uniform(.7, 1.3)
+        o = len(V)
+        V += [tuple(p + (t * s + u * s * .6)), tuple(p + (-t * s + u * s * .6)), tuple(p + (-t * s - u * s * .6)), tuple(p + (t * s - u * s * .6))]
+        F.append((o, o + 1, o + 2, o + 3))
+    me = bpy.data.meshes.new(name); me.from_pydata(V, [], F); me.update(); me.materials.append(leaf_mat)
+    ob = bpy.data.objects.new(name, me)
+    return link(ob, coll)

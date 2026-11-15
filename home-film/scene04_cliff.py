@@ -415,16 +415,28 @@ def _cyl(V, F, M, p0, p1, r0, r1, n, mi):
 
 
 def _clump(V, F, M, c, r, squash, rng, mi, sub):
-    """A lumpy ball of needles/leaves."""
-    bm = bmesh.new(); bmesh.ops.create_icosphere(bm, subdivisions=sub, radius=1)
+    """A tuft of foliage: a small dark core plus a spray of leaf/needle cards around it (detailed silhouette,
+    light through the gaps). sub=1 (low detail, far away) keeps fewer cards."""
+    bm = bmesh.new(); bmesh.ops.create_icosphere(bm, subdivisions=1, radius=1)
     bm.verts.ensure_lookup_table(); bm.verts.index_update()
     o = len(V)
     for v in bm.verts:
-        k = 1 + rng.uniform(-.3, .3)
+        k = .62 + rng.uniform(-.1, .1)
         V.append((c[0] + v.co.x * r * k, c[1] + v.co.y * r * k, c[2] + v.co.z * r * squash * k))
     for f in bm.faces:
         F.append(tuple(o + v.index for v in f.verts)); M.append(mi)
     bm.free()
+    n = 46 if sub >= 2 else 14
+    s = r * (.32 if sub >= 2 else .5)
+    for _ in range(n):
+        d = rng.normal(0, 1, 3); d /= np.linalg.norm(d)
+        p = np.array(c) + np.array([d[0] * r, d[1] * r, d[2] * r * squash]) * rng.uniform(.75, 1.15)
+        nn = rng.normal(0, 1, 3); nn /= np.linalg.norm(nn)
+        t = np.cross(nn, [0, 0, 1.0]); t = t / (np.linalg.norm(t) + 1e-9); u = np.cross(nn, t)
+        o = len(V)
+        for a, b_ in ((1, .45), (-1, .45), (-1, -.45), (1, -.45)):
+            V.append(tuple(p + t * s * a + u * s * b_))
+        F.append((o, o + 1, o + 2, o + 3)); M.append(mi)
 
 
 def _finish(name, V, F, M, mats):
@@ -492,6 +504,12 @@ def spruce(name, seed, mats, lod=0):
             F.append((o + i, o + (i + 1) % m, o + (i + 1) % m + m, o + i + m)); M.append(0)
             F.append((o + i + m, o + (i + 1) % m + m, o + 2 * m)); M.append(0)
             F.append((o + (i + 1) % m, o + i, o + 2 * m + 1)); M.append(0)
+        if lod == 0:      # needle tufts along each branch tip, so the tiers are soft and feathery
+            for i in range(0, m, 2):
+                tip = ring[i]
+                for k in (.55, .85):
+                    p = (tip[0] * k, tip[1] * k, zb - .02 + (tip[2] - zb) * k)
+                    _clump(V, F, M, p, R * .16, .6, rng, 0, 2)
     return _finish(name, V, F, M, mats)
 
 
