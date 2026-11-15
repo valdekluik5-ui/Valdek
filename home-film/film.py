@@ -721,6 +721,10 @@ def key_visible(ob, frame, on):
     s = ob.get('_s', None)
     if s is None:
         ob['_s'] = tuple(ob.scale); s = ob['_s']
+    import bears as _b
+    if frame > 0 and not any(fc.data_path == 'scale' for fc in _b._fcurves(ob)):
+        ob.scale = tuple(s) if not on else (1e-4, 1e-4, 1e-4)        # before the first change it is in the other state
+        ob.keyframe_insert('scale', frame=0)
     ob.scale = tuple(s) if on else (1e-4, 1e-4, 1e-4)
     ob.keyframe_insert('scale', frame=frame)
     import bears
