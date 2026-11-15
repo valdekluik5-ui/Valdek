@@ -1,0 +1,9 @@
+# renders, Blender files and the song never go into the (public) repo
+renders/
+*.blend
+*.blend1
+*.mp3
+*.wav
+*.m4a
+*.mp4
+__pycache__/
