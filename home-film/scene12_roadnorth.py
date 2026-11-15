@@ -122,6 +122,8 @@ def build_palanga(coll):
         x = rng.uniform(-60, 60); y = rng.uniform(17, 40)
         z = float(np.clip(y + 4, 0, None) * .03 + np.clip(y - 12, 0, None) * .22) - .25
         film.place_tree(pines, hi['pine'][k % 4], PAL + Vector((x, y, z - .1)), rng.uniform(10, 15), rng, name=f'PalPine{k}')
+    film.meadow('Dunes', (PAL.x, PAL.y + 15), (60, 7), coll, z_fn=lambda X, Y: np.clip(Y - PAL.y + 4, 0, None) * .03 + np.clip(Y - PAL.y - 12, 0, None) * .22 - .25,
+                density=.5, flowers=False, colors=((.3, .28, .15), (.62, .58, .35)), seed=21)
     # the long Palanga pier in the distance
     wood = mat('PierWood', (.35, .25, .17), rough=.7, haze=True)
     box('Pier', (2.2, 120, .25), PAL + Vector((-40, -60, .6)), wood, coll)
@@ -152,6 +154,7 @@ def build_farm(coll):
         box(f'FarmWinFrame{x}', (1.05, .08, 1.25), T(x, 2.98, 1.12), trim, coll)
     box('FarmDoor', (1.1, .1, 2.1), T(.5, 2.96, 0), mat('FarmDoorM', (.25, .15, .08), rough=.6), coll)
     box('Porch', (3.2, 1.6, .25), T(.5, 2.2, 0), mat('PorchWood', (.4, .3, .2), rough=.7), coll)
+    film.meadow('FarmMeadow', (EST.x, EST.y - 3), (16, 14), coll, density=.9, seed=12, keep_clear=[(EST.x + .5, EST.y - 2, 1.2)])
     flowers = mat('Lupin', (.14, .05, .45), rough=.6)
     rng = np.random.default_rng(6)
     for i in range(40):
@@ -347,8 +350,8 @@ def build():
     mx = mapxy
     cams = [
         (SHOTS['map'], film.camera('Cam12_Map', [(1, mx(26, 53) + Vector((0, -4.5, 9)), mx(26, 54.5)), (SHOTS['palanga'] - 1, mx(25, 58) + Vector((0, -3.5, 7.5)), mx(25, 58.6))], lens=30)),
-        (SHOTS['palanga'], film.camera('Cam12_Palanga', [(SHOTS['palanga'], PAL + Vector((3.5, -5.5, 1.1)), PAL + Vector((-1, 6, .8))),
-                                                          (SHOTS['latvia'] - 1, PAL + Vector((6.5, -5.2, 1.0)), PAL + Vector((2.5, 6, .8)))], lens=24, fstop=5.6, focus=5.0)),
+        (SHOTS['palanga'], film.camera('Cam12_Palanga', [(SHOTS['palanga'], PAL + Vector((1.5, -6.2, .9)), PAL + Vector((-.5, 8, 1.6))),
+                                                          (SHOTS['latvia'] - 1, PAL + Vector((5.5, -6.0, .9)), PAL + Vector((3.5, 8, 1.6)))], lens=26, fstop=5.6, focus=4.5)),
         (SHOTS['latvia'], film.camera('Cam12_Latvia', [(SHOTS['latvia'], LAT + Vector((6, 6, 9)), LAT + Vector((1, -14, 0))), (SHOTS['estonia'] - 1, LAT + Vector((5, -30, 12)), LAT + Vector((1, -50, 0)))], lens=26, fstop=8, focus=20.0)),
         (SHOTS['estonia'], film.camera('Cam12_Farm', [(SHOTS['estonia'], EST + Vector((5.5, -6.5, 1.8)), EST + Vector((.5, 2, 1.2))), (SHOTS['falls'] - 1, EST + Vector((4.5, -5.0, 1.6)), EST + Vector((.5, 2, 1.1)))], lens=24, fstop=5.6, focus=6.0)),
         (SHOTS['falls'], film.camera('Cam12_Falls', [(SHOTS['falls'], FAL + Vector((1.2, -18.2, -1.7)), FAL + Vector((-.5, 0, -1.4))), (SHOTS['tallinn'] - 1, FAL + Vector((.8, -17.4, -1.8)), FAL + Vector((-.5, 0, -1.5)))], lens=22, fstop=8, focus=6.0)),

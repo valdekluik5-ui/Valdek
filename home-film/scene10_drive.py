@@ -53,9 +53,11 @@ def road_land(coll, length=900, forest=True, field_colors=((.16, .2, .05), (.32,
     land = film.grid_mesh('Land', X, Y, Z, coll, m)
     if forest:
         hi, lib = film.tree_library()
-        wood = (film.fbm(X / 60 + seed, Y / 60, 4) > .04) & (np.abs(X) > 14)
+        wood = (film.fbm(X / 45 + seed, Y / 45, 4) > -.02) & (np.abs(X) > 10)
         film.vgroup(land, 'forest', wood.astype(float).ravel())
-        film.scatter_instances(land, lib, 'forest', 9000, 13, seed=seed)
+        film.scatter_instances(land, lib, 'forest', 16000, 13, seed=seed)
+        for sx in (-1, 1):
+            film.meadow(f'Verge{sx}', (sx * 4.2, -20), (4.5, 70), coll, density=.6, seed=seed + sx, colors=((.08, .14, .03), (.3, .32, .1)))
     return land
 
 
