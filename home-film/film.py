@@ -341,6 +341,7 @@ def area_light(name, loc, target, energy, size, color=(1, 1, 1)):
     ld = bpy.data.lights.new(name, 'AREA'); ld.energy = energy; ld.size = size; ld.color = color
     o = link(bpy.data.objects.new(name, ld)); o.location = loc
     o.rotation_euler = (Vector(target) - Vector(loc)).to_track_quat('-Z', 'Y').to_euler()
+    o.visible_camera = False                          # light the scene, never show the panel itself
     return o
 
 
@@ -384,6 +385,7 @@ def look(cam, target, prev=None):
 def camera(name, keys, lens=35, fstop=None, focus=None):
     """keys: [(frame, location, target), ...] (a slow move between them). Returns the camera object."""
     cd = bpy.data.cameras.new(name); cd.lens = lens; cd.sensor_fit = 'VERTICAL'; cd.sensor_height = 24
+    cd.clip_start, cd.clip_end = .05, 20000.0           # far city lights, distant coasts and the sky dome stay visible
     cam = link(bpy.data.objects.new(name, cd))
     prev = None
     for f, loc, tgt in keys:
