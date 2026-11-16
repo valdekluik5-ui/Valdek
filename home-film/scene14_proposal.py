@@ -413,12 +413,12 @@ def build():
     he = bears.build_bear('he'); she = bears.build_bear('she')
     bx = BX
     DZ = deck_z(bx)
-    RY = -HALF_W + .55                                   # standing just inside the river-side rail
+    RY = PLAT_C[1] - PLAT_R + .55                        # standing at the rail of the round platform, its outermost point
     film.area_light('ProposalFill', (bx + 1.2, .4, DZ + 1.9), (bx, RY, DZ + .5), 160, 1.6, (1, .72, .5))
     film.area_light('FaceFill', (bx - 1.2, RY - 2.2, DZ + 1.3), (bx, RY, DZ + .6), 90, 1.6, (1, .78, .58))     # warm light on their faces and the ring
     film.area_light('MoonRim', (bx - 3, 2, DZ + 4), (bx, RY, DZ + .6), 40, 3, (.6, .7, 1.0))                  # a cool rim from behind
     # paw in paw along the curving bridge to the rail at its outermost point, then they turn to the view
-    p0h, p1h = Vector((bx - 5.4, -.15, DZ)), Vector((bx - .35, RY, DZ)); p0s, p1s = Vector((bx - 5.0, -.75, DZ)), Vector((bx + .35, RY, DZ))
+    p0h, p1h = Vector((bx - 2.2, -2.6, DZ)), Vector((bx - .35, RY, DZ)); p0s, p1s = Vector((bx - 1.6, -3.1, DZ)), Vector((bx + .35, RY, DZ))
     bears.place(he, 1, p0h, bears.facing(*(p1h - p0h).xy)); bears.place(she, 1, p0s, bears.facing(*(p1s - p0s).xy))
     bears.walk(he, 4, 72, p0h, p1h, hold={'shoulder.L': (8, 0, 22), 'forearm.L': (6, 0, 0)})
     bears.walk(she, 4, 72, p0s, p1s, hold={'shoulder.R': (8, 0, -22), 'forearm.R': (6, 0, 0)}, phase=2)
@@ -473,11 +473,11 @@ def build():
                                      (68, (bx + 14, -14, DZ + 8), (bx, RY, DZ + .45)), (84, (bx + 4, RY - .5, DZ + 3.4), (bx, RY, DZ + .4)),
                                      (SHOTS['b'] - 1, (bx + 2.6, RY + 1.4, DZ + 1.5), (bx - 2.2, RY - 2.0, DZ + .35))], lens=24, fstop=5.6, focus=(bx, RY, DZ + .5))
     # the proposal at the rail: the river, the lights and the blue bridge spread out below behind them
-    B = film.camera('Cam14b_Kneel', [(SHOTS['b'], (bx - .08, 1.9, DZ + 1.15), (bx - .08, RY - 1.5, DZ + .45)), (SHOTS['c'] - 1, (bx - .08, 1.5, DZ + 1.1), (bx - .08, RY - 1.5, DZ + .5))],
+    B = film.camera('Cam14b_Kneel', [(SHOTS['b'], (bx - .08, RY + 4.2, DZ + 1.75), (bx - .08, RY - 14, DZ - 2.6)), (SHOTS['c'] - 1, (bx - .08, RY + 3.8, DZ + 1.7), (bx - .08, RY - 14, DZ - 2.4))],
                     lens=28, fstop=2.8, focus=(bx, RY, DZ + .5))
     # yes: the camera rises up behind them into the night air, the whole city opening out
-    C = film.camera('Cam14c_Rise', [(SHOTS['c'], (bx + .3, 1.2, DZ + 1.2), (bx - .1, RY, DZ + .7)), (SHOTS['c'] + 40, (bx - .1, 2.8, DZ + 3.2), (bx - .1, RY - 4, DZ + .2)),
-                                    (SHOTS['end'], (bx + 1.5, 18, DZ + 22), (bx - 1.5, -60, DZ - 24))], lens=26, fstop=5.6, focus=(bx, RY, DZ + .5))
+    C = film.camera('Cam14c_Rise', [(SHOTS['c'], (bx + .3, RY + 3.65, DZ + 1.2), (bx - .1, RY, DZ + .7)), (SHOTS['c'] + 40, (bx - .1, RY + 5.2, DZ + 3.2), (bx - .1, RY - 4, DZ + .2)),
+                                    (SHOTS['end'], (bx + 1.5, RY + 20, DZ + 22), (bx - 1.5, RY - 400, DZ - 40))], lens=26, fstop=5.6, focus=(bx, RY, DZ + .5))
     for f, cam in ((SHOTS['a'], A), (SHOTS['b'], B), (SHOTS['c'], C)):
         film.cut(f, cam)
 
