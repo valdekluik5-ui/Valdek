@@ -91,6 +91,46 @@ def shore(coll):
     s.type = 'HAIR'; s.count = 6000; s.use_advanced_hair = True; s.normal_factor = .35; s.object_align_factor = (.25, 0, 0)
     s.factor_random = .1; s.material_slot = 'DuneGrass'; s.child_type = 'INTERPOLATED'; s.rendered_child_count = 6; s.child_percent = 2
     s.radius_scale = .008; s.root_radius = 1; s.tip_radius = 0; s.roughness_2 = .05; s.length_random = .5; s.clump_factor = .5
+    # waves: lines of foam rolling in from the grey water, spreading thin up the sand and fading, over and over
+    for wv in range(5):
+        for i in range(14):
+            o = blob(f'Roller{wv}_{i}', (rng.uniform(-34, 34), -8, -.29), (rng.uniform(1.5, 4.0), .12, .02), coll, foam, sub=1, seed=300 + wv * 20 + i)
+            off = wv * 26 + rng.integers(0, 8)
+            for f0 in range(-130 + off, 450, 130):
+                for df, y, sc in ((0, -9.5, .2), (60, -4.5, 1.0), (95, -2.6, 1.2), (125, -2.2, .05)):
+                    o.location.y = y + rng.normal(0, .15); o.scale = (sc * rng.uniform(.9, 1.1), sc + .3, 1)
+                    o.keyframe_insert('location', frame=f0 + df); o.keyframe_insert('scale', frame=f0 + df)
+    # the tide line: dark seaweed, driftwood, shells
+    weed = mat('Bladderwrack', (.06, .05, .02), rough=.5, haze=True)
+    for i in range(70):
+        x = rng.uniform(-30, 30); y = -1.4 + rng.normal(0, .25)
+        blob(f'Wrack{i}', (x, y, float(np.clip(y + 4, 0, None) * .035) - .26), (rng.uniform(.1, .5), rng.uniform(.04, .12), .02), coll, weed, sub=1, seed=400 + i)
+    drift = mat('Driftwood', (.42, .38, .32), rough=.8, haze=True)
+    for i, (x, y, L_, rz) in enumerate(((-6.5, 1.2, 2.6, .4), (8.0, 2.5, 1.8, -.7), (-15, 3.5, 3.4, .1), (17, .8, 1.2, 1.2))):
+        lg = cylinder(f'Driftwood{i}', .09 + .02 * i, L_, (x, y, float(np.clip(y + 4, 0, None) * .035) - .2), drift, coll, n=10)
+        lg.rotation_euler = (PI / 2, 0, rz)
+    shell = mat('Shell', (.85, .8, .72), rough=.4, haze=True)
+    for i in range(60):
+        x = rng.uniform(-12, 12); y = rng.uniform(-1.8, 3)
+        blob(f'Shell{i}', (x, y, float(np.clip(y + 4, 0, None) * .035) - .245), (.025, .02, .008), coll, shell, sub=1, seed=500 + i)
+    # an old wooden groyne running out into the water: a line of weathered posts
+    post = mat('GroynePost', (.2, .17, .13), rough=.85, haze=True)
+    for i in range(26):
+        y = 3 - i * .55
+        h = .9 + rng.uniform(-.25, .2)
+        cylinder(f'Groyne{i}', .11, h, (-22 + rng.normal(0, .03), y, float(np.clip(y + 4, 0, None) * .035) - .55), post, coll, n=10)
+    # the dune top: low pines bent by the wind, and a wooden boardwalk over the dune
+    hi, lib = film.tree_library('DuneForest')
+    for i in range(40):
+        x = rng.uniform(-80, 80); y = rng.uniform(20, 38)
+        z = float(np.clip(y + 4, 0, None) * .035 + np.clip(y - 14, 0, None) * .25) - .25
+        t = film.place_tree(coll, hi['pine'][i % len(hi['pine'])], (x, y, z), rng.uniform(5, 9), rng)
+        t.rotation_euler.x += rng.uniform(.05, .12)
+    planks = mat('Boardwalk', (.38, .3, .22), rough=.75, haze=True)
+    for i in range(30):
+        y = 8 + i * .45
+        z = float(np.clip(y + 4, 0, None) * .035 + np.clip(y - 14, 0, None) * .25) - .2
+        box(f'Board{i}', (1.4, .38, .05), (12.0, y, z), planks, coll)
     return beach
 
 
@@ -202,7 +242,7 @@ def build():
     # ---- cameras
     A = film.camera('Cam8a_Shore', [(SHOTS['a'], (3.5, 9.0, 1.5), (-.6, -6, .2)), (SHOTS['b'] - 1, (3.1, 8.0, 1.4), (-.5, -6, .2))], lens=28, fstop=5.6,
                     focus=(0, -1.6, .4))
-    Bc = film.camera('Cam8b_Throw', [(SHOTS['b'], (3.2, 2.6, 1.3), (-.3, -4.5, 1.2)), (SHOTS['c'] - 1, (3.0, 2.3, 1.3), (-.2, -6, 1.1))], lens=20, fstop=5.6,
+    Bc = film.camera('Cam8b_Throw', [(SHOTS['b'], (3.2, 2.6, 1.3), (.7, -4.5, 1.2)), (SHOTS['c'] - 1, (3.0, 2.3, 1.3), (.5, -6, 1.1))], lens=20, fstop=5.6,
                      focus=(0, -2, .6))
     track = [(SHOTS['c'], 5.4), (250, 2.5), (click - 4, .82), (click, .76), (SHOTS['d'] - 1, .05)]     # follow the sinking halves
     C = film.camera('Cam8c_Sinking', [(f, rest + Vector((.15, -1.7, z + .15)), rest + Vector((0, 0, z))) for f, z in track], lens=40, fstop=2.8,
