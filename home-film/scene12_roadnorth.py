@@ -205,14 +205,15 @@ def build_falls(coll):
     R, H, A0 = FALL_R, FALL_H, FALL_A
     rock = _strata_material('JagalaRock')
     # ---- one terrain: the upper river bed and its banks, the curved drop, the canyon below
-    xs = np.arange(-70, 70.01, .5); ys = np.arange(-80, 90.01, .5)
+    xs = np.arange(-90, 90.01, .5); ys = np.arange(-80, 170.01, .5)
     X, Y = np.meshgrid(xs, ys)
     d = np.hypot(X, Y - R)
     w = 13.5 + 8.5 * np.clip((Y + 30) / 42, 0, 1)                     # canyon half-width, widening toward the falls
     jag = 1.2 * film.fbm(X / 6 + 3, Y / 6, 3)                           # ragged rock edges
     canyon = ((d > R) & (np.abs(X) < w + jag) & (Y < R * (1 - math.cos(A0)) + 1.5)) | ((d > R) & (np.abs(X) < R * math.sin(A0)) & (Y < 14))
     river = (d <= R) & (np.abs(X) < R * math.sin(A0) + 1.0 * film.fbm(X / 8, Y / 8, 2))
-    river |= (Y > R) & (np.abs(X) < 21 + 3 * film.fbm(Y / 30, 1.0, 2))
+    bend = 9 * np.clip((Y - 50) / 60, 0, 1) ** 2                       # the river bends away to the left upstream
+    river |= (Y > R) & (np.abs(X + bend) < np.maximum(8.0, 21 - (Y - R) * .2) + 2 * film.fbm(Y / 30, 1.0, 2)) & (Y < 150)
     bank = .9 + 1.6 * np.clip((np.abs(X) - 20) / 30, 0, 1) + .5 * film.fbm(X / 14, Y / 14, 3)
     Z = np.where(canyon, -H - .45 + .25 * film.fbm(X / 3, Y / 3, 2), np.where(river, -.05 + .12 * film.fbm(X / 4, Y / 4, 2), bank))
     Xj = X + .25 * film.fbm(X / 2 + 7, Y / 2, 2); Yj = Y + .25 * film.fbm(X / 2, Y / 2 + 7, 2)
@@ -271,19 +272,32 @@ def build_falls(coll):
         pass
     add_haze(front, N, L, b)
     curtain('FallCurtainFront', .25, front)
-    # ---- foam where it lands, and streaks drifting downstream
-    foam = mat('FallFoam', (.88, .88, .86), rough=.6, haze=True)
+    # ---- foam: painted into the pool's surface, thick and white at the foot of the falls, breaking up into drifting
+    # lace further down the canyon (the pattern slides downstream)
+    Np, Lp = pool.node_tree.nodes, pool.node_tree.links; bp = Np['Principled BSDF']
+    tcp = Np.new('ShaderNodeTexCoord'); mpp = Np.new('ShaderNodeMapping'); mpp.inputs['Scale'].default_value = (.35, .12, .35)
+    Lp.new(tcp.outputs['Object'], mpp.inputs['Vector'])
+    fcp = mpp.inputs['Location'].driver_add('default_value', 1); fcp.driver.expression = 'frame * 0.0025'
+    lace = Np.new('ShaderNodeTexNoise'); lace.inputs['Scale'].default_value = 6; lace.inputs['Detail'].default_value = 10; lace.inputs['Roughness'].default_value = .7
+    Lp.new(mpp.outputs['Vector'], lace.inputs['Vector'])
+    near = Np.new('ShaderNodeSeparateXYZ'); Lp.new(tcp.outputs['Object'], near.inputs['Vector'])
+    ny_ = Np.new('ShaderNodeMapRange'); ny_.inputs['From Min'].default_value = -40; ny_.inputs['From Max'].default_value = 8
+    Lp.new(near.outputs['Y'], ny_.inputs['Value'])
+    thr = Np.new('ShaderNodeMath'); thr.operation = 'SUBTRACT'; Lp.new(lace.outputs['Fac'], thr.inputs[0])
+    inv = Np.new('ShaderNodeMath'); inv.operation = 'SUBTRACT'; inv.inputs[0].default_value = .72; Lp.new(ny_.outputs['Result'], inv.inputs[1])
+    inv2 = Np.new('ShaderNodeMath'); inv2.operation = 'MULTIPLY'; inv2.inputs[1].default_value = .35; Lp.new(inv.outputs['Value'], inv2.inputs[0])
+    Lp.new(inv2.outputs['Value'], thr.inputs[1])
+    fm = Np.new('ShaderNodeMapRange'); fm.inputs['From Min'].default_value = .45; fm.inputs['From Max'].default_value = .6
+    Lp.new(thr.outputs['Value'], fm.inputs['Value'])
+    mixc = Np.new('ShaderNodeMixRGB'); mixc.inputs['Color1'].default_value = (.035, .025, .012, 1); mixc.inputs['Color2'].default_value = (.85, .84, .8, 1)
+    Lp.new(fm.outputs['Result'], mixc.inputs['Fac']); Lp.new(mixc.outputs['Color'], bp.inputs['Base Color'])
+    rgh = Np.new('ShaderNodeMapRange'); rgh.inputs['To Min'].default_value = .15; rgh.inputs['To Max'].default_value = .7
+    Lp.new(fm.outputs['Result'], rgh.inputs['Value']); Lp.new(rgh.outputs['Result'], bp.inputs['Roughness'])
     rng = np.random.default_rng(8)
-    for i in range(110):
-        a = rng.uniform(-A0, A0); r = R + 1.4 + rng.exponential(1.6)
-        blob(f'FallFoam{i}', T(r * math.sin(a), R - r * math.cos(a), -H + .06), (rng.uniform(.6, 1.8), rng.uniform(.4, 1.0), .07), coll, foam, sub=1, seed=i)
-    for i in range(70):
-        x = rng.normal(0, 7); y = rng.uniform(-60, -2)
-        o = blob(f'FoamStreak{i}', T(x, y, -H + .055), (rng.uniform(.15, .4), rng.uniform(1.5, 4), .02), coll, foam, sub=1, seed=200 + i)
-        o.keyframe_insert('location', frame=1); o.location.y -= 9; o.keyframe_insert('location', frame=720)
-        for fcv in bears_fcurves(o):
-            for kp in fcv.keyframe_points:
-                kp.interpolation = 'LINEAR'
+    # rock buttresses breaking the curtain into wide veils, like the real ledge
+    for k, a in enumerate((-A0 * .78, -A0 * .35, A0 * .12, A0 * .55, A0 * .9)):
+        r = R + .3
+        blob(f'LipRock{k}', T(r * math.sin(a), R - r * math.cos(a), -H * .55), (1.0 + .4 * k % 2, .9, H * .5), coll, rock, sub=2, rough=.35, seed=800 + k)
     # ---- spray: a soft mist hanging over the pool at the foot of the falls
     mist = bpy.data.materials.new('FallMist'); mist.use_nodes = True
     Nm = mist.node_tree.nodes; Nm.remove(Nm['Principled BSDF'])
@@ -304,7 +318,6 @@ def build_falls(coll):
         x = sx * (13.5 + 8.5 * np.clip((y + 30) / 42, 0, 1) - rng.uniform(.3, 2.5))
         s_ = rng.uniform(.4, 1.6)
         blob(f'Boulder{i}', T(x, y, -H - .2), (s_ * rng.uniform(.8, 1.4), s_, s_ * .6), coll, rock, sub=2, rough=.35, seed=700 + i)
-    film.meadow('ShelfGrass', (FAL.x - 13.5, FAL.y - 8.5), (3, 4), coll, z_fn=lambda x, y: np.full_like(x, SHELF_Z + FAL.z - .02), density=.5, seed=41)
 
 
 # ---------------------------------------------------------------- the ferry across the Gulf of Finland
