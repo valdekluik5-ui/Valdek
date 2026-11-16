@@ -130,6 +130,13 @@ def main():
             sub = os.path.join(tmp, sid); k = caption_frames(sid, src, sub, step, size)
             for i in range(k):
                 os.rename(os.path.join(sub, f'{i:05d}.png'), os.path.join(tmp, f'{n:05d}.png')); n += 1
+            T = timeline()[sid]; want = int(round((T['t'][1] - T['t'][0]) * FPS))
+            if k < want:                       # partly rendered: hold a dark card for the rest so the song stays in sync
+                card = Image.new('RGB', size, (8, 7, 10)); d = ImageDraw.Draw(card); f = font(int(size[0] * .05))
+                txt = f"{sid} - {T['name']} (still rendering)"; tw = d.textlength(txt, font=f)
+                d.text(((size[0] - tw) / 2, size[1] * .48), txt, font=f, fill=(150, 140, 130))
+                for i in range(want - k):
+                    card.save(os.path.join(tmp, f'{n:05d}.png')); n += 1
         dur = encode(tmp, out, opt.get('--song'), 0.0)
         shutil.rmtree(tmp)
         print(f'wrote {out}: {n} frames, {dur:.1f} s')
