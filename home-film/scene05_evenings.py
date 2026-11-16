@@ -3,7 +3,7 @@ Home - scene 5: ordinary evenings (song 1:28-1:44).
 A balcony over the city at sunset; movies on the sofa; falling asleep together.
 "Not because they were extraordinary." / "Because they felt like peace."
 
-Shots:  1-130   the balcony at sunset: two chairs, two mugs, the rooftops and the cathedral domes
+Shots:  1-130   their glazed balcony at sunset: two chairs, two mugs, the business park and the forest line below, the sky on fire
       131-260   evening on the sofa: a movie, the TV light flickering on their faces, a bowl of popcorn
       261-384   asleep on each other under the blanket, the film still playing; the camera drifts back
 """
@@ -29,35 +29,39 @@ import numpy as np
 from mathutils import Vector
 
 SHOTS = dict(a=1, b=131, c=261, end=384)
-B = Vector((34.0, -58.0, 16.0))       # the balcony (high above the south-east corner of Senate Square)
+B = Vector((0.0, 0.0, 20.0))          # their glazed balcony, seven floors up, looking over the business park to the sunset
 LR = Vector((400.0, 0.0, 0.0))        # the living room (its own little world, far from the city)
 
 
 def balcony(coll):
-    import scene01_helsinki as s1
-    importlib.reload(s1)
-    s1.build_cathedral(coll); s1.build_city(coll)
-    for m in bpy.data.materials:
-        if m.node_tree and 'Melt' in m.node_tree.nodes:
-            m.node_tree.nodes['Melt'].outputs[0].default_value = 1.0      # summer now: no snow
-    # turn the snowbanks and ice floes off (it's summer)
-    for o in bpy.data.objects:
-        if o.name.startswith(('Snowbank', 'Floe', 'Lamp0_icicle')):
-            o.hide_render = True; o.hide_viewport = True
-    conc = mat('BalconyConcrete', (.45, .42, .4), rough=.8)
-    rail = mat('Railing', (.03, .03, .03), rough=.35, metal=.7)
-    wall = mat('HouseWall', (.68, .55, .38), rough=.8)
-    T = lambda x, y, z: (B.x + x, B.y + y, B.z + z)
-    box('BalconySlab', (3.2, 1.6, .15), T(0, 0, -.15), conc, coll)
-    box('HouseWall', (8, .3, 4), T(0, -1.0, -2), wall, coll)
-    box('BalconyDoor', (1.0, .05, 1.4), T(-.9, -.84, 0), mat('DoorGlass', (.15, .2, .22), rough=.05, metal=.3), coll)
-    box('RailTop', (3.2, .05, .04), T(0, .78, .62), rail, coll)
-    for i in range(17):
-        box(f'RailBar{i}', (.02, .02, .62), T(-1.6 + i * .2, .78, 0), rail, coll)
+    """Their glazed balcony high up (as in his photos): frameless glass panels with thin seams from the rail to the
+    ceiling, a pale frame and posts, the dark ceiling overhead. Below: a business park - flat-roofed warehouses with
+    skylights, wall lamps and lit signs, parking lots full of cars, a road curving away on the left with traffic,
+    birches, then the dark spruce forest line, a chimney with a plume, and the sunset blazing over it all."""
+    T = lambda x, y, z: Vector((B.x + x, B.y + y, B.z + z))
+    plaster = mat('BalconyPlaster', (.78, .74, .68), rough=.8); ceil = mat('BalconyCeiling', (.12, .11, .1), rough=.9)
+    frame = mat('GlazingFrame', (.82, .78, .7), rough=.4, metal=.2)
+    glass = mat('BalconyGlass', (.75, .8, .82), rough=.02, transmission=1.0, alpha=.12)
+    tile = mat('BalconyFloor', (.35, .32, .3), rough=.7)
+    box('BalconySlab', (3.4, 1.7, .2), T(0, 0, -.2), tile, coll)
+    box('BalconyCeil', (3.6, 1.9, .25), T(0, 0, 2.45), ceil, coll)
+    box('HouseWall', (8, .3, 3.0), T(0, -1.0, -.2), plaster, coll)
+    box('BalconyDoor', (.9, .05, 2.0), T(-1.0, -.84, 0), mat('DoorGlass', (.15, .2, .22), rough=.05, metal=.3), coll)
+    box('DoorFrame', (1.0, .06, 2.1), T(-1.0, -.86, 0), frame, coll)
     for sx in (-1, 1):
-        box(f'RailSide{sx}', (.05, 1.6, .04), T(sx * 1.58, 0, .62), rail, coll)
-    # two little chairs, a tiny table, mugs, potted flowers
-    wood = mat('ChairWood', (.35, .2, .1), rough=.6)
+        box(f'SideWall{sx}', (.2, 1.9, 2.5), T(sx * 1.8, 0, -.2), plaster, coll)
+    # the front: a low rail with posts, then glass from the floor to the ceiling in narrow panels with thin seams
+    box('ParapetRail', (3.4, .06, .06), T(0, .82, .95), frame, coll)
+    box('ParapetBottom', (3.4, .08, .08), T(0, .82, 0), frame, coll)
+    box('GlazingTop', (3.4, .08, .08), T(0, .84, 2.36), frame, coll)
+    for i in range(7):
+        box(f'ParapetPost{i}', (.05, .05, .95), T(-1.65 + i * .55, .82, 0), frame, coll)
+    for i in range(6):
+        x = -1.7 + .2 + i * .58
+        box(f'GlassPanel{i}', (.56, .012, 2.32), T(x + .29 - .2, .86, .02), glass, coll)
+        box(f'GlassSeam{i}', (.008, .02, 2.32), T(x - .2, .86, .02), mat('Seam', (.2, .22, .22), rough=.3), coll)
+    # two chairs, a little table, mugs, a potted plant
+    wood = mat('ChairWood', (.35, .2, .1), rough=.6); rail = mat('ChairMetal', (.05, .05, .05), rough=.4, metal=.7)
     for sx in (-1, 1):
         box(f'ChairSeat{sx}', (.5, .45, .04), T(sx * .4, -.05, .3), wood, coll)
         box(f'ChairBack{sx}', (.5, .04, .4), T(sx * .4, -.29, .3), wood, coll, rot=(-.15, 0, 0))
@@ -70,12 +74,99 @@ def balcony(coll):
     for x in (-.06, .07):
         cylinder(f'BalMug{x}', .04, .08, T(x, .1, .42), mug, coll, n=14)
     pot = mat('TerraPot', (.5, .24, .12), rough=.8); leaf = mat('Geranium', (.05, .14, .04), rough=.6); red = mat('Bloom', (.8, .08, .1), rough=.5)
-    for i, x in enumerate((-1.35, 1.35)):
-        cylinder(f'BalPot{i}', .13, .22, T(x, .55, 0), pot, coll, n=14, r2=.16)
-        for k in range(8):
-            blob(f'BalLeaf{i}{k}', T(x + .1 * math.cos(k * 2.4), .55 + .1 * math.sin(k * 2.4), .27 + .02 * k), (.06, .06, .04), coll, leaf, sub=2, seed=k + 10 * i)
-        for k in range(5):
-            blob(f'BalBloom{i}{k}', T(x + .08 * math.cos(k * 1.3 + 1), .55 + .08 * math.sin(k * 1.3 + 1), .38 + .02 * k), (.03, .03, .03), coll, red, sub=1, seed=k)
+    cylinder('BalPot', .13, .22, T(1.45, .5, 0), pot, coll, n=14, r2=.16)
+    for k in range(10):
+        blob(f'BalLeaf{k}', T(1.45 + .1 * math.cos(k * 2.4), .5 + .1 * math.sin(k * 2.4), .27 + .02 * k), (.06, .06, .04), coll, leaf, sub=2, seed=k)
+    for k in range(5):
+        blob(f'BalBloom{k}', T(1.45 + .08 * math.cos(k * 1.3 + 1), .5 + .08 * math.sin(k * 1.3 + 1), .38 + .02 * k), (.03, .03, .03), coll, red, sub=1, seed=k)
+    # ---- the view
+    G = Vector((B.x, B.y, 0.0))                          # ground level below
+    ground = mat('ParkGround', (.12, .12, .1), rough=.9, haze=True)
+    xs = np.linspace(-1500, 1500, 121); ys = np.linspace(0, 2500, 101)
+    X, Y = np.meshgrid(xs, ys)
+    Z = 4 * film.fbm(X / 300, Y / 300, 3) * np.clip((Y - 300) / 300, 0, 1) - .1
+    land = film.grid_mesh('ParkLand', X + G.x, Y + G.y, Z, coll, ground)
+    film.vgroup(land, 'forest', ((Y > 420) & (film.fbm(X / 120, Y / 120, 3) > -.25)).astype(float).ravel())
+    hi, lib = film.tree_library('ForestLine')
+    film.scatter_instances(land, lib, 'forest', 9000, 16, seed=5)
+    asphalt = mat('ParkAsphalt', (.06, .06, .065), rough=.6, haze=True); line = mat('ParkLine', (.8, .8, .78), rough=.6, haze=True)
+    roofm = mat('WarehouseRoof', (.09, .09, .1), rough=.8, haze=True); sky_l = mat('Skylight', (.8, .82, .85), rough=.1, haze=True)
+    walls = [mat('WarehouseWhite', (.75, .76, .78), rough=.6, haze=True), mat('WarehouseGrey', (.35, .36, .38), rough=.6, haze=True),
+             mat('WarehouseDark', (.12, .13, .14), rough=.6, haze=True), mat('WarehouseBrick', (.45, .2, .15), rough=.8, haze=True)]
+    lampm = emit_mat('WallLamp', (1, .85, .6), 25); signs = [emit_mat('SignBlue', (.2, .45, 1), 8), emit_mat('SignRed', (1, .15, .1), 8), emit_mat('SignWhite', (1, 1, 1), 6)]
+    carm = [mat(f'Car{k}', c, rough=.25, coat=.6, haze=True) for k, c in enumerate(((.85, .85, .85), (.6, .62, .65), (.05, .05, .06), (.2, .25, .35), (.5, .1, .08)))]
+    glassc = mat('CarGlass', (.03, .04, .05), rough=.05, haze=True)
+    rng = np.random.default_rng(11)
+    for i in range(34):                                  # the warehouses, rows of them toward the trees
+        row = i // 7; x = -260 + (i % 7) * 85 + rng.uniform(-15, 15); y = 60 + row * 85 + rng.uniform(-10, 10)
+        L_ = rng.uniform(45, 75); W_ = rng.uniform(25, 40); H_ = rng.uniform(8, 13)
+        rz = rng.uniform(-.06, .06)
+        wb = box(f'Warehouse{i}', (L_, W_, H_), G + Vector((x, y, 0)), walls[(i * 3) % 4] if i % 5 else walls[0], coll); wb.rotation_euler = (0, 0, rz)
+        rf = box(f'WarehouseRoof{i}', (L_ + .4, W_ + .4, .4), G + Vector((x, y, H_)), roofm, coll); rf.rotation_euler = (0, 0, rz)
+        for k in range(3):
+            sl = box(f'Skylight{i}{k}', (L_ * .7, 1.2, .3), G + Vector((x, y - W_ * .25 + k * W_ * .25, H_ + .4)), sky_l, coll); sl.rotation_euler = (0, 0, rz)
+        for k in range(int(L_ // 12)):
+            blob(f'WallLamp{i}{k}', G + Vector((x - L_ / 2 + 6 + k * 12, y - W_ / 2 - .3, H_ * .6)), (.25, .15, .15), coll, lampm, sub=1, rough=0)
+        if i % 4 == 1:
+            box(f'Sign{i}', (rng.uniform(6, 12), .2, 1.6), G + Vector((x + rng.uniform(-10, 10), y - W_ / 2 - .25, H_ * .72)), signs[i % 3], coll)
+        # its parking lot in front, lines and cars
+        py = y - W_ / 2 - 14
+        box(f'Lot{i}', (L_, 24, .05), G + Vector((x, py, 0)), asphalt, coll)
+        for k in range(int(L_ // 3)):
+            box(f'LotLine{i}{k}', (.12, 5, .02), G + Vector((x - L_ / 2 + 1.5 + k * 3, py - 4, .05)), line, coll)
+            if rng.random() < .55:
+                cx = x - L_ / 2 + 3 + k * 3; cy = py - 4 + rng.uniform(-.3, .3)
+                cb = box(f'Car{i}_{k}', (1.8, 4.3, .8), G + Vector((cx, cy, .2)), carm[int(rng.integers(0, 5))], coll, bevel=.15)
+                cg = box(f'CarTop{i}_{k}', (1.6, 2.2, .55), G + Vector((cx, cy + .2, 1.0)), glassc, coll, bevel=.15)
+    # right below the balcony: a big white warehouse with its roof lights, and a full parking lot in front of it
+    box('NearWarehouse', (70, 30, 11), G + Vector((25, 52, 0)), walls[0], coll)
+    box('NearRoof', (70.4, 30.4, .4), G + Vector((25, 52, 11)), roofm, coll)
+    for k in range(4):
+        box(f'NearSky{k}', (50, 1.4, .3), G + Vector((25, 42 + k * 6, 11.4)), sky_l, coll)
+    for k in range(6):
+        blob(f'NearLamp{k}', G + Vector((-5 + k * 12, 36.7, 7)), (.3, .2, .2), coll, lampm, sub=1, rough=0)
+    box('NearSign', (10, .2, 1.8), G + Vector((40, 36.7, 8.2)), signs[0], coll)
+    box('NearLot', (90, 34, .05), G + Vector((10, 18, 0)), asphalt, coll)
+    for r_ in range(2):
+        for k in range(28):
+            x = -30 + k * 3; y = 10 + r_ * 14
+            box(f'NearLine{r_}{k}', (.12, 5, .02), G + Vector((x - 1.5, y, .05)), line, coll)
+            if rng.random() < .7:
+                cb = box(f'NearCar{r_}{k}', (1.8, 4.3, .8), G + Vector((x, y, .2)), carm[int(rng.integers(0, 5))], coll, bevel=.15)
+                box(f'NearCarTop{r_}{k}', (1.6, 2.2, .55), G + Vector((x, y + .2, 1.0)), glassc, coll, bevel=.15)
+    # the road curving away on the left, with street lamps and cars driving with their lights on
+    def road(t):                                         # t 0..1, near-left to far
+        return G + Vector((-330 - 120 * t + 90 * math.sin(t * 2.2), -40 + 900 * t, .1))
+    head = emit_mat('Headlight', (1, .95, .85), 40); tail = emit_mat('Taillight', (1, .08, .05), 30)
+    for i in range(120):
+        t = i / 119; p = road(t); q = road(min(1, t + .009)); a = math.atan2(q.y - p.y, q.x - p.x)
+        sg = box(f'Road{i}', (9, 8.5, .08), p, asphalt, coll); sg.rotation_euler = (0, 0, a - PI / 2)
+        if i % 4 == 0:
+            cylinder(f'StreetPole{i}', .12, 9, p + Vector((6, 0, 0)), mat('Pole', (.3, .3, .3), rough=.5, metal=.5, haze=True), coll, n=8)
+            blob(f'StreetLamp{i}', p + Vector((5, 0, 9)), (.5, .3, .2), coll, lampm, sub=1, rough=0)
+    for k in range(14):                                  # traffic both ways
+        car = bpy.data.objects.new(f'Traffic{k}', None); link(car, coll)
+        body = box(f'TrafficBody{k}', (1.8, 4.3, .9), (0, 0, .2), carm[k % 5], coll, bevel=.15); body.parent = car
+        towards = k % 2 == 0
+        lights = head if towards else tail
+        for sx in (-.6, .6):
+            l_ = blob(f'TrafficLight{k}{sx}', (sx, -2.2, .6), (.18, .08, .1), coll, lights, sub=1, rough=0); l_.parent = car
+        t0 = (k / 14 + .03) % 1; lane = -2 if towards else 2
+        for f in range(1, SHOTS['b'] + 1, 10):
+            t = (t0 + (f / 24) * (.012 if towards else -.012)) % 1
+            p = road(t); q = road(min(1, t + .005)); a = math.atan2(q.y - p.y, q.x - p.x)
+            car.location = p + Vector((math.cos(a + PI / 2) * lane, math.sin(a + PI / 2) * lane, 0))
+            car.rotation_euler = (0, 0, a - PI / 2 + (PI if towards else 0)); car.keyframe_insert('location', frame=f); car.keyframe_insert('rotation_euler', frame=f)
+    # birches between the lots, distant buildings on the horizon, a chimney with its white plume
+    for k in range(40):
+        t_ = film.place_tree(coll, hi['birch'][k % len(hi['birch'])], G + Vector((rng.uniform(-420, 380), rng.uniform(20, 380), 0)), rng.uniform(9, 15), rng)
+    farm_ = mat('FarBuilding', (.3, .3, .32), rough=.7, haze=True)
+    for k in range(30):
+        box(f'FarBlock{k}', (rng.uniform(20, 60), rng.uniform(15, 30), rng.uniform(10, 35)), G + Vector((rng.uniform(-1300, 1300), rng.uniform(1100, 2000), 0)), farm_, coll)
+    cylinder('Chimney', 2.5, 70, G + Vector((-120, 1500, 0)), mat('ChimneyRed', (.5, .25, .2), rough=.7, haze=True), coll, n=16, r2=1.8)
+    plume = mat('Plume', (1, .92, .85), rough=.9, alpha=.55, haze=True)
+    for k in range(6):
+        blob(f'Plume{k}', G + Vector((-120 + k * 9, 1500 + k * 3, 74 + k * 4)), (5 + k * 2.5, 5 + k * 2, 4 + k), coll, plume, sub=2, rough=.4, seed=700 + k)
 
 
 def living_room(coll):
@@ -162,9 +253,12 @@ def living_room(coll):
 
 def build():
     bears = film.import_bears()
-    film.HAZE.update(color=(.95, .6, .45), start=40.0, dist=320.0, strength=.45)
-    w, sky, bg, ramp = film.make_sky(elev=5, az=-80, strength=.95, low=(1, .45, .22), mid=(1, .65, .5))
-    sun = film.make_sun(elev=5, az=-80, energy=3.0, color=(1, .66, .4))
+    # the sunset straight ahead over the forest line: a blazing orange-yellow band, pink and grey clouds above
+    film.HAZE.update(color=(1, .62, .38), start=150.0, dist=1800.0, strength=.5)
+    w, sky, bg, ramp = film.make_sky(elev=.6, az=178, strength=1.25, low=(1, .42, .06), mid=(1, .58, .42), high=(.55, .7, 1.0), aerosol=6,
+                                     clouds=.55, cloud_tint=(1, .62, .55))
+    sun = film.make_sun(elev=.6, az=178, energy=3.4, color=(1, .55, .22))
+    bpy.context.scene.view_settings.exposure = .4
     bal = film.new_coll('Balcony'); balcony(bal)
     lr = film.new_coll('LivingRoom'); living_room(lr)
     he = bears.build_bear('he'); she = bears.build_bear('she')
@@ -186,8 +280,8 @@ def build():
     bears.key_pose(he, c + 70, {'head': (12, -10, 18), 'spine': (6, 0, 6)}); bears.key_pose(he, SHOTS['end'], {'head': (14, -10, 20), 'spine': (6, 0, 6)})
     bears.set_eyes(she, 'closed', c + 30); bears.blink(he, c + 40); bears.set_eyes(he, 'closed', c + 62)
     # cameras
-    A = film.camera('Cam5a_Balcony', [(SHOTS['a'], (B.x + .05, B.y - .78, B.z + 1.7), (B.x - 1.0, B.y + 14, B.z - 1.6)),
-                                      (SHOTS['b'] - 1, (B.x, B.y - .78, B.z + 1.55), (B.x - 1.0, B.y + 14, B.z - 1.7))], lens=20, fstop=5.6,
+    A = film.camera('Cam5a_Balcony', [(SHOTS['a'], (B.x + .05, B.y - .84, B.z + 2.1), (B.x - .1, B.y + 20, B.z - 4.6)),
+                                      (SHOTS['b'] - 1, (B.x + .0, B.y - .72, B.z + 2.0), (B.x - .1, B.y + 20, B.z - 4.8))], lens=17, fstop=5.6,
                     focus=(B.x, B.y, B.z + .5))
     Bc = film.camera('Cam5b_Movie', [(SHOTS['b'], (LR.x + .35, LR.y - 1.4, LR.z + .78), (LR.x, LR.y + 1.18, LR.z + .72)),
                                      (SHOTS['c'] - 1, (LR.x + .25, LR.y - 1.25, LR.z + .78), (LR.x, LR.y + 1.18, LR.z + .72))], lens=35, fstop=2.8,
