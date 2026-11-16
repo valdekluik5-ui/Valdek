@@ -119,7 +119,14 @@ def main():
         for sid in sorted(timeline()):
             src = os.path.join(root, 'scene' + sid)
             if not glob.glob(os.path.join(src, '*.png')):
-                print('missing scene', sid, '- skipped'); continue
+                # not rendered yet: hold a dark title card for the scene's length, so the song stays in sync
+                T = timeline()[sid]; k = int(round((T['t'][1] - T['t'][0]) * FPS))
+                card = Image.new('RGB', size, (8, 7, 10)); d = ImageDraw.Draw(card); f = font(int(size[0] * .06))
+                txt = f"{sid} - {T['name']} (rendering...)"; tw = d.textlength(txt, font=f)
+                d.text(((size[0] - tw) / 2, size[1] * .48), txt, font=f, fill=(150, 140, 130))
+                for i in range(k):
+                    card.save(os.path.join(tmp, f'{n:05d}.png')); n += 1
+                print('missing scene', sid, '- title card'); continue
             sub = os.path.join(tmp, sid); k = caption_frames(sid, src, sub, step, size)
             for i in range(k):
                 os.rename(os.path.join(sub, f'{i:05d}.png'), os.path.join(tmp, f'{n:05d}.png')); n += 1
