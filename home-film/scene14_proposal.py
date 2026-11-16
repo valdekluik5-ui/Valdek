@@ -4,9 +4,9 @@ Evening, after dark, on the hill above the Dnipro: the glass bridge across the w
 arch, lit in rainbow bands. Below: the wide river, Trukhaniv island, the lit towers of the left bank and the bridges.
 He kneels with the ring; she says yes.
 
-Shots:  1-96    on the glass bridge, walking toward the glowing arch; the city lights spread out to the right
-       97-200   close, side-on: he kneels and opens a little box; the ring catches the light; the river below
-      201-288   yes - heart eyes, a hug, the rainbow arch glowing behind them
+Shots:  1-96    a flight in from high over the river toward the lit bridge and the arch, landing beside the two of them at the rail
+       97-200   at the rail: he kneels and opens a little box; the river, the lights and the blue Podilskyi bridge below
+      201-288   yes - heart eyes, a hug; the camera rises up into the night air and the city opens out
 """
 import os, sys, math, importlib
 import bpy
@@ -36,7 +36,7 @@ BRIDGE = (-120.0, -12.0)          # the glass bridge runs along X from the far s
 RAVINE = -66.0                    # where the ravine runs down to the river, under the bridge
 
 
-def lit_windows_material(name, warm=(1, .72, .38), lit=.45, strength=2.2, scale=(1.0, 1.0, 1.0)):
+def lit_windows_material(name, warm=(1, .72, .38), lit=.45, strength=4.0, scale=(1.0, 1.0, 1.0)):
     """Building faces at night: a grid of windows (brick texture: 'mortar' = dark wall), a random share of them lit
     in warm or cool white."""
     m, N, L, b = node_mat(name)
@@ -113,58 +113,144 @@ def arch(coll):
         blob(f'PlazaLampG{i}', (x, C.y - 14, C.z + 4.3), (.22, .22, .22), coll, lampm, sub=1, rough=0)
 
 
+BEND_R = 180.0                     # the bridge curves in plan, bulging out toward the river at x = BX
+BX = -40.0                         # where they stand: the bridge's outermost point, at the river-side rail
+HALF_W = 3.0                       # half the deck width
+PLAT_R = 3.6                       # the round viewing platform on the river side at BX, where they stood
+PLAT_C = (BX, -HALF_W - 2.0)
+
+
+def yc(x):
+    """The bridge's centre line (plan view): a gentle curve, furthest toward the river (-Y) at BX."""
+    return BEND_R - math.sqrt(max(0.0, BEND_R ** 2 - (x - BX) ** 2))
+
+
+def heading(x):
+    return math.atan2(yc(x + .5) - yc(x - .5), 1.0)
+
+
 def bridge(coll):
-    """The glass bridge: a slender steel bridge from the arch plaza across the wooded ravine. Wooden deck with glass
-    panels let into it, glass balustrades with a wooden handrail, LED strips glowing under the rail, curved steel girders."""
-    wood = mat('DeckWood', (.32, .2, .1), rough=.55, haze=True)
-    m, N, L, b = node_mat('DeckPlanks')
-    tc = N.new('ShaderNodeTexCoord'); wv = N.new('ShaderNodeTexWave'); wv.bands_direction = 'X'; wv.inputs['Scale'].default_value = 4.5
-    wv.inputs['Distortion'].default_value = .6; L.new(tc.outputs['Object'], wv.inputs['Vector'])
-    rp = N.new('ShaderNodeValToRGB'); rp.color_ramp.elements[0].color = (.12, .07, .035, 1); rp.color_ramp.elements[1].color = (.36, .22, .11, 1)
-    L.new(wv.outputs['Fac'], rp.inputs['Fac']); L.new(rp.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = .5
-    add_haze(m, N, L, b)
-    glass = mat('BridgeGlass', (.55, .7, .75), rough=.02, transmission=1.0, alpha=.3, haze=True)
-    floorglow = emit_mat('GlassFloorGlow', (.5, .8, 1.0), 1.4)
-    steel = mat('BridgeSteel', (.55, .56, .6), rough=.3, metal=.9, haze=True)
-    led = emit_mat('RailLED', (1, .82, .55), 8.0)
+    """The glass pedestrian bridge: a long curving deck high over the ravine, a red cycle lane between pale walkways,
+    stainless V-shaped posts leaning outward with horizontal cables between them, a round steel handrail with LEDs that
+    light the deck at night, a white box girder underneath on slim piers."""
     x0, x1 = BRIDGE
-    span = x1 - x0
-    nseg = 60
-    zc = deck_z
-    for i in range(nseg):
-        xa = x0 + span * i / nseg; xb = x0 + span * (i + 1) / nseg; xm = (xa + xb) / 2
-        z = zc(xm); ang = math.atan2(zc(xb) - zc(xa), xb - xa)
-        d = box(f'Deck{i}', (xb - xa + .02, 4.0, .25), (xm, 0, z - .25), m, coll); d.rotation_euler = (0, -ang, 0)
-        if i % 3 == 1:                          # the glass panels in the floor, lit from below
-            g = box(f'GlassFloor{i}', (xb - xa - .4, 1.2, .02), (xm, 0, z + .005), glass, coll); g.rotation_euler = (0, -ang, 0)
-            gg = box(f'GlassFloorLight{i}', (xb - xa - .4, 1.2, .02), (xm, 0, z - .2), floorglow, coll); gg.rotation_euler = (0, -ang, 0)
-        for sy in (-1, 1):
-            p = box(f'GlassWall{i}{sy}', (xb - xa, .025, 1.05), (xm, sy * 1.95, z), glass, coll); p.rotation_euler = (0, -ang, 0)
-            r = box(f'Handrail{i}{sy}', (xb - xa + .02, .14, .06), (xm, sy * 1.95, z + 1.08), wood, coll); r.rotation_euler = (0, -ang, 0)
-            l_ = box(f'RailLED{i}{sy}', (xb - xa + .02, .05, .015), (xm, sy * 1.88, z + 1.065), led, coll); l_.rotation_euler = (0, -ang, 0)
-            if i % 2 == 0:
-                cylinder(f'Post{i}{sy}', .03, 1.08, (xa, sy * 1.97, zc(xa)), steel, coll, n=6)
-    # the two curved girders underneath, deepest in the middle, and slim legs down into the ravine
-    for sy in (-1, 1):
+    n = 140
+    xs = [x0 + (x1 - x0) * i / n for i in range(n + 1)]
+    def strip(name, o1, o2, dz, m, thick=0.0):
         V, F = [], []
-        for i in range(nseg + 1):
-            x = x0 + span * i / nseg; t = (x - x0) / span
-            depth = .6 + 2.2 * math.sin(PI * t)
-            V += [(x, sy * 1.7, zc(x) - .3), (x, sy * 1.7, zc(x) - .3 - depth), (x, sy * 1.3, zc(x) - .3 - depth), (x, sy * 1.3, zc(x) - .3)]
-        for i in range(nseg):
-            o = i * 4; p = o + 4
-            for k in range(4):
-                F.append((o + k, o + (k + 1) % 4, p + (k + 1) % 4, p + k))
-        film.mesh_obj(f'Girder{sy}', V, F, coll, [steel])
-    for k, x in enumerate((x0 + span * .3, x0 + span * .7)):
-        for sy in (-1, 1):
-            cylinder(f'Leg{k}{sy}', .35, zc(x) - 3.4 - ground_z(x, 0) + 1, (x, sy * 1.5, ground_z(x, 0) - 1), steel, coll, n=12)
+        for x in xs:
+            a = heading(x); nx, ny = -math.sin(a), math.cos(a)            # left normal (toward +Y side)
+            z = deck_z(x) + dz
+            for o in (o1, o2):
+                V.append((x + nx * o, yc(x) + ny * o, z))
+        for i in range(n):
+            q = 2 * i; F.append((q, q + 2, q + 3, q + 1))
+        return film.mesh_obj(name, V, F, coll, [m])
+    pale, N, L, b = node_mat('DeckPale')                                   # light grey stone with dark and white specks
+    tc = N.new('ShaderNodeTexCoord'); vo = N.new('ShaderNodeTexVoronoi'); vo.inputs['Scale'].default_value = 90
+    L.new(tc.outputs['Object'], vo.inputs['Vector'])
+    rp = N.new('ShaderNodeValToRGB'); rp.color_ramp.interpolation = 'CONSTANT'
+    rp.color_ramp.elements[0].color = (.18, .18, .18, 1); rp.color_ramp.elements[1].position = .3; rp.color_ramp.elements[1].color = (.6, .59, .57, 1)
+    e = rp.color_ramp.elements.new(.85); e.color = (.85, .85, .83, 1)
+    L.new(vo.outputs['Color'], rp.inputs['Fac']); L.new(rp.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = .6
+    add_haze(pale, N, L, b)
+    red = mat('CycleLane', (.33, .1, .07), rough=.6, haze=True)
+    curb = mat('DeckCurb', (.75, .74, .72), rough=.5, haze=True)
+    white = mat('GirderWhite', (.78, .79, .8), rough=.4, metal=.3, haze=True)
+    steel = mat('RailSteel', (.8, .81, .83), rough=.18, metal=1.0, haze=True)
+    led = emit_mat('RailLED', (1, .84, .6), 10.0)
+    strip('DeckLeft', 1.1, HALF_W, 0, pale); strip('DeckRight', -HALF_W, -1.1, 0, pale); strip('CycleLane', -1.1, 1.1, .003, red)
+    for side in (-1, 1):
+        strip(f'CurbTop{side}', side * (HALF_W - .25), side * HALF_W, .12, curb)
+        strip(f'DeckEdge{side}', side * HALF_W, side * (HALF_W + .02), -1.1, white)
+    strip('GirderBottom', -2.2, 2.2, -1.6, white)
+    for side in (-1, 1):                                                   # the girder's sloping sides
+        V, F = [], []
+        for x in xs:
+            a = heading(x); nx, ny = -math.sin(a), math.cos(a)
+            V += [(x + nx * side * HALF_W, yc(x) + ny * side * HALF_W, deck_z(x) - .05), (x + nx * side * 2.2, yc(x) + ny * side * 2.2, deck_z(x) - 1.6)]
+        for i in range(n):
+            q = 2 * i; F.append((q, q + 2, q + 3, q + 1))
+        film.mesh_obj(f'GirderSide{side}', V, F, coll, [white])
+    # balustrades: V posts every 2.2 m along each edge, leaning outward, 7 cables, the handrail tube with its LED strip
+    L_total = sum(math.hypot(xs[i + 1] - xs[i], yc(xs[i + 1]) - yc(xs[i])) for i in range(n))
+    npost = int(L_total / 2.2)
+    for side in (-1, 1):
+        pts = []
+        for k in range(npost + 1):
+            x = x0 + (x1 - x0) * k / npost
+            if side == -1 and abs(x - BX) < PLAT_R - .3:
+                pts.append(None); continue
+            a = heading(x); nx, ny = -math.sin(a), math.cos(a)
+            base = Vector((x + nx * side * (HALF_W - .12), yc(x) + ny * side * (HALF_W - .12), deck_z(x) + .12))
+            top = base + Vector((nx * side * .22, ny * side * .22, 1.05))
+            pts.append((base, top, a))
+            for lean in (-.35, .35):                                       # the two arms of the V
+                foot = base + Vector((math.cos(a) * lean, math.sin(a) * lean, 0))
+                d = top - foot; L_ = d.length
+                o = box(f'Post{side}_{k}_{lean}', (.05, .05, L_), foot, steel, coll)
+                o.rotation_euler = Vector((0, 0, 1)).rotation_difference(d.normalized()).to_euler()
+        for k in range(npost):
+            if pts[k] is None or pts[k + 1] is None:
+                continue
+            b0, t0, a0 = pts[k]; b1, t1, a1 = pts[k + 1]
+            mid = (t0 + t1) / 2; d = t1 - t0
+            r = cylinder(f'Handrail{side}_{k}', .045, d.length, t0, steel, coll, n=10)
+            r.rotation_euler = Vector((0, 0, 1)).rotation_difference(d.normalized()).to_euler()
+            l_ = box(f'RailLED{side}_{k}', (.03, .03, d.length), t0 + Vector((0, 0, -.06)) - Vector((-math.sin(a0) * side * .03, math.cos(a0) * side * .03, 0)), led, coll)
+            l_.rotation_euler = r.rotation_euler
+            for c in range(7):
+                f = .12 + c * .13
+                p0 = b0.lerp(t0, f); p1 = b1.lerp(t1, f); dd = p1 - p0
+                w_ = box(f'Cable{side}_{k}_{c}', (.008, .008, dd.length), p0, steel, coll)
+                w_.rotation_euler = Vector((0, 0, 1)).rotation_difference(dd.normalized()).to_euler()
+    # the round viewing platform: a half disc of the same speckled stone, its own curved rail, a pier beneath
+    pc = Vector((PLAT_C[0], PLAT_C[1], deck_z(BX)))
+    nseg = 40
+    V = [tuple(pc)] + [tuple(pc + Vector((PLAT_R * math.cos(a), PLAT_R * math.sin(a), 0))) for a in np.linspace(0, -PI, nseg + 1)]
+    film.mesh_obj('PlatformFloor', V, [(0, i, i + 1) for i in range(1, nseg + 1)], coll, [pale])
+    box('PlatformFill', (2 * PLAT_R, 2.2, .02), pc + Vector((0, 1.0, -.01)), pale, coll)
+    rim = [pc + Vector(((PLAT_R + .02) * math.cos(a), (PLAT_R + .02) * math.sin(a), 0)) for a in np.linspace(0, -PI, nseg + 1)]
+    film.mesh_obj('PlatformEdge', [tuple(p) for p in rim] + [tuple(p + Vector((0, 0, -1.4))) for p in rim],
+                  [(i, i + 1, i + nseg + 2, i + nseg + 1) for i in range(nseg)], coll, [white])
+    cylinder('PlatformPier', 1.0, deck_z(BX) - float(ground_z(pc.x, pc.y)) + 1, (pc.x, pc.y, float(ground_z(pc.x, pc.y)) - 1), white, coll, n=16)
+    ppts = []
+    for k, a in enumerate(np.linspace(-.05, -PI + .05, 13)):
+        base = pc + Vector(((PLAT_R - .12) * math.cos(a), (PLAT_R - .12) * math.sin(a), .12))
+        top = base + Vector((.22 * math.cos(a), .22 * math.sin(a), 1.05)); ppts.append((base, top))
+        for lean in (-.35, .35):
+            tang = Vector((-math.sin(a), math.cos(a), 0))
+            foot = base + tang * lean; d = top - foot
+            o = box(f'PPost{k}_{lean}', (.05, .05, d.length), foot, steel, coll)
+            o.rotation_euler = Vector((0, 0, 1)).rotation_difference(d.normalized()).to_euler()
+    for k in range(len(ppts) - 1):
+        (b0, t0), (b1, t1) = ppts[k], ppts[k + 1]; d = t1 - t0
+        r = cylinder(f'PRail{k}', .05, d.length, t0, steel, coll, n=10); r.rotation_euler = Vector((0, 0, 1)).rotation_difference(d.normalized()).to_euler()
+        l_ = box(f'PRailLED{k}', (.03, .03, d.length), t0 + Vector((0, 0, -.07)), led, coll); l_.rotation_euler = r.rotation_euler
+        for c in range(7):
+            f = .12 + c * .13; p0 = b0.lerp(t0, f); p1 = b1.lerp(t1, f); dd = p1 - p0
+            w_ = box(f'PCable{k}_{c}', (.008, .008, dd.length), p0, steel, coll); w_.rotation_euler = Vector((0, 0, 1)).rotation_difference(dd.normalized()).to_euler()
+        g = box(f'PGlass{k}', (.02, d.length, .9), (b0 + b1) / 2 + Vector((0, 0, .1)), mat('PlatformGlass', (.6, .7, .75), rough=.02, transmission=1.0, alpha=.25, haze=True), coll)
+        g.rotation_euler = (0, 0, math.atan2(d.y, d.x) - PI / 2)
+    # slim piers down into the ravine
+    for k, x in enumerate((x0 + (x1 - x0) * .22, x0 + (x1 - x0) * .5, x0 + (x1 - x0) * .78)):
+        gz = float(ground_z(x, yc(x)))
+        cylinder(f'Pier{k}', .7, deck_z(x) - 1.6 - gz + 1, (x, yc(x), gz - 1), white, coll, n=16)
+    # lamps along the bridge (warm), every 18 m on the land side
+    lampm = emit_mat('BridgeLampGlow', (1, .82, .55), 20.0)
+    for k in range(7):
+        x = x0 + 8 + k * 16
+        a = heading(x); nx, ny = -math.sin(a), math.cos(a)
+        p = Vector((x + nx * (HALF_W - .3), yc(x) + ny * (HALF_W - .3), deck_z(x) + .12))
+        cylinder(f'BridgeLampPole{k}', .06, 4.2, p, steel, coll, n=8)
+        blob(f'BridgeLamp{k}', p + Vector((0, 0, 4.3)), (.2, .2, .1), coll, lampm, sub=1, rough=0)
+        film.point_light(f'BridgeLampL{k}', p + Vector((0, 0, 4.1)), 150, (1, .8, .55), .2)
 
 
 def deck_z(x):
     """Height of the bridge deck: a gentle rise toward the middle."""
     x0, x1 = BRIDGE
-    return DECK + 1.2 * math.sin(PI * min(1.0, max(0.0, (x - x0) / (x1 - x0))))
+    return DECK + .6 * math.sin(PI * min(1.0, max(0.0, (x - x0) / (x1 - x0))))
 
 
 def ground_z(x, y):
@@ -180,77 +266,139 @@ def ground_z(x, y):
 
 
 def river_city(coll):
-    """Evening on the Dnipro: the wide river below reflecting the lights, Trukhaniv island dark in the middle, the left
-    bank's towers with lit windows, the bridges strung with lamps, the embankment roads."""
-    river = film.water_material('Dnipro', color=(.004, .007, .012), rough=.035, wave=.12, scale=.08)
-    film.mesh_obj('River', [(-5000, -5000, 0), (5000, -5000, 0), (5000, 400, 0), (-5000, 400, 0)], [(0, 1, 2, 3)], coll, [river])
-    # the right bank (where they are): the hill, its slope and the ravine, wooded
+    """The view from the bridge at night, as it really looks from there: the Dnipro below running away from the hill;
+    Trukhaniv island dark on the right with its pale sand shore; the Podil embankment curving off to the left under
+    orange lamps whose light streaks across the water; the lit towers of the left bank; far off, the great arch of the
+    Podilskyi bridge glowing blue, and beyond it the pylon of the next bridge; a little lit river boat."""
+    river = film.water_material('Dnipro', color=(.003, .005, .009), rough=.025, wave=.1, scale=.06)
+    film.mesh_obj('River', [(-6000, -6000, 0), (6000, -6000, 0), (6000, 400, 0), (-6000, 400, 0)], [(0, 1, 2, 3)], coll, [river])
+    # our bank: the hill, its wooded slope and the ravine
     hill = mat('KyivHill', (.03, .05, .02), rough=.9, haze=True)
-    xs = np.arange(-260, 260.1, 2.0); ys = np.arange(-110, 160.1, 2.0)
-    X, Y = np.meshgrid(xs, ys); Z = ground_z(X, Y)
+    xs_ = np.arange(-300, 300.1, 2.0); ys_ = np.arange(-130, 160.1, 2.0)
+    X, Y = np.meshgrid(xs_, ys_); Z = ground_z(X, Y)
     land = film.grid_mesh('RightBank', X, Y, Z, coll, hill)
-    plaza = (np.abs(X - ARCH[0]) < 48) & (Y > ARCH[1] - 20) & (Y < ARCH[1] + 24)
-    # trees only down the slope and in the ravine (well below the deck, so the view stays open), and far behind
-    forest = ((Z > 3) & (Z < DECK - 9) & (Y < -12)) | ((np.abs(X - RAVINE) < 26) & (Z < DECK - 12) & (np.abs(Y) > 5)) | ((Y > 50) & ~plaza)
+    plaza = (np.abs(X - ARCH[0]) < 48) & (Y > ARCH[1] - 20) & (Y < ARCH[1] + 30)
+    forest = ((Z > 3) & (Z < DECK - 9) & (Y < -12)) | ((np.abs(X - RAVINE) < 26) & (Z < DECK - 12)) | ((Y > 50) & ~plaza)
     film.vgroup(land, 'forest', forest.astype(float).ravel())
     hi, lib = film.tree_library('KyivTrees')
-    film.scatter_instances(land, lib, 'forest', 5000, 13, seed=14)
-    # the road down the ravine, under the bridge, with its orange lamps
-    asphalt = mat('RavineRoad', (.03, .03, .03), rough=.5, haze=True)
-    sodium = emit_mat('Sodium', (1, .55, .2), 25)
+    film.scatter_instances(land, lib, 'forest', 5500, 13, seed=14)
+    sodium = emit_mat('Sodium', (1, .55, .2), 60); white = emit_mat('WhiteLamps', (1, .93, .8), 60)
+    asphalt = mat('Asphalt', (.03, .03, .03), rough=.5, haze=True)
+    # the road down the ravine under the bridge, its lamps glowing through the trees
     for i in range(30):
-        y = -100 + i * 8
-        z = float(ground_z(RAVINE, y))
+        y = -110 + i * 8; z = float(ground_z(RAVINE, y))
         box(f'RavineRoad{i}', (7, 8.2, .1), (RAVINE, y, z + .1), asphalt, coll)
         if i % 2 == 0:
-            blob(f'RavineLamp{i}', (RAVINE + 4.5, y, z + 6), (.18, .18, .12), coll, sodium, sub=1, rough=0)
-    # the right-bank embankment road along the water
-    for i in range(80):
-        blob(f'RightEmbLamp{i}', (-1000 + i * 25, -88, 7), (.25, .25, .25), coll, sodium, sub=1, rough=0)
-    box('RightEmbankment', (2200, 14, 1.2), (0, -88, 0), asphalt, coll)
-    # Trukhaniv island: low, dark, wooded, a few path lamps
-    isle = mat('Trukhaniv', (.01, .018, .01), rough=.9, haze=True)
-    blob('Trukhaniv', (120, -420, -2.5), (520, 130, 6), coll, isle, sub=3, rough=.25, seed=51)
-    path = emit_mat('IslandPath', (1, .9, .7), 12)
+            blob(f'RavineLamp{i}', (RAVINE + 4.5, y, z + 6), (.3, .3, .2), coll, sodium, sub=1, rough=0)
+            film.point_light(f'RavineLampL{i}', (RAVINE + 4.5, y, z + 5.8), 600, (1, .55, .2), .3)
+    # the embankment below: a road along the water at the foot of the hill, curving away to the left (north-west)
+    def emb(t):                                   # t 0..1 along the embankment
+        return Vector((-260 + 1100 * t, -95 - 900 * t ** 1.6, 4.0))
+    for i in range(160):
+        t = i / 159; p = emb(t)
+        blob(f'EmbLamp{i}', p + Vector((0, 0, 7)), (1.1, 1.1, 1.1), coll, sodium, sub=1, rough=0)
+        if i % 2 == 0:
+            box(f'EmbRoad{i}', (16, 12, 1.0), p + Vector((0, 0, -4)), asphalt, coll).rotation_euler = (0, 0, math.atan2(emb(min(1, t + .01)).y - p.y, emb(min(1, t + .01)).x - p.x))
+    for i in range(40):                           # a row of brighter white lights along the river station / promenade
+        t = .05 + i * .006; p = emb(t)
+        blob(f'Promenade{i}', p + Vector((-4, -6, 3)), (1.0, 1.0, 1.0), coll, white, sub=1, rough=0)
+    # Trukhaniv island on the right: low dark woods, a pale sandy shore all along the water, a few path lamps
+    isle = mat('Trukhaniv', (.008, .014, .008), rough=.9, haze=True); sand = mat('IslandSand', (.32, .29, .22), rough=.9, haze=True)
+    blob('TrukhanivSand', (-620, -1000, -3.4), (430, 820, 4.2), coll, sand, sub=3, rough=.15, seed=51)
+    blob('Trukhaniv', (-660, -1000, -4.5), (400, 790, 11), coll, isle, sub=3, rough=.25, seed=52)
+    path = emit_mat('IslandPath', (1, .9, .7), 14)
     rng = np.random.default_rng(40)
-    for i in range(40):
-        blob(f'IslandLamp{i}', (rng.uniform(-300, 500), rng.uniform(-470, -380), 4.5), (.3, .3, .3), coll, path, sub=1, rough=0)
-    # the left bank: rows of tall residential blocks with lit windows, their lights doubled in the river
-    rng = np.random.default_rng(7)
+    for i in range(50):
+        blob(f'IslandLamp{i}', (rng.uniform(-950, -300), rng.uniform(-1700, -300), 5.5), (1.0, 1.0, 1.0), coll, path, sub=1, rough=0)
+    # the left bank: towers with lit windows, crowded along the horizon on the left and beyond the far bridge
     wins = [lit_windows_material(f'Windows{k}', warm=c, lit=l) for k, (c, l) in enumerate((((1, .72, .38), .42), ((1, .85, .6), .35), ((.85, .9, 1), .3), ((1, .65, .3), .5)))]
+    beacon = emit_mat('Beacon', (1, .1, .05), 40)
     k = 0
-    for row, (y0, n_, hmin, hmax) in enumerate(((-900, 70, 30, 75), (-1050, 70, 40, 95), (-1250, 60, 50, 120), (-1500, 50, 40, 100))):
-        for i in range(n_):
-            x = -1800 + i * (3600 / n_) + rng.uniform(-15, 15)
-            w_ = rng.uniform(18, 34); d_ = rng.uniform(14, 22); h = rng.uniform(hmin, hmax)
-            o = box(f'Tower{k}', (w_, d_, h), (x, y0 + rng.uniform(-30, 30), 0), wins[k % 4], coll)
-            o.rotation_euler = (0, 0, rng.uniform(-.15, .15))
-            if rng.random() < .25:
-                blob(f'TowerBeacon{k}', (x, o.location.y, h + 1), (.6, .6, .6), coll, emit_mat('Beacon', (1, .1, .05), 30), sub=1, rough=0)
-            k += 1
-    box('LeftBank', (5000, 1500, 3), (0, -1600, -1.5), mat('LeftBankGround', (.02, .02, .02), rough=.9, haze=True), coll)
-    for i in range(140):
-        blob(f'LeftEmbLamp{i}', (-1800 + i * 26, -860, 6), (.3, .3, .3), coll, sodium, sub=1, rough=0)
-    # the bridges across the river, strung with lamps: the metro bridge (south) and the park bridge to the island
-    conc = mat('BridgeConcrete', (.15, .15, .15), rough=.7, haze=True)
-    white = emit_mat('BridgeLamps', (1, .95, .85), 30)
-    for name, x, z, y1, n_ in (('MetroBridge', -620, 14, -880, 60), ('ParkBridge', 330, 9, -300, 24)):
-        box(name, (16 if name == 'MetroBridge' else 6, -y1 - 60, 1.6), (x, (y1 - 60) / 2, z - 1.6), conc, coll)
-        for i in range(n_):
-            y = -60 + (y1 + 60) * i / (n_ - 1)
-            for sx in (-1, 1):
-                blob(f'{name}Lamp{i}{sx}', (x + sx * (7 if name == 'MetroBridge' else 2.6), y, z + 3), (.3, .3, .3), coll, white, sub=1, rough=0)
-        for i in range(6 if name == 'MetroBridge' else 3):
-            y = -60 + (y1 + 60) * (i + .5) / (6 if name == 'MetroBridge' else 3)
-            box(f'{name}Pier{i}', (8, 6, z), (x, y, 0), conc, coll)
-    # golden domes of the Lavra far off to the south, floodlit
-    gold = mat('GoldDome', (1, .7, .3), rough=.2, metal=1, haze=True); wall = mat('ChurchWhite', (.85, .84, .8), rough=.6, haze=True)
-    for i, (x, y) in enumerate(((-1300, 40), (-1380, 90))):
-        z = 40
-        box(f'Church{i}', (24, 24, 30), (x, y, z), wall, coll)
-        cylinder(f'ChurchDrum{i}', 7, 10, (x, y, z + 30), wall, coll, n=20)
-        film.dome(f'ChurchDome{i}', 8, (x, y, z + 40), gold, coll, zscale=1.5)
-        film.point_light(f'Floodlight{i}', (x + 30, y - 40, z + 20), 2e5, (1, .85, .6), 5)
+    for i in range(170):
+        if i < 70:                               # the left bank, beyond the island
+            x = rng.uniform(-3600, -800); y = rng.uniform(-4200, -2000)
+        elif i < 120:                            # beyond the far bridge
+            x = rng.uniform(-900, 1600); y = rng.uniform(-4300, -2400)
+        else:                                    # Podil and the city on our side, to the right
+            x = rng.uniform(700, 3200); y = rng.uniform(-3000, -500)
+        w_ = rng.uniform(20, 40); d_ = rng.uniform(15, 24); h = rng.uniform(30, 110) * (1.3 if rng.random() < .15 else 1)
+        o = box(f'Tower{k}', (w_, d_, h), (x, y, 0), wins[k % 4], coll); o.rotation_euler = (0, 0, rng.uniform(-.3, .3))
+        if rng.random() < .3:
+            blob(f'TowerBeacon{k}', (x, y, h + 1.5), (.8, .8, .8), coll, beacon, sub=1, rough=0)
+        k += 1
+    box('LeftBank', (8000, 3000, 3), (-1800, -3500, -1.5), mat('LeftBankGround', (.015, .015, .015), rough=.9, haze=True), coll)
+    box('Podil', (4000, 4000, 3), (2600, -1600, -1.5), mat('PodilGround', (.02, .02, .02), rough=.9, haze=True), coll).rotation_euler = (0, 0, -.35)
+    glow = emit_mat('CityGlow', (1, .75, .45), 40)
+    for i in range(1600):                         # street lights spread across the far city
+        x = rng.uniform(-3500, 3200); y = rng.uniform(-4300, -400)
+        if (x < 600 and y > -2250) or (x < 1100 and y > -95 - 900 * max(0.0, min(1.0, (x + 260) / 1100)) ** 1.6 - 40 and y > -2250):
+            continue                             # (the river, the island)
+        blob(f'CityLight{i}', (x, y, 4), (3.0, 3.0, 3.0), coll, glow, sub=1, rough=0)
+    # the Podilskyi bridge: a 340 m arch lit blue, its deck strung with lamps, long approach viaducts
+    PB = -2100.0
+    conc = mat('BridgeConcrete', (.12, .12, .12), rough=.7, haze=True)
+    blue = emit_mat('ArchBlue', (.25, .35, 1.0), 14.0); blue2 = emit_mat('HangerBlue', (.5, .6, 1.0), 4.0)
+    box('PodilskyiDeck', (1900, 24, 3), (-150, PB, 15), conc, coll)
+    for i in range(95):
+        x = -1100 + i * 20
+        for sy in (-1, 1):
+            blob(f'PodilLamp{i}{sy}', (x, PB + sy * 12, 22), (2.2, 2.2, 2.2), coll, white if i % 3 else sodium, sub=1, rough=0)
+    for i in range(10):
+        box(f'PodilPier{i}', (14, 10, 15), (-1000 + i * 200, PB, 0), conc, coll)
+    V, F = [], []
+    n = 80; half = 170.0; H = 78.0
+    for i in range(n + 1):
+        t = -1 + 2 * i / n; x = t * half; z = 18 + H * (1 - t * t)
+        for dy, dz in ((-2, -2), (2, -2), (2, 2), (-2, 2)):
+            V.append((x - 60, PB + dy, z + dz))
+    for i in range(n):
+        o = i * 4; q = o + 4
+        for j in range(4):
+            F.append((o + j, o + (j + 1) % 4, q + (j + 1) % 4, q + j))
+    film.mesh_obj('PodilskyiArch', V, F, coll, [blue])
+    for i in range(1, 28):
+        t = -1 + 2 * i / 28; x = t * half - 60; z = 18 + H * (1 - t * t)
+        box(f'Hanger{i}', (.5, .5, z - 18), (x, PB, 18), blue2, coll)
+    film.point_light('ArchBlueGlow', (-60, PB + 60, 60), 4e5, (.3, .4, 1.0), 40)
+    # beyond: the next bridge's tall pylon with its fan of cables, lit white
+    pyl = emit_mat('PylonLight', (.9, .92, 1.0), 3.0)
+    box('NorthPylon', (8, 8, 120), (420, -3300, 0), pyl, coll)
+    for i in range(10):
+        for sx in (-1, 1):
+            d = Vector((sx * (40 + i * 22), 0, 20 - 108 - i * 0)); top = Vector((420, -3300, 112 - i * 3))
+            end = Vector((420 + sx * (40 + i * 24), -3300, 18)); dd = end - top
+            c_ = box(f'Stay{i}{sx}', (.4, .4, dd.length), top, pyl, coll); c_.rotation_euler = Vector((0, 0, 1)).rotation_difference(dd.normalized()).to_euler()
+    box('NorthDeck', (1600, 20, 3), (300, -3300, 15), conc, coll)
+    for i in range(70):
+        blob(f'NorthLamp{i}', (-500 + i * 23, -3300, 22), (2.2, 2.2, 2.2), coll, white, sub=1, rough=0)
+    # the park footbridge to the island: a white pylon, its cables fanned out, lit; and the white column with the golden top
+    pylm = emit_mat('ParkBridgeLight', (.95, .95, 1.0), 4.0)
+    a0_, b0_ = Vector((-150, -100, 8)), Vector((-330, -330, 8)); mid = a0_.lerp(b0_, .35); dd = b0_ - a0_
+    dk = box('ParkBridgeDeck', (5, dd.length, 1.2), a0_, conc, coll); dk.rotation_euler = (0, 0, math.atan2(-dd.x, dd.y))
+    box('ParkPylon', (2, 2, 60), mid, pylm, coll)
+    for i in range(8):
+        for t in (-1, 1):
+            end = mid.lerp(a0_ if t < 0 else b0_, .2 + i * .1); top = mid + Vector((0, 0, 58 - i * 2.5)); d_ = end - top
+            c_ = box(f'ParkStay{i}{t}', (.2, .2, d_.length), top, pylm, coll); c_.rotation_euler = Vector((0, 0, 1)).rotation_difference(d_.normalized()).to_euler()
+    for i in range(16):
+        blob(f'ParkLamp{i}', a0_.lerp(b0_, i / 15) + Vector((0, 0, 3)), (.8, .8, .8), coll, white, sub=1, rough=0)
+    stonew = mat('ColumnWhite', (.85, .84, .8), rough=.5, haze=True); goldm = mat('ColumnGold', (1, .72, .3), rough=.2, metal=1, haze=True)
+    cylinder('MagdeburgColumn', 2.2, 20, (40, -112, 4), stonew, coll, n=20)
+    film.dome('MagdeburgDome', 2.6, (40, -112, 24), goldm, coll, zscale=1.3)
+    film.point_light('MagdeburgFlood', (40, -100, 10), 3e4, (1, .85, .6), 2)
+    # a river boat gliding along with its windows lit
+    hull = mat('BoatHull', (.85, .85, .83), rough=.4, haze=True); win = emit_mat('BoatWindows', (1, .8, .5), 6.0)
+    boat = bpy.data.objects.new('RiverBoat', None); link(boat, coll); boat.location = (40, -420, 0)
+    for o in (box('BoatHullB', (9, 38, 2.4), (0, 0, -.6), hull, coll, bevel=.6), box('BoatDeck1', (7.5, 30, 2.2), (0, -1, 1.8), hull, coll, bevel=.3),
+              box('BoatWin1', (7.6, 28, .9), (0, -1, 2.4), win, coll), box('BoatDeck2', (6, 18, 1.8), (0, -3, 4.0), hull, coll, bevel=.3),
+              box('BoatWin2', (6.1, 16, .7), (0, -3, 4.5), win, coll)):
+        o.parent = boat
+    boat.rotation_euler = (0, 0, .25)
+    boat.keyframe_insert('location', frame=1); boat.location = (60, -500, 0); boat.keyframe_insert('location', frame=SHOTS['end'])
+    import bears as _b
+    for fc in _b._fcurves(boat):
+        for kp in fc.keyframe_points:
+            kp.interpolation = 'LINEAR'
 
 
 def build():
@@ -259,29 +407,33 @@ def build():
     film.HAZE.update(color=(.03, .045, .08), start=150.0, dist=4000.0, strength=.25)
     w, sky, bg, ramp = film.make_sky(elev=-3, az=180, strength=.3, low=(.9, .45, .3), mid=(.3, .35, .6), high=(.12, .16, .35), clouds=.25,
                                      cloud_tint=(.5, .5, .6))
-    sun = film.make_sun(elev=35, az=30, energy=.18, color=(.55, .65, 1.0))
-    bpy.context.scene.view_settings.exposure = .2
+    sun = film.make_sun(elev=35, az=30, energy=.4, color=(.55, .65, 1.0))
+    bpy.context.scene.view_settings.exposure = .9
     st = film.new_coll('Kyiv'); river_city(st); bridge(st); arch(st)
     he = bears.build_bear('he'); she = bears.build_bear('she')
-    bx = -40.0
+    bx = BX
     DZ = deck_z(bx)
-    film.area_light('ProposalFill', (bx + 1.4, 1.6, DZ + 1.9), (bx, 0, DZ + .5), 160, 1.6, (1, .72, .5))
-    film.area_light('FaceFill', (bx - 2.6, 1.0, DZ + 1.5), (bx, 0, DZ + .6), 110, 1.6, (1, .78, .58))     # warm light on their faces and the ring
-    film.area_light('MoonRim', (bx - 3, 3, DZ + 4), (bx, 0, DZ + .6), 40, 3, (.6, .7, 1.0))                  # a cool rim from behind
-    # walking out onto the bridge under the arch, then stopping at the middle
-    bears.place(he, 1, (bx - 4.3, -.35, DZ), bears.facing(1, 0)); bears.place(she, 1, (bx - 4.3, .35, DZ), bears.facing(1, 0))
-    bears.walk(he, 2, 80, (bx - 4.3, -.35, DZ), (bx - .4, -.35, DZ), hold={'shoulder.L': (8, 0, 22), 'forearm.L': (6, 0, 0)})
-    bears.walk(she, 2, 80, (bx - 4.3, .35, DZ), (bx - .4, .35, DZ), hold={'shoulder.R': (8, 0, -22), 'forearm.R': (6, 0, 0)}, phase=2)
-    # he steps in front of her and kneels; she turns to him
+    RY = -HALF_W + .55                                   # standing just inside the river-side rail
+    film.area_light('ProposalFill', (bx + 1.2, .4, DZ + 1.9), (bx, RY, DZ + .5), 160, 1.6, (1, .72, .5))
+    film.area_light('FaceFill', (bx - 1.2, RY - 2.2, DZ + 1.3), (bx, RY, DZ + .6), 90, 1.6, (1, .78, .58))     # warm light on their faces and the ring
+    film.area_light('MoonRim', (bx - 3, 2, DZ + 4), (bx, RY, DZ + .6), 40, 3, (.6, .7, 1.0))                  # a cool rim from behind
+    # paw in paw along the curving bridge to the rail at its outermost point, then they turn to the view
+    p0h, p1h = Vector((bx - 5.4, -.15, DZ)), Vector((bx - .35, RY, DZ)); p0s, p1s = Vector((bx - 5.0, -.75, DZ)), Vector((bx + .35, RY, DZ))
+    bears.place(he, 1, p0h, bears.facing(*(p1h - p0h).xy)); bears.place(she, 1, p0s, bears.facing(*(p1s - p0s).xy))
+    bears.walk(he, 4, 72, p0h, p1h, hold={'shoulder.L': (8, 0, 22), 'forearm.L': (6, 0, 0)})
+    bears.walk(she, 4, 72, p0s, p1s, hold={'shoulder.R': (8, 0, -22), 'forearm.R': (6, 0, 0)}, phase=2)
+    for b in (he, she):                                   # turn to face the river
+        bears.hold(b, 74); b.rotation_euler.z = bears.facing(0, -1); bears.hold(b, 86)
+    bears.turn_head(she, 88, nod=-4); bears.turn_head(she, SHOTS['b'] - 1, yaw=-10, nod=-4)
+    # he steps round in front of her and kneels; she turns to him, the city behind them
     b_ = SHOTS['b']
-    bears.place(she, b_, (bx, .35, DZ), bears.facing(0, -1))
-    # on one knee: the left leg forward (thigh level), the right knee down behind; both paws hold the box out to her
+    bears.place(she, b_, (bx + .35, RY, DZ), bears.facing(-1, 0))
     # (plush legs are short, so a one-knee kneel barely lowers him: down on both knees, sitting back on his heels)
     kneel = {'thigh.L': (70, 0, -6), 'shin.L': (-110, 0, 0), 'thigh.R': (70, 0, 6), 'shin.R': (-110, 0, 0), 'spine': (14, 0, 0),
              'shoulder.L': (82, 0, 18), 'shoulder.R': (82, 0, -18), 'forearm.L': (20, 0, 0), 'forearm.R': (20, 0, 0), 'head': (-18, 0, 0)}
-    bears.place(he, b_, (bx, -.45, DZ), bears.facing(0, 1))
+    bears.place(he, b_, (bx - .45, RY, DZ), bears.facing(1, 0))
     bears.key_pose(he, b_ + 26, kneel)
-    bears.hold(he, b_ + 6); he.location.z = DZ - bears.ground_drop(he, kneel); he.location.y = -.5; bears.hold(he, b_ + 26)
+    bears.hold(he, b_ + 6); he.location.z = DZ - bears.ground_drop(he, kneel); he.location.x = bx - .5; bears.hold(he, b_ + 26)
     bears.turn_head(she, b_ + 10, nod=6); bears.turn_head(she, b_ + 40, nod=18)
     bears.key_pose(she, b_ + 50, {'shoulder.L': (0, 0, 0), 'shoulder.R': (0, 0, 0)})
     bears.key_pose(she, b_ + 66, {'shoulder.L': (95, 0, -20), 'shoulder.R': (95, 0, 20), 'forearm.L': (60, 0, 0), 'forearm.R': (60, 0, 0)})   # paws to her mouth
@@ -308,7 +460,7 @@ def build():
     bears.set_eyes(she, 'heart', c + 4); bears.set_eyes(he, 'heart', c + 10)
     bears.key_pose(he, c + 26, kneel); bears.hold(he, c + 26)
     bears.key_pose(he, c + 44, dict(bears.STAND, **{'shoulder.L': (75, 0, -30), 'shoulder.R': (75, 0, 30), 'forearm.L': (35, 0, 0), 'forearm.R': (35, 0, 0), 'head': (4, 30, -10)}))
-    he.location = (bx, -.2, DZ); bears.hold(he, c + 44)
+    he.location = (bx - .2, RY, DZ); bears.hold(he, c + 44)
     bears.key_pose(she, c + 44, {'shoulder.L': (80, 0, -32), 'shoulder.R': (80, 0, 32), 'forearm.L': (35, 0, 0), 'forearm.R': (35, 0, 0), 'head': (-6, 30, -12)})
     film.key_visible(boxo, c + 30, False)
     bears.set_eyes(she, 'closed', c + 56); bears.set_eyes(he, 'closed', c + 60)
@@ -316,15 +468,16 @@ def build():
     hug_she = {'shoulder.L': (80, 0, -32), 'shoulder.R': (80, 0, 32), 'forearm.L': (35, 0, 0), 'forearm.R': (35, 0, 0), 'head': (-6, 30, -12)}
     bears.hug_sway(he, c + 50, SHOTS['end'], hug_he); bears.hug_sway(she, c + 50, SHOTS['end'], hug_she, phase=.5)
     # ---- cameras
-    # walking out along the bridge toward the arch, the river and the lit left bank to their right
-    A = film.camera('Cam14a_Arch', [(SHOTS['a'], (bx - 10.5, 1.6, DZ + 1.6), (ARCH[0], ARCH[1] - 6, DECK + 8)), (SHOTS['b'] - 1, (bx - 6.0, 1.4, DZ + 1.5), (ARCH[0], ARCH[1] - 6, DECK + 8))],
-                    lens=22, fstop=4, focus=7.0)
-    # the kneel, side-on: the river and the city lights below to the left
-    B = film.camera('Cam14b_Kneel', [(SHOTS['b'], (bx + 3.0, 1.6, DZ + .85), (bx, -.08, DZ + .5)), (SHOTS['c'] - 1, (bx + 2.7, 1.5, DZ + .8), (bx, -.08, DZ + .5))],
-                    lens=30, fstop=2.8, focus=(bx, -.05, DZ + .5))
-    # yes: the glowing arch behind them, the camera drifting back and up
-    C = film.camera('Cam14c_Yes', [(SHOTS['c'], (bx - 3.8, 1.35, DZ + 1.0), (bx + .3, -.05, DZ + .75)), (SHOTS['end'], (bx - 5.6, 2.0, DZ + 2.2), (bx + .3, -.05, DZ + 1.0))],
-                    lens=26, fstop=2.8, focus=4.0)
+    # flying in: from high over the river, toward the lit bridge and the arch on the hill, down to the two of them
+    A = film.camera('Cam14a_FlyIn', [(SHOTS['a'], (170, -330, 105), (bx, -3, DZ)), (40, (bx + 70, -110, DZ + 30), (bx, RY, DZ + .4)),
+                                     (68, (bx + 14, -14, DZ + 8), (bx, RY, DZ + .45)), (84, (bx + 4, RY - .5, DZ + 3.4), (bx, RY, DZ + .4)),
+                                     (SHOTS['b'] - 1, (bx + 2.6, RY + 1.4, DZ + 1.5), (bx - 2.2, RY - 2.0, DZ + .35))], lens=24, fstop=5.6, focus=(bx, RY, DZ + .5))
+    # the proposal at the rail: the river, the lights and the blue bridge spread out below behind them
+    B = film.camera('Cam14b_Kneel', [(SHOTS['b'], (bx - .08, 1.9, DZ + 1.15), (bx - .08, RY - 1.5, DZ + .45)), (SHOTS['c'] - 1, (bx - .08, 1.5, DZ + 1.1), (bx - .08, RY - 1.5, DZ + .5))],
+                    lens=28, fstop=2.8, focus=(bx, RY, DZ + .5))
+    # yes: the camera rises up behind them into the night air, the whole city opening out
+    C = film.camera('Cam14c_Rise', [(SHOTS['c'], (bx + .3, 1.2, DZ + 1.2), (bx - .1, RY, DZ + .7)), (SHOTS['c'] + 40, (bx - .1, 2.8, DZ + 3.2), (bx - .1, RY - 4, DZ + .2)),
+                                    (SHOTS['end'], (bx + 1.5, 18, DZ + 22), (bx - 1.5, -60, DZ - 24))], lens=26, fstop=5.6, focus=(bx, RY, DZ + .5))
     for f, cam in ((SHOTS['a'], A), (SHOTS['b'], B), (SHOTS['c'], C)):
         film.cut(f, cam)
 

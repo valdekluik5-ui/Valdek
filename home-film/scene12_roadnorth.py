@@ -5,7 +5,7 @@ Shots:  1-96    a paper map: a dotted line grows from Kyiv north through Palanga
        97-220   Palanga: a sandy Baltic beach below pine dunes; they walk along the water, paw in paw
       221-290   Latvia: the little car on a forest road
       291-370   Jägala waterfall, wide: the curved limestone ledge, one brown-and-white curtain, the canyon; two tiny bears
-      371-450   Jägala, close: they stand on the shelf by the pool in the spray; she leans on him, his arm around her
+      371-450   Jägala, close (as in their photo): on the limestone slabs by the pool, the falls behind; she kisses his cheek
       451-530   Tallinn old town: gabled houses and towers with red cone roofs
       531-590   berry picking in the forest, a few calm days
       591-650   the ferry crossing the Gulf of Finland, Tallinn's spires behind, gulls following
@@ -250,20 +250,35 @@ def build_falls(coll):
         Xc = r * np.sin(Aa); Yc = R - r * np.cos(Aa); Zc = .12 - (H + .1) * Tt
         return film.grid_mesh(name, Xc + FAL.x, Yc + FAL.y, Zc + FAL.z, coll, m)
     back, N, L, b = node_mat('FallBack')
-    b.inputs['Base Color'].default_value = (.32, .2, .09, 1); b.inputs['Roughness'].default_value = .15
-    b.inputs['Transmission Weight'].default_value = .4
+    b.inputs['Base Color'].default_value = (.3, .17, .06, 1); b.inputs['Roughness'].default_value = .2
+    b.inputs['Alpha'].default_value = .55
+    try:
+        back.surface_render_method = 'DITHERED'
+    except Exception:
+        pass
     add_haze(back, N, L, b)
     curtain('FallCurtainBack', .05, back)
     front, N, L, b = node_mat('FallFront')
-    tc = N.new('ShaderNodeTexCoord'); mp = N.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (2.2, 2.2, .18)
-    L.new(tc.outputs['Object'], mp.inputs['Vector'])
+    tc = N.new('ShaderNodeTexCoord'); off = N.new('ShaderNodeVectorMath'); off.operation = 'SUBTRACT'; off.inputs[1].default_value = tuple(FAL)
+    L.new(tc.outputs['Object'], off.inputs[0])
+    mp = N.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (2.2, 2.2, .18)
+    L.new(off.outputs['Vector'], mp.inputs['Vector'])
     fc = mp.inputs['Location'].driver_add('default_value', 2); fc.driver.expression = 'frame * 0.035'
     nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = 4; nz.inputs['Detail'].default_value = 8; nz.inputs['Roughness'].default_value = .65
     L.new(mp.outputs['Vector'], nz.inputs['Vector'])
-    rp = N.new('ShaderNodeValToRGB'); rp.color_ramp.elements[0].position = .42; rp.color_ramp.elements[1].position = .62
+    lace = N.new('ShaderNodeTexVoronoi'); lace.feature = 'DISTANCE_TO_EDGE'; lace.inputs['Scale'].default_value = 9
+    L.new(mp.outputs['Vector'], lace.inputs['Vector'])
+    mixl = N.new('ShaderNodeMath'); mixl.operation = 'MULTIPLY_ADD'; mixl.inputs[1].default_value = 1.6
+    L.new(lace.outputs['Distance'], mixl.inputs[0]); L.new(nz.outputs['Fac'], mixl.inputs[2])
+    rp = N.new('ShaderNodeValToRGB'); rp.color_ramp.elements[0].position = .82; rp.color_ramp.elements[1].position = 1.05
     rp.color_ramp.elements[0].color = (0, 0, 0, 1); rp.color_ramp.elements[1].color = (1, 1, 1, 1)
-    L.new(nz.outputs['Fac'], rp.inputs['Fac'])
-    b.inputs['Base Color'].default_value = (.93, .9, .82, 1); b.inputs['Roughness'].default_value = .45
+    L.new(mixl.outputs['Value'], rp.inputs['Fac'])
+    st = N.new('ShaderNodeTexNoise'); st.inputs['Scale'].default_value = 1.0; st.inputs['Detail'].default_value = 2
+    stm = N.new('ShaderNodeMapping'); stm.inputs['Scale'].default_value = (.12, .12, .004); L.new(off.outputs['Vector'], stm.inputs['Vector']); L.new(stm.outputs['Vector'], st.inputs['Vector'])
+    sc_ = N.new('ShaderNodeValToRGB'); sc_.color_ramp.elements[0].position = .52; sc_.color_ramp.elements[1].position = .62
+    sc_.color_ramp.elements[0].color = (.92, .88, .8, 1); sc_.color_ramp.elements[1].color = (.62, .33, .09, 1)
+    L.new(st.outputs['Fac'], sc_.inputs['Fac']); L.new(sc_.outputs['Color'], b.inputs['Base Color'])
+    b.inputs['Roughness'].default_value = .45
     b.inputs['Emission Color'].default_value = (1, .97, .9, 1); b.inputs['Emission Strength'].default_value = .08
     L.new(rp.outputs['Color'], b.inputs['Alpha'])
     try:
@@ -281,11 +296,11 @@ def build_falls(coll):
     lace = Np.new('ShaderNodeTexNoise'); lace.inputs['Scale'].default_value = 6; lace.inputs['Detail'].default_value = 10; lace.inputs['Roughness'].default_value = .7
     Lp.new(mpp.outputs['Vector'], lace.inputs['Vector'])
     near = Np.new('ShaderNodeSeparateXYZ'); Lp.new(tcp.outputs['Object'], near.inputs['Vector'])
-    ny_ = Np.new('ShaderNodeMapRange'); ny_.inputs['From Min'].default_value = -40; ny_.inputs['From Max'].default_value = 8
+    ny_ = Np.new('ShaderNodeMapRange'); ny_.inputs['From Min'].default_value = FAL.y - 40; ny_.inputs['From Max'].default_value = FAL.y + 8
     Lp.new(near.outputs['Y'], ny_.inputs['Value'])
     thr = Np.new('ShaderNodeMath'); thr.operation = 'SUBTRACT'; Lp.new(lace.outputs['Fac'], thr.inputs[0])
-    inv = Np.new('ShaderNodeMath'); inv.operation = 'SUBTRACT'; inv.inputs[0].default_value = .72; Lp.new(ny_.outputs['Result'], inv.inputs[1])
-    inv2 = Np.new('ShaderNodeMath'); inv2.operation = 'MULTIPLY'; inv2.inputs[1].default_value = .35; Lp.new(inv.outputs['Value'], inv2.inputs[0])
+    inv = Np.new('ShaderNodeMath'); inv.operation = 'SUBTRACT'; inv.inputs[0].default_value = .9; Lp.new(ny_.outputs['Result'], inv.inputs[1])
+    inv2 = Np.new('ShaderNodeMath'); inv2.operation = 'MULTIPLY'; inv2.inputs[1].default_value = .8; Lp.new(inv.outputs['Value'], inv2.inputs[0])
     Lp.new(inv2.outputs['Value'], thr.inputs[1])
     fm = Np.new('ShaderNodeMapRange'); fm.inputs['From Min'].default_value = .45; fm.inputs['From Max'].default_value = .6
     Lp.new(thr.outputs['Value'], fm.inputs['Value'])
@@ -311,8 +326,19 @@ def build_falls(coll):
         r = R + 2.5
         blob(f'FallMist{k}', T(r * math.sin(a), R - r * math.cos(a), -H + 1.2), (7.5, 4.5, 3.2), coll, mist, sub=2, seed=500 + k)
     # ---- where they stand: a flat limestone shelf at the pool's edge, boulders along the canyon walls
-    shelf = box('JagalaShelf', (7, 6, .6), T(-10.5, -6.5, SHELF_Z - .6), rock, coll, bevel=.15)
-    shelf.rotation_euler = (0, 0, .35)
+    slab = mat('Slab', (.3, .28, .24), rough=.8, haze=True); gravel = mat('Gravel', (.22, .2, .16), rough=.9, haze=True)
+    box('JagalaShelfBase', (9, 9, .5), T(-12.5, -17, SHELF_Z - .52), gravel, coll).rotation_euler = (0, 0, .35)
+    for i in range(26):
+        sx_, sy_ = rng.uniform(-16.5, -8.5), rng.uniform(-21, -13)
+        o = box(f'Slab{i}', (rng.uniform(.6, 1.8), rng.uniform(.5, 1.4), rng.uniform(.04, .1)), T(sx_, sy_, SHELF_Z - .05), slab, coll, bevel=.03)
+        o.rotation_euler = (rng.normal(0, .02), rng.normal(0, .02), rng.uniform(0, PI))
+    for i in range(160):
+        blob(f'Pebble{i}', T(rng.uniform(-17, -8), rng.uniform(-21.5, -12.5), SHELF_Z - .01), (rng.uniform(.02, .07),) * 2 + (.02,), coll, slab, sub=1, seed=900 + i)
+    film.mesh_obj('ShelfPuddle', [T(-15.6, -19.4, SHELF_Z + .005), T(-14.4, -19.9, SHELF_Z + .005), T(-14.2, -18.6, SHELF_Z + .005), T(-15.4, -18.2, SHELF_Z + .005)],
+                  [(0, 1, 2, 3)], coll, [film.water_material('Puddle', color=(.05, .04, .03), rough=.05, wave=.02)])
+    film.meadow('ShelfTufts', (FAL.x - 12.5, FAL.y - 17), (9, 9), coll, z_fn=lambda x, y: np.full_like(x, SHELF_Z + FAL.z - .02), density=.18, seed=41,
+                keep_clear=[(FAL.x - 12.0, FAL.y - 16.0, 1.6)])
+    rng = np.random.default_rng(81)
     for i in range(60):
         sx = -1 if i % 2 else 1; y = rng.uniform(-70, 10)
         x = sx * (13.5 + 8.5 * np.clip((y + 30) / 42, 0, 1) - rng.uniform(.3, 2.5))
@@ -636,20 +662,37 @@ def build():
     film.drive(c_, SHOTS['latvia'], SHOTS['falls'] - 1, LAT + Vector((1.0, 0, 0)), LAT + Vector((1.0, -40, 0)))
     # Jägala: paw in paw out onto the shelf by the pool; then they stand in the spray, she leans on him
     fa = SHOTS['falls']; f2 = SHOTS['falls2']
-    dv = Vector((10.2, 15.6, 0)).normalized(); lv = Vector((-dv.y, dv.x, 0))           # toward the falls; the bears' left
-    P1 = FAL + Vector((-10.2, -5.6, SHELF_Z)); P0 = P1 - dv * 2.4
+    dv = Vector((12.0, 26.0, 0)).normalized(); lv = Vector((-dv.y, dv.x, 0))           # toward the falls; the bears' left
+    P1 = FAL + Vector((-12.0, -16.0, SHELF_Z)); P0 = P1 - dv * 2.4
     rz = bears.facing(dv.x, dv.y)
     bears.place(he, fa, P0 + lv * .3, rz); bears.place(she, fa, P0 - lv * .3, rz)
     bears.walk(he, fa + 18, f2 - 6, P0 + lv * .3, P1 + lv * .3, hold={'shoulder.R': (8, 0, -22), 'forearm.R': (6, 0, 0)})
     bears.walk(she, fa + 18, f2 - 6, P0 - lv * .3, P1 - lv * .3, hold={'shoulder.L': (8, 0, 22), 'forearm.L': (6, 0, 0)}, phase=2)
-    bears.place(he, f2, P1 + lv * .3, rz); bears.place(she, f2, P1 - lv * .3, rz)
-    bears.turn_head(he, f2 + 4, nod=-10); bears.turn_head(she, f2 + 4, nod=-12)                  # looking up at the falls
-    bears.turn_head(she, f2 + 30, yaw=-25, nod=-4); bears.set_eyes(she, 'heart', f2 + 36)          # she looks at him...
+    # close: like the photo - they stand on the slabs with the falls behind them, facing the camera; his arm goes
+    # around her, she turns and kisses his cheek, his eyes turn to hearts
+    rb = bears.facing(-dv.x, -dv.y)
+    bears.place(he, f2, P1 + lv * .3, rb); bears.place(she, f2, P1 - lv * .3, rb)
+    arm_l = {'shoulder.L': (38, 0, 78), 'forearm.L': (58, 0, 0), 'spine': (2, 0, -3)}
+    bears.key_pose(he, f2 + 16, arm_l); bears.key_pose(he, SHOTS['tallinn'] - 1, arm_l)
+    bears.turn_head(she, f2 + 24, yaw=0, nod=-2); bears.turn_head(she, f2 + 36, yaw=-28, nod=0)
+    kiss = {'head': (-4, -40, 12), 'spine': (4, 0, 8)}
+    bears.key_pose(she, f2 + 46, kiss); bears.key_pose(she, f2 + 66, kiss); bears.set_eyes(she, 'closed', f2 + 44)
+    bears.key_pose(she, f2 + 76, {'head': (0, -20, 4), 'spine': (2, 0, 3)}); bears.set_eyes(she, 'heart', f2 + 74)
+    bears.set_eyes(he, 'heart', f2 + 50); bears.turn_head(he, f2 + 56, yaw=12, tilt=-6)
     lean = {'head': (2, -10, -16), 'spine': (4, 0, -7)}
-    bears.key_pose(she, f2 + 50, lean); bears.key_pose(she, SHOTS['tallinn'] - 1, lean)               # ...and leans her head on him
     around = {'shoulder.R': (38, 0, -78), 'forearm.R': (58, 0, 0), 'spine': (2, 0, 4), 'head': (-4, 12, 6)}
-    bears.key_pose(he, f2 + 58, around); bears.key_pose(he, SHOTS['tallinn'] - 1, around)            # his arm goes around her
-    bears.set_eyes(she, 'closed', f2 + 62); bears.blink(he, f2 + 40)
+    leafm = mat('AshLeaf', (.08, .2, .04), rough=.5, sss=.2, haze=True); twig = mat('AshTwig', (.12, .1, .07), rough=.8, haze=True)
+    cpos = P1 - dv * 3.4 + Vector((0, 0, .75)); lrng = np.random.default_rng(33)
+    for k in range(3):                                   # three twigs reaching in from the top of the frame, hung with leaflets
+        a0 = cpos + dv * (1.0 + .3 * k) + lv * (1.4 - k * .9) + Vector((0, 0, 1.25 + .1 * k)); a1 = a0 - lv * 1.6 + dv * .4 - Vector((0, 0, .35))
+        d = a1 - a0; tw = cylinder(f'AshTwig{k}', .012, d.length, a0, twig, film.new_coll('AshBranch') if k == 0 else bpy.data.collections['AshBranch'], n=6)
+        tw.rotation_euler = Vector((0, 0, 1)).rotation_difference(d.normalized()).to_euler()
+        for j in range(26):
+            q = a0.lerp(a1, j / 25) + Vector((lrng.normal(0, .05), lrng.normal(0, .05), -lrng.uniform(.02, .12)))
+            lf = blob(f'AshLeaf{k}_{j}', q, (.09, .028, .006), bpy.data.collections['AshBranch'], leafm, sub=1, seed=j + 30 * k)
+            lf.rotation_euler = (lrng.uniform(-.6, .6), lrng.uniform(-.4, .4), lrng.uniform(0, PI))
+            film.key_visible(lf, 1, False); film.key_visible(lf, f2, True); film.key_visible(lf, SHOTS['tallinn'], False)
+        film.key_visible(tw, 1, False); film.key_visible(tw, f2, True); film.key_visible(tw, SHOTS['tallinn'], False)
     # Tallinn: walking up the old street
     t = SHOTS['tallinn']
     bears.place(he, t, TAL + Vector((-.3, -2, 0)), PI); bears.place(she, t, TAL + Vector((.3, -2, 0)), PI)
@@ -684,8 +727,8 @@ def build():
                                                           (SHOTS['latvia'] - 1, PAL + Vector((5.5, -6.0, .9)), PAL + Vector((3.5, 8, 1.6)))], lens=26, fstop=5.6, focus=4.5)),
         (SHOTS['latvia'], film.camera('Cam12_Latvia', [(SHOTS['latvia'], LAT + Vector((6, 6, 9)), LAT + Vector((1, -14, 0))), (SHOTS['falls'] - 1, LAT + Vector((5, -30, 12)), LAT + Vector((1, -50, 0)))], lens=26, fstop=8, focus=20.0)),
         (SHOTS['falls'], film.camera('Cam12_FallsWide', [(SHOTS['falls'], FAL + Vector((14, -48, 7)), FAL + Vector((-4.5, 4, -3.8))), (SHOTS['falls2'] - 1, FAL + Vector((6, -35, 2.5)), FAL + Vector((-5.5, 3, -4.8)))], lens=24, fstop=8, focus=30.0)),
-        (SHOTS['falls2'], film.camera('Cam12_FallsClose', [(SHOTS['falls2'], P1 - dv * 3.0 - lv * .5 + Vector((0, 0, 1.2)), P1 + dv * 4 + lv * .3 + Vector((0, 0, .9))),
-                                                          (SHOTS['tallinn'] - 1, P1 - dv * 2.5 - lv * .4 + Vector((0, 0, 1.1)), P1 + dv * 4 + lv * .3 + Vector((0, 0, 1.0)))], lens=26, fstop=4, focus=2.8)),
+        (SHOTS['falls2'], film.camera('Cam12_FallsClose', [(SHOTS['falls2'], P1 - dv * 3.6 + Vector((0, 0, .75)), P1 + dv * 6 + Vector((0, 0, 2.4))),
+                                                          (SHOTS['tallinn'] - 1, P1 - dv * 3.1 + Vector((0, 0, .72)), P1 + dv * 6 + Vector((0, 0, 2.3)))], lens=22, fstop=5.6, focus=3.3)),
         (SHOTS['tallinn'], film.camera('Cam12_Tallinn', [(SHOTS['tallinn'], TAL + Vector((.4, -6.5, 1.1)), TAL + Vector((0, 40, 6))), (SHOTS['berries'] - 1, TAL + Vector((.3, -4.5, 1.2)), TAL + Vector((0, 40, 6)))], lens=24, fstop=8, focus=5.0)),
         (SHOTS['berries'], film.camera('Cam12_Berries', [(SHOTS['berries'], BER + Vector((.3, -3.4, 1.0)), BER + Vector((0, 0, .25))), (SHOTS['ferry'] - 1, BER + Vector((.2, -3.0, .95)), BER + Vector((0, 0, .25)))], lens=30, fstop=2.8, focus=2.0)),
         (SHOTS['ferry'], film.camera('Cam12_Gulf', [(SHOTS['ferry'], FER + Vector((70, 120, 5)), FER + Vector((0, 0, 10))), (SHOTS['deck'] - 1, FER + Vector((62, 128, 5.5)), FER + Vector((0, 15, 10)))], lens=30, fstop=8, focus=100.0)),
