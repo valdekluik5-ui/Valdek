@@ -150,7 +150,7 @@ def build():
     sc = bpy.context.scene; sc.frame_set(b_ + 40)
     paws = (he.matrix_world @ he.pose.bones['forearm.R'].tail + she.matrix_world @ she.pose.bones['forearm.L'].tail) / 2
     sc.frame_set(1)
-    B = film.camera('Cam15b_Rings', [(SHOTS['b'], Vector((.15, paws.y + 2.4, paws.z + .1)), paws + Vector((0, 0, .08))), (SHOTS['c'] - 1, Vector((.1, paws.y + 2.1, paws.z + .08)), paws + Vector((0, 0, .08)))], lens=42, fstop=2.8, focus=2.2)
+    B = film.camera('Cam15b_Rings', [(SHOTS['b'], Vector((.15, y + 2.3, .78)), Vector((0, y, .6))), (SHOTS['c'] - 1, Vector((.1, y + 2.0, .74)), Vector((0, y, .6)))], lens=40, fstop=2.8, focus=2.1)
     C = film.camera('Cam15c_Kiss', [(SHOTS['c'], (0, y + 2.3, .8), (0, y, .75)), (SHOTS['end'], (0, y + 4.2, 2.2), (0, y, .9))], lens=27, fstop=2.8, focus=2.3)
     film.area_light('KissFill', (.6, y + 2.0, 1.6), (0, y, .7), 80, 1.5, (1, .8, .65))
     for f, cam in ((SHOTS['a'], A), (SHOTS['b'], B), (SHOTS['c'], C)):
