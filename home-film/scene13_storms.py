@@ -29,7 +29,7 @@ from film import box, cylinder, blob, mat, emit_mat, link, node_mat, add_haze, P
 import numpy as np
 from mathutils import Vector
 
-SHOTS = dict(a=1, b=261, c=381, d=521, end=744)
+SHOTS = dict(a=1, b=261, c=381, d=521, end=648)
 
 
 def hill_z(x, y):
@@ -161,9 +161,11 @@ def build():
     bears.place(he, d, (pH.x - .3, pH.y, pH.z), bears.facing(-4, 10)); bears.place(she, d, (pH.x + .3, pH.y - .2, pH.z), bears.facing(-4, 10))
     bears.walk(he, d + 4, d + 80, (pH.x - .3, pH.y, pH.z), (hx, sy - .3, gz(hx, sy - .3)), hold={'shoulder.R': (8, 0, -22), 'forearm.R': (6, 0, 0)})
     bears.walk(she, d + 4, d + 80, (pH.x + .3, pH.y - .2, pH.z), (sx_, sy - .3, gz(sx_, sy - .3)), hold={'shoulder.L': (8, 0, 22), 'forearm.L': (6, 0, 0)}, phase=2)
-    bears.place(he, d + 84, (hx, sy, gz(hx, sy)), 0, sitting=True, pose={'shoulder.R': (14, 0, -30)})
-    bears.place(she, d + 84, (sx_, sy, gz(sx_, sy)), 0, sitting=True, pose={'shoulder.L': (14, 0, 30), 'spine': (8, 0, 10), 'head': (6, -14, 14)})
-    bears.set_eyes(she, 'closed', d + 140)
+    for b, x_, pose in ((he, hx, {'shoulder.R': (14, 0, -30)}), (she, sx_, {'shoulder.L': (14, 0, 30), 'spine': (8, 0, 10), 'head': (6, -14, 14)})):
+        b.rotation_euler.z = 0; bears.hold(b, d + 84)                                       # turn to the view, then sit down together
+        bears.sit_down(b, d + 86, (x_, sy, gz(x_, sy) - b['sitDrop'] + .1 * b.scale[0]), dur=18)
+        bears.key_pose(b, d + 112, pose)
+    bears.set_eyes(she, 'closed', d + 116)
     # ---- cameras
     A = film.camera('Cam13a_Hill', [(SHOTS['a'], (7, -14, 4.0), (0, -1, 4.2)), (SHOTS['b'] - 1, (6, -14, 3.8), (2, -5, 3.4))], lens=26, fstop=8, focus=13.0)
     B = film.camera('Cam13b_Apart', [(SHOTS['b'], (9.5, -19.0, gz(9.5, -19) + 1.0), (5.5, -13, gz(5.5, -13) + .5)),

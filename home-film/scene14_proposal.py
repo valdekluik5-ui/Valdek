@@ -1,12 +1,12 @@
 """
-Home - scene 14: the Rainbow Bridge, Kyiv (song 4:35-4:47 - the sudden quiet break, then the peak begins).
+Home - scene 14: the Rainbow Bridge, Kyiv (song 4:31-4:47 - the flight in, the proposal in the sudden quiet break, the peak begins on 'yes').
 Evening, after dark, on the hill above the Dnipro: the glass bridge across the wooded ravine leads to the great steel
 arch, lit in rainbow bands. Below: the wide river, Trukhaniv island, the lit towers of the left bank and the bridges.
 He kneels with the ring; she says yes.
 
-Shots:  1-96    a flight in from high over the river toward the lit bridge and the arch, landing beside the two of them at the rail
-       97-200   at the rail: he kneels and opens a little box; the river, the lights and the blue Podilskyi bridge below
-      201-288   yes - heart eyes, a hug; the camera rises up into the night air and the city opens out
+Shots:  1-144   a slow flight in from high over the river toward the lit bridge and the arch, landing beside the two of them at the rail
+      145-264   at the rail: he kneels and opens a little box; the river, the lights and the blue Podilskyi bridge below
+      265-384   yes - heart eyes, a hug; the camera rises up into the night air and the city opens out
 """
 import os, sys, math, importlib
 import bpy
@@ -29,7 +29,7 @@ from film import box, cylinder, blob, mat, emit_mat, link, node_mat, add_haze, P
 import numpy as np
 from mathutils import Vector, Matrix
 
-SHOTS = dict(a=1, b=97, c=201, end=288)
+SHOTS = dict(a=1, b=145, c=265, end=384)
 DECK = 45.0                       # the hill top (plaza and bridge deck) above the river
 ARCH = (28.0, -24.0, DECK)        # the arch's centre at plaza level, out on a spur of the hill; its plane faces the river (-Y)
 BRIDGE = (-120.0, -12.0)          # the glass bridge runs along X from the far side of the ravine to the plaza
@@ -420,11 +420,11 @@ def build():
     # paw in paw along the curving bridge to the rail at its outermost point, then they turn to the view
     p0h, p1h = Vector((bx - 2.2, -2.6, DZ)), Vector((bx - .35, RY, DZ)); p0s, p1s = Vector((bx - 1.6, -3.1, DZ)), Vector((bx + .35, RY, DZ))
     bears.place(he, 1, p0h, bears.facing(*(p1h - p0h).xy)); bears.place(she, 1, p0s, bears.facing(*(p1s - p0s).xy))
-    bears.walk(he, 4, 72, p0h, p1h, hold={'shoulder.L': (8, 0, 22), 'forearm.L': (6, 0, 0)})
-    bears.walk(she, 4, 72, p0s, p1s, hold={'shoulder.R': (8, 0, -22), 'forearm.R': (6, 0, 0)}, phase=2)
+    bears.walk(he, 8, 112, p0h, p1h, hold={'shoulder.L': (8, 0, 22), 'forearm.L': (6, 0, 0)})
+    bears.walk(she, 8, 112, p0s, p1s, hold={'shoulder.R': (8, 0, -22), 'forearm.R': (6, 0, 0)}, phase=2)
     for b in (he, she):                                   # turn to face the river
-        bears.hold(b, 74); b.rotation_euler.z = bears.facing(0, -1); bears.hold(b, 86)
-    bears.turn_head(she, 88, nod=-4); bears.turn_head(she, SHOTS['b'] - 1, yaw=-10, nod=-4)
+        bears.hold(b, 114); b.rotation_euler.z = bears.facing(0, -1); bears.hold(b, 128)
+    bears.turn_head(she, 130, nod=-4); bears.turn_head(she, SHOTS['b'] - 1, yaw=-10, nod=-4)
     # he steps round in front of her and kneels; she turns to him, the city behind them
     b_ = SHOTS['b']
     bears.place(she, b_, (bx + .35, RY, DZ), bears.facing(-1, 0))
@@ -469,8 +469,8 @@ def build():
     bears.hug_sway(he, c + 50, SHOTS['end'], hug_he); bears.hug_sway(she, c + 50, SHOTS['end'], hug_she, phase=.5)
     # ---- cameras
     # flying in: from high over the river, toward the lit bridge and the arch on the hill, down to the two of them
-    A = film.camera('Cam14a_FlyIn', [(SHOTS['a'], (170, -330, 105), (bx, -3, DZ)), (40, (bx + 70, -110, DZ + 30), (bx, RY, DZ + .4)),
-                                     (68, (bx + 14, -14, DZ + 8), (bx, RY, DZ + .45)), (84, (bx + 4, RY - .5, DZ + 3.4), (bx, RY, DZ + .4)),
+    A = film.camera('Cam14a_FlyIn', [(SHOTS['a'], (170, -330, 105), (bx, -3, DZ)), (64, (bx + 70, -110, DZ + 30), (bx, RY, DZ + .4)),
+                                     (104, (bx + 14, -14, DZ + 8), (bx, RY, DZ + .45)), (126, (bx + 4, RY - .5, DZ + 3.4), (bx, RY, DZ + .4)),
                                      (SHOTS['b'] - 1, (bx + 2.6, RY + 1.4, DZ + 1.5), (bx - 2.2, RY - 2.0, DZ + .35))], lens=24, fstop=5.6, focus=(bx, RY, DZ + .5))
     # the proposal at the rail: the river, the lights and the blue bridge spread out below behind them
     B = film.camera('Cam14b_Kneel', [(SHOTS['b'], (bx - .08, RY + 4.2, DZ + 1.75), (bx - .08, RY - 14, DZ - 2.6)), (SHOTS['c'] - 1, (bx - .08, RY + 3.8, DZ + 1.7), (bx - .08, RY - 14, DZ - 2.4))],

@@ -44,10 +44,10 @@ TIMELINE = {
     '11': dict(name='June, the train to Kyiv', t=(198.0, 214.0), captions=[
         ("You feel like home.", 206.0, 210.0), ("And somehow, you always did.", 210.0, 213.5)]),
     '12': dict(name='The road north', t=(214.0, 244.0), captions=[]),
-    '13': dict(name='Through the storms', t=(244.0, 275.0), captions=[
+    '13': dict(name='Through the storms', t=(244.0, 271.0), captions=[
         ("She ran when she was scared. He chased when he was scared.", 252.0, 260.0),
         ("Until they learned to say the scared part out loud.", 262.0, 270.0)]),
-    '14': dict(name='The Rainbow Bridge', t=(275.0, 287.0), captions=[]),
+    '14': dict(name='The Rainbow Bridge', t=(271.0, 287.0), captions=[]),
     '15': dict(name='The wedding', t=(287.0, 297.0), captions=[]),
     '16': dict(name='Home', t=(297.0, 305.0), captions=[("You feel like home.", 299.5, 304.5)]),
 }
