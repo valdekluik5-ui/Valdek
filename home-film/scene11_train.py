@@ -161,11 +161,12 @@ def build():
     # ---- cameras
     A = film.camera('Cam11a_Fields', [(SHOTS['a'], (FIELD.x + 14, FIELD.y - 30, 2.2), (FIELD.x, FIELD.y + 10, 2.5)),
                                       (SHOTS['b'] - 1, (FIELD.x + 13, FIELD.y - 34, 2.6), (FIELD.x, FIELD.y - 20, 2.0))], lens=24, fstop=8, focus=20.0)
-    B = film.camera('Cam11b_Platform', [(SHOTS['b'], (ST.x + 4.2, door_y - 9.5, pz + 1.3), (ST.x + .8, door_y - 1, pz + .6)),
-                                        (SHOTS['c'] - 1, (ST.x + 4.0, door_y - 9.0, pz + 1.25), (ST.x + .9, door_y - 1.5, pz + .6))], lens=30, fstop=4,
+    B = film.camera('Cam11b_Platform', [(SHOTS['b'], (ST.x + 3.3, door_y - 12.8, pz + 1.35), (ST.x + 1.2, door_y - 3.0, pz + .6)),
+                                        (SHOTS['c'] - 1, (ST.x + 3.1, door_y - 12.2, pz + 1.3), (ST.x + 1.2, door_y - 3.0, pz + .6))], lens=28, fstop=4,
                     focus=(ST.x + 1, door_y - 3, pz + .5))
-    C = film.camera('Cam11c_Run', [(SHOTS['c'], (ST.x + 5.0, meet, pz + .9), (ST.x + 1.4, meet, pz + .5)),
-                                   (SHOTS['d'] - 1, (ST.x + 4.4, meet, pz + .85), (ST.x + 1.4, meet, pz + .55))], lens=28, fstop=4,
+    C = film.camera('Cam11c_Run', [(SHOTS['c'], (ST.x + 9.0, meet, pz + 1.1), (ST.x + 1.4, meet, pz + .5)),
+                                   (SHOTS['c'] + 66, (ST.x + 7.2, meet, pz + 1.0), (ST.x + 1.4, meet, pz + .55)),
+                                   (SHOTS['d'] - 1, (ST.x + 5.0, meet, pz + .85), (ST.x + 1.4, meet, pz + .55))], lens=22, fstop=4,
                     focus=(ST.x + 1.4, meet, pz + .5))
     D = film.camera('Cam11d_Hug', [(SHOTS['d'], (ST.x + 3.5, meet - .7, pz + .9), (ST.x + 1.4, meet, pz + .62)),
                                    (SHOTS['end'], (ST.x + 3.2, meet - .55, pz + .88), (ST.x + 1.4, meet, pz + .62))], lens=35, fstop=2.0,
