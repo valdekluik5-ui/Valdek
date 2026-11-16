@@ -127,14 +127,12 @@ def build():
     bears.place(he, 1, (hx, sy, gz(hx, sy)), 0, sitting=True); bears.place(she, 1, (sx_, sy, gz(sx_, sy)), 0, sitting=True)
     bears.turn_head(she, 120, yaw=0, nod=-8); bears.turn_head(she, 150, yaw=0, nod=-14)          # she looks up at the sky
     run0 = 170
-    bears.key_pose(she, run0, bears.SIT); bears.hold(she, run0)
-    she.location = (sx_, sy - .25, gz(sx_, sy - .25)); bears.hold(she, run0 + 10); bears.key_pose(she, run0 + 10, bears.STAND)
+    bears.stand_up(she, run0, (sx_, sy - .25, gz(sx_, sy - .25)), dur=12)
     path_s = [(sx_, sy - .25), (4.0, -9.0), (6.0, -14.0)]
-    bears.walk(she, run0 + 12, SHOTS['b'] + 40, (path_s[0][0], path_s[0][1], gz(*path_s[0])), (path_s[2][0], path_s[2][1], gz(*path_s[2])), cycle=10, stride=38)
+    bears.walk(she, run0 + 20, SHOTS['b'] + 40, (path_s[0][0], path_s[0][1], gz(*path_s[0])), (path_s[2][0], path_s[2][1], gz(*path_s[2])), cycle=10, stride=38)
     chase0 = 205
-    bears.key_pose(he, chase0, bears.SIT); bears.hold(he, chase0)
-    he.location = (hx, sy - .25, gz(hx, sy - .25)); bears.hold(he, chase0 + 10); bears.key_pose(he, chase0 + 10, bears.STAND)
-    bears.walk(he, chase0 + 12, SHOTS['b'] + 60, (hx, sy - .25, gz(hx, sy - .25)), (4.2, -11.5, gz(4.2, -11.5)), cycle=11, stride=36)
+    bears.stand_up(he, chase0, (hx, sy - .25, gz(hx, sy - .25)), dur=12)
+    bears.walk(he, chase0 + 20, SHOTS['b'] + 60, (hx, sy - .25, gz(hx, sy - .25)), (4.2, -11.5, gz(4.2, -11.5)), cycle=11, stride=36)
     # ---- 2: apart in the rain; both stop. she faces away, he stands behind her
     b_ = SHOTS['b']
     bears.turn_head(she, b_ + 60, nod=20); bears.turn_head(he, b_ + 70, nod=6)

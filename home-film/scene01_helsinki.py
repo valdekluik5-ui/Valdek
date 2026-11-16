@@ -453,10 +453,8 @@ def animate_bears(bears):
     bears.turn_head(she, e + 66, yaw=0); bears.turn_head(she, e + 76, yaw=-30, nod=4); bears.turn_head(she, e + 92, yaw=-28, nod=4)
     bears.turn_head(she, e + 100, yaw=0)
     stand = e + 104
-    bears.key_pose(she, stand, bears.SIT); bears.hold(she, stand)
-    she.location = (.62, -147.25, 0)          # up off the bench, onto the quay
-    bears.hold(she, stand + 14); bears.key_pose(she, stand + 14, bears.STAND)
-    bears.walk(she, stand + 20, SHOTS['end'], (.62, -147.25, 0), (7.0, -147.6, 0))
+    bears.stand_up(she, stand, (.62, -147.25, 0), dur=22)          # up off the bench, onto the quay
+    bears.walk(she, stand + 30, SHOTS['end'], (.62, -147.25, 0), (7.0, -147.6, 0))
     bears.turn_head(he, stand + 10, yaw=20); bears.turn_head(he, stand + 40, yaw=55, nod=4); bears.turn_head(he, SHOTS['end'], yaw=70, nod=6)
     bears.blink(he, e + 20); bears.blink(she, e + 50)
     return he, she

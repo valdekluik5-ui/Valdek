@@ -941,3 +941,39 @@ def walk(arm, f0, f1, p0, p1, cycle=None, stride=30, ground=None, hold=None, pha
 def turn_head(arm, frame, yaw=0, nod=0, tilt=0):
     """Head turn in degrees: yaw + = to the bear's left, nod + = down, tilt + = toward its right shoulder."""
     key_pose(arm, frame, {'head': (nod, yaw, tilt)})
+
+
+def stand_up(arm, f, to_loc, dur=20):
+    """Get up from sitting: lean forward over the knees, push up, rise to standing at to_loc, settle.
+    Starts from whatever the bear is doing at frame f (keep it sitting before)."""
+    bpy.context.scene.frame_set(int(f))          # start from the evaluated pose at f
+    hold(arm, f)
+    fwd = arm.matrix_world.to_3x3() @ Vector((0, -1, 0)); fwd.z = 0
+    if fwd.length > 1e-6:
+        fwd.normalize()
+    start = arm.location.copy(); to_loc = Vector(to_loc)
+    key_pose(arm, f, dict(SIT))
+    key_pose(arm, f + int(dur * .3), dict(SIT, **{'spine': (28, 0, 0), 'head': (-14, 0, 0), 'shoulder.L': (40, 0, 10), 'shoulder.R': (40, 0, -10)}))
+    arm.location = start + fwd * .03; arm.keyframe_insert('location', frame=f + int(dur * .3))
+    mid = start.lerp(to_loc, .6); mid.z = (start.z + to_loc.z) / 2 + .02
+    key_pose(arm, f + int(dur * .65), {'thigh.L': (35, 0, -2), 'thigh.R': (35, 0, 2), 'shin.L': (-40, 0, 0), 'shin.R': (-40, 0, 0),
+                                        'spine': (18, 0, 0), 'head': (-8, 0, 0), 'shoulder.L': (20, 0, 8), 'shoulder.R': (20, 0, -8)})
+    arm.location = mid; arm.keyframe_insert('location', frame=f + int(dur * .65))
+    key_pose(arm, f + dur, dict(STAND, **{'spine': (-3, 0, 0), 'head': (2, 0, 0)}))
+    arm.location = to_loc + Vector((0, 0, .006)); arm.keyframe_insert('location', frame=f + dur)
+    key_pose(arm, f + dur + 6, dict(STAND))
+    arm.location = to_loc; arm.keyframe_insert('location', frame=f + dur + 6)
+
+
+def sit_down(arm, f, seat_loc, dur=20):
+    """From standing: bend, lower onto the seat at seat_loc (the bear's sitting root position, e.g. from place(...,
+    sitting=True) logic), lean back a little and settle."""
+    bpy.context.scene.frame_set(int(f))
+    hold(arm, f); key_pose(arm, f, dict(STAND))
+    start = arm.location.copy(); seat_loc = Vector(seat_loc)
+    key_pose(arm, f + int(dur * .4), {'thigh.L': (45, 0, -3), 'thigh.R': (45, 0, 3), 'shin.L': (-45, 0, 0), 'shin.R': (-45, 0, 0),
+                                       'spine': (20, 0, 0), 'shoulder.L': (25, 0, 10), 'shoulder.R': (25, 0, -10)})
+    m = start.lerp(seat_loc, .5); arm.location = m; arm.keyframe_insert('location', frame=f + int(dur * .4))
+    key_pose(arm, f + dur, dict(SIT, **{'spine': (2, 0, 0)}))
+    arm.location = seat_loc; arm.keyframe_insert('location', frame=f + dur)
+    key_pose(arm, f + dur + 8, dict(SIT))
