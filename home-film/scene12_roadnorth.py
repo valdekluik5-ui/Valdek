@@ -416,33 +416,109 @@ def bears_fcurves(ob):
 
 
 # ---------------------------------------------------------------- Tallinn old town
+def cobble_material(name, color=(.24, .22, .2), scale=3.2):
+    """Rounded granite setts with dark gaps between them."""
+    m, N, L, b = node_mat(name)
+    tc = N.new('ShaderNodeTexCoord'); vo = N.new('ShaderNodeTexVoronoi'); vo.feature = 'DISTANCE_TO_EDGE'; vo.inputs['Scale'].default_value = scale
+    L.new(tc.outputs['Object'], vo.inputs['Vector'])
+    vc = N.new('ShaderNodeTexVoronoi'); vc.inputs['Scale'].default_value = scale; L.new(tc.outputs['Object'], vc.inputs['Vector'])
+    gap = N.new('ShaderNodeMapRange'); gap.inputs['From Min'].default_value = .02; gap.inputs['From Max'].default_value = .12
+    L.new(vo.outputs['Distance'], gap.inputs['Value'])
+    tint = N.new('ShaderNodeValToRGB'); tint.color_ramp.elements[0].color = (color[0] * .6, color[1] * .6, color[2] * .6, 1)
+    tint.color_ramp.elements[1].color = (color[0] * 1.35, color[1] * 1.3, color[2] * 1.25, 1)
+    L.new(vc.outputs['Color'], tint.inputs['Fac'])
+    mul = N.new('ShaderNodeMixRGB'); mul.blend_type = 'MULTIPLY'; mul.inputs['Fac'].default_value = 1
+    L.new(tint.outputs['Color'], mul.inputs['Color1']); L.new(gap.outputs['Result'], mul.inputs['Color2'])
+    L.new(mul.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = .65
+    bump = N.new('ShaderNodeBump'); bump.inputs['Strength'].default_value = .8; bump.inputs['Distance'].default_value = .05
+    L.new(gap.outputs['Result'], bump.inputs['Height']); L.new(bump.outputs['Normal'], b.inputs['Normal'])
+    add_haze(m, N, L, b)
+    return m
+
+
 def build_tallinn(coll):
+    """Tallinn's old town: a cobbled lane between tall, narrow merchant houses in pastel plaster, gable ends to the street
+    (some stepped), white-framed windows, heavy doors, iron signs and lamps, flower boxes; at the end, the town hall's
+    slender tower and St Olaf's green spire."""
     film.HAZE.update(color=(1, .88, .75), start=30.0, dist=250.0, strength=.45)
-    cob = mat('TalCobble', (.25, .23, .21), rough=.7, haze=True)
     T = lambda x, y, z: TAL + Vector((x, y, z))
-    box('TalStreet', (8, 120, .02), T(0, 20, -.02), cob, coll)
-    colors = [(.85, .65, .35), (.6, .75, .7), (.9, .85, .7), (.75, .45, .35), (.95, .8, .55), (.65, .7, .55), (.85, .55, .5)]
-    roofm = mat('TalRoof', (.45, .12, .07), rough=.6, haze=True); win = mat('TalWin', (.05, .05, .06), rough=.1, haze=True)
+    box('TalStreet', (8.2, 120, .02), T(0, 20, -.02), cobble_material('TalCobble'), coll)
+    curb = mat('TalCurb', (.35, .33, .3), rough=.7, haze=True)
+    for sx in (-1, 1):
+        box(f'TalCurb{sx}', (.25, 120, .12), T(sx * 2.9, 20, 0), curb, coll)
+        box(f'TalPavement{sx}', (1.0, 120, .1), T(sx * 3.5, 20, 0), mat('TalFlag', (.4, .38, .34), rough=.7, haze=True), coll)
+    colors = [(.85, .65, .35), (.6, .75, .7), (.9, .85, .7), (.75, .45, .35), (.95, .8, .55), (.65, .7, .55), (.85, .55, .5), (.8, .78, .85)]
+    roofm = mat('TalRoof', (.45, .12, .07), rough=.6, haze=True)
+    frame = mat('TalFrame', (.9, .88, .82), rough=.5, haze=True); glassm = mat('TalGlass', (.04, .05, .06), rough=.05, haze=True)
+    doorm = mat('TalDoor', (.22, .1, .05), rough=.6, haze=True); iron = mat('TalIron', (.03, .03, .03), rough=.5, metal=.6, haze=True)
+    flower = mat('TalGeranium', (.7, .05, .06), rough=.6, haze=True); leaf = mat('TalLeaf', (.05, .14, .03), rough=.7, haze=True)
     import scene01_helsinki as s1
     importlib.reload(s1)
     rng = np.random.default_rng(10)
     for side in (-1, 1):
-        y = -10
-        k = 0
+        y = -10; k = 0
         while y < 60:
-            w = rng.uniform(4, 6); h = rng.uniform(7, 10)
-            wall = mat(f'TalWall{side}{k}', colors[(k * 3 + (side > 0)) % len(colors)], rough=.8, haze=True)
-            box(f'TalHouse{side}{k}', (5, w - .1, h), T(side * 6.5, y + w / 2, 0), wall, coll)
-            g = s1.prism(f'TalGable{side}{k}', w - .1, 3.2, 5, T(side * 6.5, y + w / 2, h), roofm, coll, rot_z=PI / 2)
-            for r in range(3):
-                for c in range(2):
-                    box(f'TalWin{side}{k}{r}{c}', (.1, .7, 1.0), T(side * 3.95, y + w * (.3 + .4 * c), 1.5 + r * 2.4), win, coll)
+            w = rng.uniform(4.5, 6.5); floors = int(rng.integers(3, 5)); fh = 2.7; h = floors * fh + .6
+            col = colors[(k * 3 + (side > 0)) % len(colors)]
+            wall = film.plaster_material(f'TalWall{side}{k}', col, grime=.35, scale=1.5) if hasattr(film, 'plaster_material') else mat(f'TalWall{side}{k}', col, rough=.8, haze=True)
+            cy = y + w / 2; fx = side * 4.0
+            box(f'TalHouse{side}{k}', (5, w - .12, h), T(side * 6.5, cy, 0), wall, coll)
+            box(f'TalPlinth{side}{k}', (5.04, w - .1, .7), T(side * 6.5, cy, 0), mat('TalPlinth', (.3, .28, .25), rough=.8, haze=True), coll)
+            # the gable end: plain triangle or stepped
+            if rng.random() < .45:
+                steps = 4
+                for st in range(steps):
+                    sw = (w - .12) * (1 - st / steps)
+                    box(f'TalStep{side}{k}{st}', (5, sw, 3.6 / steps), T(side * 6.5, cy, h + st * 3.6 / steps), wall, coll)
+                s1.prism(f'TalGable{side}{k}', w - .4, 3.4, 4.6, T(side * 6.7, cy, h), roofm, coll, rot_z=PI / 2)
+            else:
+                s1.prism(f'TalGable{side}{k}', w - .1, 3.6, 5, T(side * 6.5, cy, h), roofm, coll, rot_z=PI / 2)
+                g = s1.prism(f'TalGableFace{side}{k}', w - .3, 3.3, .1, T(fx + side * .02, cy, h), wall, coll, rot_z=PI / 2)
+            # a cornice between ground floor and the rest, and under the gable
+            for zc in (fh + .6, h - .05):
+                box(f'TalCornice{side}{k}{zc:.0f}', (.25, w - .1, .16), T(fx - side * .06, cy, zc), frame, coll)
+            # windows: framed, with glazing bars; a door on the ground floor
+            ncol = 2 if w < 5.5 else 3
+            for f_ in range(1, floors):
+                for c in range(ncol):
+                    wy = y + w * (c + .5) / ncol; wz = .6 + f_ * fh + .55
+                    box(f'TalWF{side}{k}{f_}{c}', (.1, .95, 1.4), T(fx - side * .01, wy, wz), frame, coll)
+                    box(f'TalWG{side}{k}{f_}{c}', (.1, .75, 1.2), T(fx - side * .03, wy, wz + .1), glassm, coll)
+                    box(f'TalWM{side}{k}{f_}{c}', (.1, .05, 1.2), T(fx - side * .05, wy, wz + .1), frame, coll)
+                    box(f'TalWT{side}{k}{f_}{c}', (.1, .75, .05), T(fx - side * .05, wy, wz + .75), frame, coll)
+                    if f_ == 1 and rng.random() < .5:
+                        box(f'TalFlowerBox{side}{k}{c}', (.3, .8, .2), T(fx - side * .15, wy, wz - .25), doorm, coll)
+                        for q in range(5):
+                            blob(f'TalFl{side}{k}{c}{q}', T(fx - side * .2, wy - .32 + q * .16, wz - .02), (.09, .09, .08), coll, flower if q % 2 else leaf, sub=1, rough=.3, seed=q)
+            dy = y + w * (.3 if k % 2 else .7)
+            box(f'TalDoorF{side}{k}', (.12, 1.4, 2.4), T(fx - side * .01, dy, .1), frame, coll)
+            box(f'TalDoor{side}{k}', (.12, 1.1, 2.2), T(fx - side * .04, dy, .1), doorm, coll)
+            box(f'TalStepS{side}{k}', (.6, 1.6, .18), T(fx - side * .3, dy, 0), curb, coll)
+            # ground-floor shop window on some houses, with an iron sign on a bracket
+            if k % 3 == 1:
+                sy_ = y + w * (.7 if k % 2 else .3)
+                box(f'TalShop{side}{k}', (.1, 1.6, 1.6), T(fx - side * .02, sy_, .8), glassm, coll)
+                box(f'TalBracket{side}{k}', (1.0, .04, .04), T(fx - side * .5, sy_, 3.1), iron, coll)
+                box(f'TalSign{side}{k}', (.04, .7, .5), T(fx - side * .85, sy_, 2.55), mat(f'TalSignM{k}', colors[(k + 4) % len(colors)], rough=.5, haze=True), coll)
+            # wall lamps
+            if k % 2 == 0:
+                box(f'TalLampArm{side}{k}', (.5, .04, .04), T(fx - side * .25, y + .3, 3.6), iron, coll)
+                blob(f'TalLamp{side}{k}', T(fx - side * .5, y + .3, 3.35), (.12, .12, .2), coll, mat('TalLampGlass', (.9, .8, .6), rough=.2, haze=True), sub=1, rough=.1)
             y += w; k += 1
-    tower = mat('TalTower', (.75, .7, .6), rough=.8, haze=True)
-    cylinder('FatMargaret', 3.2, 16, T(-3, 72, 0), tower, coll, n=24)
-    c = cylinder('TowerCone', 3.6, 7, T(-3, 72, 16), roofm, coll, n=24, r2=.05)
-    cylinder('OleviTower', 2.2, 30, T(10, 95, 0), tower, coll, n=8)
-    cylinder('OleviSpire', 2.4, 22, T(10, 95, 30), mat('Spire', (.15, .3, .25), rough=.5, metal=.4, haze=True), coll, n=8, r2=.05)
+    # the end of the lane: the town hall's tower with its stacked spire, and St Olaf's tall green spire beyond
+    stone = mat('TalTower', (.75, .7, .6), rough=.8, haze=True); green = mat('Spire', (.15, .3, .25), rough=.5, metal=.4, haze=True)
+    box('TownHall', (16, 10, 12), T(0, 70, 0), stone, coll)
+    for i in range(7):
+        box(f'TownHallArch{i}', (2.0, .2, 3.2), T(-6 + i * 2, 64.95, 0), mat('TalArcade', (.15, .13, .11), rough=.8, haze=True), coll)
+    s1.prism('TownHallRoof', 16.4, 4, 10.4, T(0, 70, 12), roofm, coll)
+    cylinder('TownHallTower', 2.0, 26, T(5, 69, 0), stone, coll, n=8)
+    cylinder('TownHallSpire1', 2.2, 4, T(5, 69, 26), green, coll, n=8, r2=1.2)
+    cylinder('TownHallLantern', 1.2, 3, T(5, 69, 30), green, coll, n=8, r2=.9)
+    cylinder('TownHallSpire2', 1.0, 6, T(5, 69, 33), green, coll, n=8, r2=.05)
+    cylinder('FatMargaret', 3.2, 16, T(-14, 82, 0), stone, coll, n=24)
+    cylinder('TowerCone', 3.6, 7, T(-14, 82, 16), roofm, coll, n=24, r2=.05)
+    cylinder('OleviTower', 2.2, 30, T(10, 95, 0), stone, coll, n=8)
+    cylinder('OleviSpire', 2.4, 22, T(10, 95, 30), green, coll, n=8, r2=.05)
 
 
 # ---------------------------------------------------------------- berry picking
