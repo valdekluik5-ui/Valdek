@@ -164,9 +164,10 @@ def build():
     B = film.camera('Cam11b_Platform', [(SHOTS['b'], (ST.x + 3.3, door_y - 12.8, pz + 1.35), (ST.x + 1.2, door_y - 3.0, pz + .6)),
                                         (SHOTS['c'] - 1, (ST.x + 3.1, door_y - 12.2, pz + 1.3), (ST.x + 1.2, door_y - 3.0, pz + .6))], lens=28, fstop=4,
                     focus=(ST.x + 1, door_y - 3, pz + .5))
-    C = film.camera('Cam11c_Run', [(SHOTS['c'], (ST.x + 9.0, meet, pz + 1.1), (ST.x + 1.4, meet, pz + .5)),
-                                   (SHOTS['c'] + 66, (ST.x + 7.2, meet, pz + 1.0), (ST.x + 1.4, meet, pz + .55)),
-                                   (SHOTS['d'] - 1, (ST.x + 5.0, meet, pz + .85), (ST.x + 1.4, meet, pz + .55))], lens=22, fstop=4,
+    # (in front of the station wall at x+6.5, between two canopy columns, so nothing blocks the run)
+    C = film.camera('Cam11c_Run', [(SHOTS['c'], (ST.x + 6.0, meet - 1.0, pz + 1.1), (ST.x + 1.4, meet, pz + .5)),
+                                   (SHOTS['c'] + 66, (ST.x + 5.8, meet - .9, pz + 1.0), (ST.x + 1.4, meet, pz + .55)),
+                                   (SHOTS['d'] - 1, (ST.x + 4.8, meet - .6, pz + .85), (ST.x + 1.4, meet, pz + .55))], lens=17, fstop=4,
                     focus=(ST.x + 1.4, meet, pz + .5))
     D = film.camera('Cam11d_Hug', [(SHOTS['d'], (ST.x + 3.5, meet - .7, pz + .9), (ST.x + 1.4, meet, pz + .62)),
                                    (SHOTS['end'], (ST.x + 3.2, meet - .55, pz + .88), (ST.x + 1.4, meet, pz + .62))], lens=35, fstop=2.0,
