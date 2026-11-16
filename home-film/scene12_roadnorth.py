@@ -342,7 +342,7 @@ def build():
     bb = SHOTS['berries']
     kneel = {'thigh.L': (70, 0, -6), 'thigh.R': (70, 0, 6), 'shin.L': (-110, 0, 0), 'shin.R': (-110, 0, 0), 'spine': (25, 0, 0),
              'shoulder.L': (50, 0, 0), 'shoulder.R': (50, 0, 0), 'head': (20, 0, 0)}
-    bears.place(he, bb, BER + Vector((-.45, 0, -.12)), bears.facing(.6, -1), pose=kneel); bears.place(she, bb, BER + Vector((.55, 0, -.12)), bears.facing(-.6, -1), pose=kneel)
+    bears.place(he, bb, BER + Vector((-.45, 0, -bears.ground_drop(he, kneel))), bears.facing(.6, -1), pose=kneel); bears.place(she, bb, BER + Vector((.55, 0, -bears.ground_drop(she, kneel))), bears.facing(-.6, -1), pose=kneel)
     bears.set_eyes(she, 'heart', bb + 30); bears.set_eyes(she, 'open', bb + 55)
     for k, f in enumerate(range(bb + 8, SHOTS['helsinki'] - 8, 14)):        # picking: reach into the bush, drop into the basket
         for b, o in ((he, 0), (she, 1)):

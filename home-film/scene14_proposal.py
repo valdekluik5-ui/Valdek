@@ -109,11 +109,12 @@ def build():
     b_ = SHOTS['b']
     bears.place(she, b_, (bx, .35, DECK), bears.facing(0, -1))
     # on one knee: the left leg forward (thigh level), the right knee down behind; both paws hold the box out to her
-    kneel = {'thigh.L': (80, 0, -4), 'shin.L': (-80, 0, 0), 'thigh.R': (-35, 0, 4), 'shin.R': (-60, 0, 0), 'spine': (6, 0, 0),
+    # (plush legs are short, so a one-knee kneel barely lowers him: down on both knees, sitting back on his heels)
+    kneel = {'thigh.L': (70, 0, -6), 'shin.L': (-110, 0, 0), 'thigh.R': (70, 0, 6), 'shin.R': (-110, 0, 0), 'spine': (14, 0, 0),
              'shoulder.L': (82, 0, 18), 'shoulder.R': (82, 0, -18), 'forearm.L': (20, 0, 0), 'forearm.R': (20, 0, 0), 'head': (-18, 0, 0)}
     bears.place(he, b_, (bx, -.45, DECK), bears.facing(0, 1))
     bears.key_pose(he, b_ + 26, kneel)
-    bears.hold(he, b_ + 6); he.location.z = DECK - .09; he.location.y = -.5; bears.hold(he, b_ + 26)
+    bears.hold(he, b_ + 6); he.location.z = DECK - bears.ground_drop(he, kneel); he.location.y = -.5; bears.hold(he, b_ + 26)
     bears.turn_head(she, b_ + 10, nod=6); bears.turn_head(she, b_ + 40, nod=18)
     bears.key_pose(she, b_ + 50, {'shoulder.L': (0, 0, 0), 'shoulder.R': (0, 0, 0)})
     bears.key_pose(she, b_ + 66, {'shoulder.L': (95, 0, -20), 'shoulder.R': (95, 0, 20), 'forearm.L': (60, 0, 0), 'forearm.R': (60, 0, 0)})   # paws to her mouth

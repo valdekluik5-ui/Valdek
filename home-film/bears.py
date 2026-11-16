@@ -1057,3 +1057,21 @@ def polish_all():
     for arm in [o for o in bpy.data.objects if o.type == 'ARMATURE' and 'who' in o.keys()]:
         if arm.animation_data and arm.animation_data.action:
             polish(arm)
+
+
+def ground_drop(arm, pose):
+    """How far (world units) to lower a standing bear's root so the lowest foot or knee of `pose` touches the ground
+    (kneeling, crouching). Forward kinematics on the skeleton, so it matches the pose exactly."""
+    rest = _fk_ankle(arm, {}, 'L').z
+    low = 1e9
+    for side in ('L', 'R'):
+        low = min(low, _fk_ankle(arm, pose, side).z)
+        from mathutils import Euler, Matrix as _M
+        M = _M.Identity(4); parent = None
+        for bn in ('root', 'pelvis', 'thigh.' + side):
+            bone = arm.data.bones[bn]
+            rel = bone.matrix_local if parent is None else parent.matrix_local.inverted() @ bone.matrix_local
+            M = M @ rel @ Euler([math.radians(v) for v in pose.get(bn, (0, 0, 0))], 'XYZ').to_matrix().to_4x4()
+            parent = bone
+        low = min(low, (M @ Vector((0, arm.data.bones['thigh.' + side].length, 0))).z - .02)
+    return max(0.0, low - rest) * arm.scale[0]
