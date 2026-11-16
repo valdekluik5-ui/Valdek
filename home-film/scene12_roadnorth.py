@@ -413,6 +413,7 @@ def build_ship(name, origin, coll, length=150.0, beam=26.0, rz=0.0):
 
 def build_ferry_sea(coll):
     """The gulf between Tallinn and Helsinki: open sea, the ferry with its wake, Tallinn's towers far behind, gulls."""
+    film.HAZE.update(color=(.82, .8, .78), start=250.0, dist=3500.0, strength=.35)      # a clear evening over the gulf
     T = lambda x, y, z: FER + Vector((x, y, z))
     sea = film.water_material('GulfSea', color=(.012, .025, .035), rough=.06, wave=.25, scale=.12)
     film.mesh_obj('GulfSea', [T(-4000, -4000, 0), T(4000, -4000, 0), T(4000, 4000, 0), T(-4000, 4000, 0)], [(0, 1, 2, 3)], coll, [sea])
@@ -570,13 +571,25 @@ def build_berries(coll):
     film.vgroup(fl, 'forest', (np.hypot(X, Y) > 4).astype(float).ravel())
     hi, lib = film.tree_library('BerryForest')
     film.scatter_instances(fl, lib, 'forest', 900, 14, seed=6)
-    leaf = mat('BlueberryLeaf', (.05, .13, .04), rough=.6, haze=True); berry = mat('Blueberry', (.06, .07, .2), rough=.3, coat=.4)
+    leaf = film.foliage_material('BlueberryLeaf', (.03, .09, .02), (.09, .2, .05))
+    berry = mat('Blueberry', (.05, .06, .2), rough=.25, coat=.6)
+    twig = mat('BlueberryTwig', (.1, .14, .05), rough=.7, haze=True)
+    moss = mat('Moss', (.06, .12, .03), rough=.9, haze=True)
     rng = np.random.default_rng(12)
-    for i in range(70):
+    for i in range(70):                                  # each bush: a few green twigs hung with small oval leaves and dusty blue berries
         x, y = rng.uniform(-3.5, 3.5), rng.uniform(-3.5, 3.5)
-        blob(f'Bush{i}', T(x, y, .08), (rng.uniform(.18, .3), rng.uniform(.18, .3), .12), coll, leaf, sub=2, rough=.3, seed=i)
-        for k in range(4):
-            blob(f'Berry{i}{k}', T(x + rng.normal(0, .12), y + rng.normal(0, .12), .17), (.02,) * 3, coll, berry, sub=1)
+        blob(f'BushCore{i}', T(x, y, .05), (rng.uniform(.12, .2), rng.uniform(.12, .2), .07), coll, leaf, sub=2, rough=.45, seed=i)
+        for k in range(14 if np.hypot(x, y) < 2.2 else 5):
+            a = rng.uniform(0, 2 * PI); r = rng.uniform(.03, .22)
+            lf = blob(f'Leaf{i}_{k}', T(x + r * math.cos(a), y + r * math.sin(a), rng.uniform(.06, .2)), (.035, .02, .004), coll, leaf, sub=1, seed=k)
+            lf.rotation_euler = (rng.uniform(-.7, .7), rng.uniform(-.7, .7), a)
+        for k in range(3):
+            tw = cylinder(f'Twig{i}{k}', .004, rng.uniform(.12, .22), T(x + rng.normal(0, .06), y + rng.normal(0, .06), 0), twig, coll, n=5)
+            tw.rotation_euler = (rng.normal(0, .3), rng.normal(0, .3), 0)
+        for k in range(7):
+            blob(f'Berry{i}{k}', T(x + rng.normal(0, .12), y + rng.normal(0, .12), rng.uniform(.06, .17)), (.018,) * 3, coll, berry, sub=1)
+    for i in range(50):                                  # cushions of moss between the bushes
+        blob(f'Moss{i}', T(rng.uniform(-4, 4), rng.uniform(-4, 4), .0), (rng.uniform(.2, .6), rng.uniform(.2, .6), .05), coll, moss, sub=2, rough=.4, seed=600 + i)
     film.area_light('SunPatch', T(2, -3, 8), T(0, 0, 0), 2500, 3, (1, .9, .65))
     basket = mat('Basket', (.45, .3, .15), rough=.8)
     cylinder('Basket', .12, .14, T(.15, -.35, 0), basket, coll, n=14, r2=.15)
