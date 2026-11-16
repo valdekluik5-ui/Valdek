@@ -51,6 +51,15 @@ def train(name, loc, coll, cars=4):
                 parts.append(box(f'{name}_w{k}{i}{sx}', (.02, 1.1, .7), (sx * 1.46, y - 6.4 + i * 1.6, 2.1), win, coll))
         for sx in (-1, 1):
             parts.append(box(f'{name}_door{k}{sx}', (.02, .9, 2.0), (sx * 1.46, y - 7.3, 1.0), win, coll))
+        for by in (-5.4, 5.4):                                  # bogies with their wheels
+            parts.append(box(f'{name}_bogie{k}{by}', (2.4, 3.0, .45), (0, y + by, .2), grey, coll))
+            for wy in (-.9, .9):
+                for sx in (-1, 1):
+                    w_ = cylinder(f'{name}_wheel{k}{by}{wy}{sx}', .42, .12, (sx * .78, y + by + wy, .42), grey, coll, n=16)
+                    w_.rotation_euler = (0, PI / 2, 0); parts.append(w_)
+        if k < cars - 1:
+            parts.append(box(f'{name}_gangway{k}', (2.2, .5, 2.6), (0, y + 8.2, 1.0), grey, coll))   # the bellows between carriages
+        parts.append(box(f'{name}_roofbox{k}', (1.4, 3.0, .3), (0, y + 3, 3.9), grey, coll, bevel=.1))
     parts.append(box(f'{name}_nose', (2.9, 2.2, 2.6), (0, -9.0, .9), blue, coll, bevel=.6))
     parts.append(box(f'{name}_cab', (2.5, .05, .9), (0, -10.05, 2.3), win, coll, rot=(-.35, 0, 0)))
     for p in parts:
@@ -92,6 +101,57 @@ def station(coll):
     import scene01_helsinki as s1
     importlib.reload(s1)
     s1.facade_building('KyivStation', (10, 70, 16), (ST.x + 11.5, ST.y + 20, 0), (.78, .66, .45), coll, True)
+    # platform paving in square slabs, a white safety line and a yellow tactile strip by the edge
+    m, N, L, b = node_mat('PlatformSlabs')
+    tc = N.new('ShaderNodeTexCoord'); br = N.new('ShaderNodeTexBrick'); br.offset = 0; br.squash = 1
+    br.inputs['Scale'].default_value = 1.0; br.inputs['Brick Width'].default_value = .5; br.inputs['Row Height'].default_value = .5
+    br.inputs['Mortar Size'].default_value = .012; br.inputs['Color1'].default_value = (.5, .48, .45, 1); br.inputs['Color2'].default_value = (.6, .58, .54, 1)
+    br.inputs['Mortar'].default_value = (.25, .24, .22, 1)
+    L.new(tc.outputs['Object'], br.inputs['Vector']); L.new(br.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = .75
+    add_haze(m, N, L, b)
+    box('PlatformTop', (5.3, 120, .01), (ST.x + 3.35, ST.y + 20, 1.0), m, coll)
+    box('SafetyLine', (.12, 120, .006), (ST.x + .75, ST.y + 20, 1.0), mat('SafetyWhite', (.9, .9, .88), rough=.6, haze=True), coll)
+    # under the canopy: roof beams, column capitals, lights; benches, bins, a hanging clock and departure boards
+    beam = mat('CanopyBeam', (.2, .23, .25), rough=.5, metal=.5, haze=True)
+    lightm = film.emit_mat('CanopyLight', (1, .93, .8), 3.0)
+    iron = mat('StationIron', (.06, .07, .07), rough=.4, metal=.6, haze=True); wood = mat('BenchWood', (.35, .2, .1), rough=.6, haze=True)
+    for i in range(46):
+        y = ST.y - 25 + i * 2
+        box(f'CanopyBeam{i}', (5.2, .12, .3), (ST.x + 3.2, y, 4.3), beam, coll)
+        if i % 2 == 0:
+            box(f'CanopyLight{i}', (.12, 1.2, .04), (ST.x + 2.2, y + 1, 4.25), lightm, coll)
+    for i in range(16):
+        y = ST.y - 22 + i * 6
+        cylinder(f'CanopyCap{i}', .3, .25, (ST.x + 3.6, y, 4.35), col, coll, n=12, r2=.15)
+        if i % 2 == 1:
+            for k in range(3):
+                box(f'BenchSlat{i}{k}', (.12, 1.8, .04), (ST.x + 4.6 + k * .14, y + 3, 1.45), wood, coll)
+                box(f'BenchBack{i}{k}', (.04, 1.8, .1), (ST.x + 4.95, y + 3, 1.6 + k * .14), wood, coll)
+            for by in (-.8, .8):
+                box(f'BenchLeg{i}{by}', (.45, .06, .45), (ST.x + 4.75, y + 3 + by, 1.0), iron, coll)
+            cylinder(f'Bin{i}', .22, .8, (ST.x + 4.9, y + 1.2, 1.0), iron, coll, n=12)
+    for cy_ in (ST.y + 2.0, ST.y + 26.0):
+        box(f'ClockRod{cy_}', (.04, .04, .9), (ST.x + 2.6, cy_, 3.4), iron, coll)
+        face = cylinder(f'ClockFace{cy_}', .42, .12, (ST.x + 2.66, cy_, 3.0), mat('ClockWhite', (.92, .92, .9), rough=.4), coll, n=32)
+        face.rotation_euler = (0, PI / 2, 0)
+        rim = cylinder(f'ClockRim{cy_}', .46, .1, (ST.x + 2.61, cy_, 3.0), iron, coll, n=32); rim.rotation_euler = (0, PI / 2, 0)
+        for sx in (-1, 1):
+            box(f'ClockHandH{cy_}{sx}', (.02, .04, .26), (ST.x + 2.66 + sx * .07, cy_, 3.0), iron, coll, rot=(.9, 0, 0))
+            box(f'ClockHandM{cy_}{sx}', (.02, .03, .36), (ST.x + 2.66 + sx * .07, cy_, 3.0), iron, coll, rot=(-2.4, 0, 0))
+    board = mat('DepartureBoard', (.02, .02, .03), rough=.3, haze=True); amber = film.emit_mat('BoardText', (1, .6, .15), 4.0)
+    for by in (ST.y - 8.0, ST.y + 14.0):
+        box(f'Board{by}', (.1, 2.4, .7), (ST.x + 2.7, by, 3.2), board, coll)
+        for r in range(3):
+            box(f'BoardLine{by}{r}', (.11, 1.4 + .3 * (r % 2), .07), (ST.x + 2.7, by - .3 + .1 * r, 3.32 + r * .17), amber, coll)
+        box(f'BoardRod{by}', (.04, .04, .45), (ST.x + 2.7, by, 3.9), iron, coll)
+    # overhead lines above the tracks: masts, cross arms, wires
+    for i in range(7):
+        y = -70 + i * 30
+        box(f'CatMast{i}', (.3, .3, 7.2), (ST.x - 10.0, y, 0), iron, coll)
+        box(f'CatArm{i}', (8.0, .12, .12), (ST.x - 6.2, y, 6.6), iron, coll)
+    for tx in (ST.x - 1.9, ST.x - 7.0):
+        box(f'CatWire{tx}', (.02, 210, .02), (tx, 20, 6.0), iron, coll)
+        box(f'CatWireTop{tx}', (.02, 210, .02), (tx, 20, 6.6), iron, coll)
     film.area_light('PlatformBounce', (ST.x + 2, ST.y - 10, 3.5), (ST.x + 2, ST.y + 5, 1.5), 800, 8, (1, .85, .65))
 
 
