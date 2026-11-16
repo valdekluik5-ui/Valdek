@@ -149,10 +149,10 @@ def build():
     hug_she = {'shoulder.L': (80, 0, -32), 'shoulder.R': (80, 0, 32), 'forearm.L': (35, 0, 0), 'forearm.R': (35, 0, 0), 'head': (-6, 30, -12)}
     bears.hug_sway(he, c + 50, SHOTS['end'], hug_he); bears.hug_sway(she, c + 50, SHOTS['end'], hug_she, phase=.5)
     # ---- cameras
-    A = film.camera('Cam14a_Arch', [(SHOTS['a'], (-2.6, -.75, DECK + .55), (-14, 5.5, DECK + 3.5)), (80, (2.2, -.75, DECK + .55), (-9, 5.5, DECK + 3.5)), (SHOTS['b'] - 1, (2.3, -.75, DECK + .55), (-9, 5.5, DECK + 3.5))], lens=18, fstop=5.6, focus=2.7)
-    B = film.camera('Cam14b_Kneel', [(SHOTS['b'], (bx + 2.6, -.2, DECK + .8), (bx, -.05, DECK + .45)), (SHOTS['c'] - 1, (bx + 2.2, -.15, DECK + .75), (bx, -.05, DECK + .45))],
+    A = film.camera('Cam14a_Arch', [(SHOTS['a'], (-1.6, -1.6, DECK + .6), (-14, 5.5, DECK + 3.5)), (80, (2.2, -1.6, DECK + .6), (-9, 5.5, DECK + 3.5)), (SHOTS['b'] - 1, (2.3, -1.6, DECK + .6), (-9, 5.5, DECK + 3.5))], lens=18, fstop=5.6, focus=2.7)
+    B = film.camera('Cam14b_Kneel', [(SHOTS['b'], (bx + 3.3, -.2, DECK + .8), (bx, -.05, DECK + .42)), (SHOTS['c'] - 1, (bx + 2.9, -.15, DECK + .75), (bx, -.05, DECK + .45))],
                     lens=32, fstop=2.0, focus=2.2)
-    C = film.camera('Cam14c_Yes', [(SHOTS['c'], (bx + 2.6, -.4, DECK + .95), (bx, 0, DECK + .65)), (SHOTS['end'], (bx + 4.2, -.6, DECK + 1.5), (bx, 0, DECK + .85))],
+    C = film.camera('Cam14c_Yes', [(SHOTS['c'], (bx + 3.3, -.4, DECK + .95), (bx, 0, DECK + .65)), (SHOTS['end'], (bx + 4.2, -.6, DECK + 1.5), (bx, 0, DECK + .85))],
                     lens=28, fstop=2.8, focus=3.8)
     for f, cam in ((SHOTS['a'], A), (SHOTS['b'], B), (SHOTS['c'], C)):
         film.cut(f, cam)

@@ -234,8 +234,8 @@ def build():
     Bc = film.camera('Cam7b_Car', [(SHOTS['b'], (CAR.x + .05, CAR.y - 2.6, CAR.z + .95), (CAR.x, CAR.y + .4, CAR.z + .78)),
                                    (SHOTS['c'] - 1, (CAR.x + .02, CAR.y - 2.2, CAR.z + .93), (CAR.x, CAR.y + .4, CAR.z + .78))], lens=30, fstop=2.8,
                      focus=(CAR.x, CAR.y + .4, CAR.z + .8))
-    C = film.camera('Cam7c_Street', [(SHOTS['c'], (ST.x + 3.55, ST.y - 1.6, ST.z + .95), (ST.x + 3.9, ST.y + 10, ST.z + .45)),
-                                     (SHOTS['end'], (ST.x + 3.5, ST.y - 1.3, ST.z + .92), (ST.x + 3.95, ST.y + 10, ST.z + .45))], lens=26, fstop=4,
+    C = film.camera('Cam7c_Street', [(SHOTS['c'], (ST.x + 3.2, ST.y - 1.9, ST.z + .95), (ST.x + 3.75, ST.y + 10, ST.z + .45)),
+                                     (SHOTS['end'], (ST.x + 3.15, ST.y - 1.6, ST.z + .92), (ST.x + 3.8, ST.y + 10, ST.z + .45))], lens=26, fstop=4,
                     focus=(ST.x + 2.5, ST.y + 4, ST.z + .5))
     for f, cam in ((SHOTS['a'], A), (SHOTS['b'], Bc), (SHOTS['c'], C)):
         film.cut(f, cam)
