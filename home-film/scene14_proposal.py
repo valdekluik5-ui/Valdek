@@ -102,9 +102,9 @@ def build():
     he = bears.build_bear('he'); she = bears.build_bear('she')
     bx = 0.0
     # walking out onto the bridge under the arch, then stopping at the middle
-    bears.place(he, 1, (bx - 5.5, -.35, DECK), bears.facing(1, 0)); bears.place(she, 1, (bx - 5.5, .35, DECK), bears.facing(1, 0))
-    bears.walk(he, 2, 80, (bx - 5.5, -.35, DECK), (bx - .4, -.35, DECK), hold={'shoulder.L': (8, 0, 22), 'forearm.L': (6, 0, 0)})
-    bears.walk(she, 2, 80, (bx - 5.5, .35, DECK), (bx - .4, .35, DECK), hold={'shoulder.R': (8, 0, -22), 'forearm.R': (6, 0, 0)}, phase=2)
+    bears.place(he, 1, (bx - 4.3, -.35, DECK), bears.facing(1, 0)); bears.place(she, 1, (bx - 4.3, .35, DECK), bears.facing(1, 0))
+    bears.walk(he, 2, 80, (bx - 4.3, -.35, DECK), (bx - .4, -.35, DECK), hold={'shoulder.L': (8, 0, 22), 'forearm.L': (6, 0, 0)})
+    bears.walk(she, 2, 80, (bx - 4.3, .35, DECK), (bx - .4, .35, DECK), hold={'shoulder.R': (8, 0, -22), 'forearm.R': (6, 0, 0)}, phase=2)
     # he steps in front of her and kneels; she turns to him
     b_ = SHOTS['b']
     bears.place(she, b_, (bx, .35, DECK), bears.facing(0, -1))
@@ -144,6 +144,9 @@ def build():
     bears.key_pose(she, c + 44, {'shoulder.L': (80, 0, -32), 'shoulder.R': (80, 0, 32), 'forearm.L': (35, 0, 0), 'forearm.R': (35, 0, 0), 'head': (-6, 30, -12)})
     film.key_visible(boxo, c + 30, False)
     bears.set_eyes(she, 'closed', c + 56); bears.set_eyes(he, 'closed', c + 60)
+    hug_he = dict(bears.STAND, **{'shoulder.L': (75, 0, -30), 'shoulder.R': (75, 0, 30), 'forearm.L': (35, 0, 0), 'forearm.R': (35, 0, 0), 'head': (4, 30, -10)})
+    hug_she = {'shoulder.L': (80, 0, -32), 'shoulder.R': (80, 0, 32), 'forearm.L': (35, 0, 0), 'forearm.R': (35, 0, 0), 'head': (-6, 30, -12)}
+    bears.hug_sway(he, c + 50, SHOTS['end'], hug_he); bears.hug_sway(she, c + 50, SHOTS['end'], hug_she, phase=.5)
     # ---- cameras
     A = film.camera('Cam14a_Arch', [(SHOTS['a'], (-2.6, -.75, DECK + .55), (-14, 5.5, DECK + 3.5)), (80, (2.2, -.75, DECK + .55), (-9, 5.5, DECK + 3.5)), (SHOTS['b'] - 1, (2.3, -.75, DECK + .55), (-9, 5.5, DECK + 3.5))], lens=18, fstop=5.6, focus=2.7)
     B = film.camera('Cam14b_Kneel', [(SHOTS['b'], (bx + 2.6, -.2, DECK + .8), (bx, -.05, DECK + .45)), (SHOTS['c'] - 1, (bx + 2.2, -.15, DECK + .75), (bx, -.05, DECK + .45))],

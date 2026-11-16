@@ -319,13 +319,15 @@ def build():
     # Estonia: his parents wait at the door; the two arrive; hugs
     e = SHOTS['estonia']
     bears.place(dad, e, EST + Vector((1.0, 2.2, .25)), 0); bears.place(mum, e, EST + Vector((.0, 2.2, .25)), 0)
-    bears.place(he, e, EST + Vector((.2, -5, 0)), bears.facing(0, 1)); bears.place(she, e, EST + Vector((.8, -5, 0)), bears.facing(0, 1))
-    bears.walk(he, e + 2, e + 60, EST + Vector((.2, -5, 0)), EST + Vector((.25, 1.2, .1)))
-    bears.walk(she, e + 2, e + 60, EST + Vector((.8, -5, 0)), EST + Vector((.85, 1.2, .1)), phase=2)
+    bears.place(he, e, EST + Vector((.2, -2.0, 0)), bears.facing(0, 1)); bears.place(she, e, EST + Vector((.8, -2.0, 0)), bears.facing(0, 1))
+    bears.walk(he, e + 2, e + 64, EST + Vector((.2, -2.0, 0)), EST + Vector((.25, 1.2, .1)))
+    bears.walk(she, e + 2, e + 64, EST + Vector((.8, -2.0, 0)), EST + Vector((.85, 1.2, .1)), phase=2)
     hug = {'shoulder.L': (75, 0, -30), 'shoulder.R': (75, 0, 30), 'forearm.L': (35, 0, 0), 'forearm.R': (35, 0, 0)}
     for b in (dad, mum):
-        bears.key_pose(b, e + 50, {'shoulder.L': (0, 0, 0), 'shoulder.R': (0, 0, 0)}); bears.key_pose(b, e + 70, dict(hug, head=(0, 25, -8)))
-    bears.key_pose(he, e + 70, dict(hug, head=(0, 25, -8))); bears.key_pose(she, e + 70, dict(hug, head=(0, 25, -8)))
+        bears.key_pose(b, e + 50, {'shoulder.L': (0, 0, 0), 'shoulder.R': (0, 0, 0)}); bears.key_pose(b, e + 74, dict(hug, head=(0, 25, -8)))
+    bears.key_pose(he, e + 76, dict(hug, head=(0, 25, -8))); bears.key_pose(she, e + 76, dict(hug, head=(0, 25, -8)))
+    for k, b in enumerate((he, mum, she, dad)):
+        bears.hug_sway(b, e + 80, SHOTS['falls'] - 1, dict(hug, head=(0, 25, -8)), phase=.5 * (k % 2))
     bears.set_eyes(mum, 'heart', e + 64); bears.set_eyes(dad, 'closed', e + 70)
     # the waterfall: they stand on the bank and watch
     fa = SHOTS['falls']
@@ -334,14 +336,19 @@ def build():
     # Tallinn: walking up the old street
     t = SHOTS['tallinn']
     bears.place(he, t, TAL + Vector((-.3, -2, 0)), PI); bears.place(she, t, TAL + Vector((.3, -2, 0)), PI)
-    bears.walk(he, t + 2, SHOTS['berries'] - 1, TAL + Vector((-.3, -2, 0)), TAL + Vector((-.3, 3.5, 0)), hold={'shoulder.R': (8, 0, -22), 'forearm.R': (6, 0, 0)})
-    bears.walk(she, t + 2, SHOTS['berries'] - 1, TAL + Vector((.3, -2, 0)), TAL + Vector((.3, 3.5, 0)), hold={'shoulder.L': (8, 0, 22), 'forearm.L': (6, 0, 0)}, phase=2)
+    bears.walk(he, t + 2, SHOTS['berries'] - 1, TAL + Vector((-.3, -2, 0)), TAL + Vector((-.3, 1.8, 0)), hold={'shoulder.R': (8, 0, -22), 'forearm.R': (6, 0, 0)})
+    bears.walk(she, t + 2, SHOTS['berries'] - 1, TAL + Vector((.3, -2, 0)), TAL + Vector((.3, 1.8, 0)), hold={'shoulder.L': (8, 0, 22), 'forearm.L': (6, 0, 0)}, phase=2)
     # berries: kneeling among the bushes, a basket between them
     bb = SHOTS['berries']
     kneel = {'thigh.L': (70, 0, -6), 'thigh.R': (70, 0, 6), 'shin.L': (-110, 0, 0), 'shin.R': (-110, 0, 0), 'spine': (25, 0, 0),
              'shoulder.L': (50, 0, 0), 'shoulder.R': (50, 0, 0), 'head': (20, 0, 0)}
     bears.place(he, bb, BER + Vector((-.45, 0, -.12)), bears.facing(.6, -1), pose=kneel); bears.place(she, bb, BER + Vector((.55, 0, -.12)), bears.facing(-.6, -1), pose=kneel)
     bears.set_eyes(she, 'heart', bb + 30); bears.set_eyes(she, 'open', bb + 55)
+    for k, f in enumerate(range(bb + 8, SHOTS['helsinki'] - 8, 14)):        # picking: reach into the bush, drop into the basket
+        for b, o in ((he, 0), (she, 1)):
+            reach = (k + o) % 2 == 0
+            bears.key_pose(b, f + 3 * o, {'shoulder.L': (68 if reach else 42, 0, 6 if reach else 0), 'shoulder.R': (42 if reach else 68, 0, 0 if reach else -6),
+                                          'head': (24 if reach else 16, 0, 0)})
     # Helsinki by ferry: at the rail, looking at the city
     h = SHOTS['helsinki']
     bears.place(he, h, FD + Vector((-.3, 2.4, 0)), PI); bears.place(she, h, FD + Vector((.3, 2.4, 0)), PI)

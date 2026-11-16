@@ -430,8 +430,8 @@ def animate_bears(bears):
     zs, ys = step_top(11)
     bears.place(he, c, (-2.0, ys + .24, zs), 0, sitting=True)
     zw, yw = step_top(3)
-    bears.place(she, c, (8.5, yw + .17, zw), bears.facing(-1, 0))
-    bears.walk(she, c + 4, SHOTS['d'] - 6, (8.5, yw + .17, zw), (-8.0, yw + .17, zw))
+    bears.place(she, c, (5.0, yw + .17, zw), bears.facing(-1, 0))
+    bears.walk(she, c + 4, SHOTS['d'] - 6, (5.0, yw + .17, zw), (-3.0, yw + .17, zw))
     bears.turn_head(he, c, yaw=35, nod=8); bears.turn_head(he, c + 60, yaw=40, nod=10)
     bears.turn_head(he, c + 95, yaw=5, nod=12); bears.turn_head(he, c + 140, yaw=-35, nod=10)
     bears.turn_head(she, c + 60, yaw=0); bears.turn_head(she, c + 80, yaw=-55, nod=-18); bears.turn_head(she, c + 104, yaw=-50, nod=-15)
@@ -439,22 +439,22 @@ def animate_bears(bears):
     bears.blink(he, c + 30); bears.blink(she, c + 110)
     # glimpse 2: they cross paths on the square and both look back
     d = SHOTS['d']
-    bears.place(he, d, (-7.5, -30.0, 0), bears.facing(1, 0)); bears.place(she, d, (7.5, -28.3, 0), bears.facing(-1, 0))
-    bears.walk(he, d + 2, SHOTS['e'] - 2, (-7.5, -30.0, 0), (5.5, -29.8, 0))
-    bears.walk(she, d + 2, SHOTS['e'] - 2, (7.5, -28.3, 0), (-5.5, -28.6, 0))
+    bears.place(he, d, (-4.0, -30.0, 0), bears.facing(1, 0)); bears.place(she, d, (4.0, -28.3, 0), bears.facing(-1, 0))
+    bears.walk(he, d + 2, SHOTS['e'] - 2, (-4.0, -30.0, 0), (3.0, -29.8, 0))
+    bears.walk(she, d + 2, SHOTS['e'] - 2, (4.0, -28.3, 0), (-3.0, -28.6, 0), phase=1)
     for b in (he, she):
         bears.turn_head(b, d + 30, yaw=0); bears.turn_head(b, d + 62, yaw=35); bears.turn_head(b, d + 92, yaw=95, nod=-4)
         bears.turn_head(b, d + 130, yaw=100, nod=-4)
     # glimpse 3: the harbour bench at golden hour, a gap between them; she gets up and walks away
     e = SHOTS['e']; seat = .34
     bears.place(he, e, (-.62, -146.75, seat), 0, sitting=True); bears.place(she, e, (.62, -146.75, seat), 0, sitting=True)
-    bears.turn_head(he, e + 30, yaw=0); bears.turn_head(he, e + 42, yaw=28, nod=4); bears.turn_head(he, e + 62, yaw=26, nod=4)
-    bears.turn_head(he, e + 72, yaw=0)
-    bears.turn_head(she, e + 66, yaw=0); bears.turn_head(she, e + 76, yaw=-30, nod=4); bears.turn_head(she, e + 92, yaw=-28, nod=4)
-    bears.turn_head(she, e + 100, yaw=0)
-    stand = e + 104
+    bears.turn_head(he, e + 14, yaw=0); bears.turn_head(he, e + 24, yaw=28, nod=4); bears.turn_head(he, e + 38, yaw=26, nod=4)
+    bears.turn_head(he, e + 46, yaw=0)
+    bears.turn_head(she, e + 50, yaw=0); bears.turn_head(she, e + 58, yaw=-30, nod=4); bears.turn_head(she, e + 72, yaw=-28, nod=4)
+    bears.turn_head(she, e + 80, yaw=0)
+    stand = e + 84
     bears.stand_up(she, stand, (.62, -147.25, 0), dur=22)          # up off the bench, onto the quay
-    bears.walk(she, stand + 30, SHOTS['end'], (.62, -147.25, 0), (7.0, -147.6, 0))
+    bears.walk(she, stand + 30, SHOTS['end'], (.62, -147.25, 0), (2.8, -147.45, 0))
     bears.turn_head(he, stand + 10, yaw=20); bears.turn_head(he, stand + 40, yaw=55, nod=4); bears.turn_head(he, SHOTS['end'], yaw=70, nod=6)
     bears.blink(he, e + 20); bears.blink(she, e + 50)
     return he, she

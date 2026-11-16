@@ -762,6 +762,8 @@ def run(build, sid, still_frame=None):
     clear_scene()
     bpy.context.scene.name = f"S{sid}_{TIMELINE[sid]['name']}"
     build()
+    import bears
+    bears.polish_all()                  # natural timing for every gesture
     bring_to_life(f0, f1, seed=int(sid))
     setup_render(o['engine'], o['percent'], o['samples'], o['gpu'], (f0, f1))
     if o.get('preview'):

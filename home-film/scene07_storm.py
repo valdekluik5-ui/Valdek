@@ -222,7 +222,7 @@ def build():
     bears.place(he, c, (ST.x + 3.0, ST.y + .9, ST.z + .1), bears.facing(.15, 1), pose={'shoulder.R': (24, 0, -6), 'forearm.R': (24, 0, 0)})
     film.key_visible(h_he, c, True)
     bears.place(she, c, (ST.x + 3.9, ST.y + 2.0, ST.z + .1), PI)
-    bears.walk(she, c + 4, SHOTS['end'], (ST.x + 3.9, ST.y + 2.0, ST.z + .1), (ST.x + 4.1, ST.y + 14.0, ST.z + .1), cycle=20, stride=22)
+    bears.walk(she, c + 4, SHOTS['end'], (ST.x + 3.9, ST.y + 2.0, ST.z + .1), (ST.x + 4.1, ST.y + 10.5, ST.z + .1))
     bears.turn_head(he, c, nod=10, yaw=0); bears.turn_head(he, c + 120, nod=14, yaw=0); bears.turn_head(he, SHOTS['end'], nod=26)
     # at "Love." the grey heart in his paw glows once, faintly
     for f, gl in ((540, 0), (556, 1.6), (600, .3)):

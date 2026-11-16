@@ -919,6 +919,9 @@ def parse_frames(s, default):
 if __name__ == '__main__':
     o = args()
     build()
+    import film
+    bears.polish_all()                  # natural timing for every gesture
+    film.bring_to_life(*FRAMES, seed=4)  # breathing, blinks, idle drift
     setup_render(o['engine'], o['percent'], o['samples'], o['gpu'])
     sc = bpy.context.scene
     if o['camera'] == 'edit':

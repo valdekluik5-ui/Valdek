@@ -117,6 +117,8 @@ def build():
     y = -4.0
     bears.place(he, 1, (-.42, y, 0), bears.facing(1, .25)); bears.place(she, 1, (.42, y, 0), bears.facing(-1, .25))
     bears.turn_head(she, 30, nod=4); bears.turn_head(he, 30, nod=4)
+    for bb in (he, she):                         # paws down while they look at each other, then they reach out
+        bears.key_pose(bb, 44, {k: bears.STAND[k] for k in ('shoulder.L', 'shoulder.R', 'forearm.L', 'forearm.R', 'spine')})
     # rings: he holds her paw, slides the ring on; then she does
     b_ = SHOTS['b']
     hold_he = {'shoulder.R': (70, 0, -6), 'forearm.R': (14, 0, 0), 'shoulder.L': (70, 0, 6), 'forearm.L': (14, 0, 0), 'spine': (10, 0, 0), 'head': (14, 0, 0)}

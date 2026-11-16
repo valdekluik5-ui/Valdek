@@ -20,6 +20,7 @@ faces -Y (it looks at you in Front view, numpad 1). 1 Blender unit = the app uni
 (the bear is about 1 unit tall).
 """
 import math
+import os
 import bpy
 import bmesh
 import numpy as np
@@ -571,7 +572,7 @@ def build_bear(who, location=(0, 0, 0), rotation_z=0.0, name=None, fur=True, ove
         me.materials.append(m)
 
     # ---- fur (particle hair; sits after the Armature modifier so it follows every pose)
-    if fur:
+    if fur and not os.environ.get("HOME_NOFUR"):
         area_frac = {'fur_main': 1, 'fur_light': .12, 'fur_belly': .18, 'fur_ear': .06, 'fur_blush': .05}
         for gname, m in fur_mats.items():
             if gname == 'fur_blush' and c['cheekAlpha'] <= .01:
@@ -841,14 +842,14 @@ def _fk_ankle(arm, pose, side):
     return M @ Vector((0, arm.data.bones[chain[-1]].length, 0))
 
 
-def walk(arm, f0, f1, p0, p1, cycle=None, stride=30, ground=None, hold=None, phase=0):
+def walk(arm, f0, f1, p0, p1, cycle=None, stride=None, ground=None, hold=None, phase=0):
     """A plush-bear walk from p0 to p1 between frames f0 and f1, with planted feet.
     The number of steps follows the distance. While a foot is on the ground, its leg angle is solved exactly (forward
     kinematics on the skeleton) so the foot stays where it landed as the body moves over it, and the body height is
     set so that foot stays on the ground (the bob comes from the legs). The other leg swings through with its knee
     lifted. The body waddles a little toward the supporting leg, the hips twist and the spine counters, the arms swing
     opposite to the legs, and the walk eases in and out.
-    stride = how far the legs reach (degrees; 36+ reads as a run). hold = a pose kept on top (e.g. a held paw).
+    stride = how far the legs reach (degrees; 36+ reads as a run); left out, it follows the speed. hold = a pose kept on top (e.g. a held paw).
     phase odd = start with the right foot."""
     p0, p1 = Vector(p0), Vector(p1)
     d = p1 - p0
@@ -856,9 +857,15 @@ def walk(arm, f0, f1, p0, p1, cycle=None, stride=30, ground=None, hold=None, pha
     dirv = d.normalized() if dist > 1e-4 else Vector((0, 0, 0))
     rz = facing(d.x, d.y) if dist > 1e-4 else arm.rotation_euler.z
     sc = arm.scale[0]
+    K = .2118
+    if stride is None:
+        # a natural stride for this speed: slow walks take short steps, brisk walks longer and quicker ones
+        v = dist / max(1.0, f1 - f0) / sc                       # bear-heights per frame
+        cad = max(5.4, min(8.0, 8.0 - (v - .025) * 90))           # frames per step
+        need = v * cad * 1.1 / (2 * K * .95)
+        stride = max(20.0, min(44.0, math.degrees(math.asin(min(.99, need)))))
     run = stride >= 34
     rest_z = _fk_ankle(arm, {}, 'L').z                 # ankle height when standing
-    K = .2118
     step_len = 2 * K * math.sin(math.radians(stride)) * .95 * sc
     n = max(2, int(round(dist / max(step_len, 1e-3))) + 1)
     if (f1 - f0) / n < 5:
@@ -977,3 +984,76 @@ def sit_down(arm, f, seat_loc, dur=20):
     key_pose(arm, f + dur, dict(SIT, **{'spine': (2, 0, 0)}))
     arm.location = seat_loc; arm.keyframe_insert('location', frame=f + dur)
     key_pose(arm, f + dur + 8, dict(SIT))
+
+
+# ---------------------------------------------------------------- acting polish (run once per scene, after the build)
+_SNAPPY = ('shoulder', 'forearm', 'spine', 'head')
+
+
+def polish(arm, max_slow=36):
+    """Give every keyed gesture natural timing, for the whole scene at once.
+    A pose change keyed far apart (e.g. 'paw out' 60 frames after the last key) would otherwise crawl over the whole
+    gap and float. Here each move holds the old pose, then moves over a duration that grows with how far it goes
+    (about 10-26 frames, never slower than max_slow), so the bear acts instead of drifting. Bigger arm/body moves get a
+    small anticipation (a wind-up the other way) and a little overshoot that settles. Walks, cuts (constant keys) and
+    small adjustments are left alone. All three axes of a bone share one timing so the move stays in one piece."""
+    groups = {}
+    for fc in _fcurves(arm):
+        if fc.data_path.startswith('pose.bones') and fc.data_path.endswith('rotation_euler'):
+            groups.setdefault(fc.data_path, []).append(fc)
+    for path, fcs in groups.items():
+        bone = path.split('"')[1]
+        snappy = bone.startswith(_SNAPPY)
+        frames = sorted({round(kp.co.x, 3) for fc in fcs for kp in fc.keyframe_points})
+        plan = []
+        for a, b in zip(frames, frames[1:]):
+            g = b - a
+            va = [fc.evaluate(a) for fc in fcs]; vb = [fc.evaluate(b) for fc in fcs]
+            delta = max(abs(y - x) for x, y in zip(va, vb))
+            if delta < .12 or g < 12:
+                continue
+            if any(kp.interpolation == 'CONSTANT' for fc in fcs for kp in fc.keyframe_points if abs(kp.co.x - a) < .01):
+                continue
+            dur = min(26.0, 8 + 18 * delta) * (.8 if bone == 'head' else 1)
+            dur = max(dur, min(.4 * g, max_slow))
+            if g - dur < 4:
+                continue
+            plan.append((a, b, dur, va, vb, delta))
+        for a, b, dur, va, vb, delta in plan:
+            s = b - dur
+            for fc, x, y in zip(fcs, va, vb):
+                pts = [(s, x)]
+                if snappy and delta > .3:
+                    pts.append((s + .25 * dur, x - .06 * (y - x)))           # wind-up
+                    pts.append((b - .22 * dur, y + .07 * (y - x)))           # overshoot, then settle at b
+                for fr, v in pts:
+                    kp = fc.keyframe_points.insert(fr, v, options={'FAST'})
+                    kp.interpolation = 'BEZIER'
+        for fc in fcs:
+            for kp in fc.keyframe_points:
+                if kp.interpolation == 'BEZIER':
+                    kp.handle_left_type = kp.handle_right_type = 'AUTO_CLAMPED'
+            fc.update()
+
+
+def hug_sway(arm, f0, f1, pose, amp=2.6, period=56, phase=0.0):
+    """Inside a hug: the pair rocks gently side to side and squeezes now and then, instead of freezing.
+    pose = the hug pose being held (its spine/shoulder values are the centre of the motion). Call it for both bears
+    with the same period (and phase .5 for one of them so they lean the same way, since they face each other)."""
+    sp = pose.get('spine', (0, 0, 0)); shL = pose.get('shoulder.L', (0, 0, 0)); shR = pose.get('shoulder.R', (0, 0, 0))
+    hd = pose.get('head', (0, 0, 0))
+    half = period / 2; k = 0; f = f0 + half * .5
+    while f < f1 - 6:
+        side = 1 if (k + int(phase * 2)) % 2 == 0 else -1
+        squeeze = 5 if k % 3 == 1 else 0
+        key_pose(arm, int(f), {'spine': (sp[0] + (2 if squeeze else 0), sp[1], sp[2] + amp * side),
+                               'head': (hd[0], hd[1], hd[2] + amp * .6 * side),
+                               'shoulder.L': (shL[0] + squeeze, shL[1], shL[2]), 'shoulder.R': (shR[0] + squeeze, shR[1], shR[2])})
+        k += 1; f += half
+    key_pose(arm, int(f1), {b: pose.get(b, (0, 0, 0)) for b in ('spine', 'head', 'shoulder.L', 'shoulder.R')})
+
+
+def polish_all():
+    for arm in [o for o in bpy.data.objects if o.type == 'ARMATURE' and 'who' in o.keys()]:
+        if arm.animation_data and arm.animation_data.action:
+            polish(arm)

@@ -139,23 +139,24 @@ def build():
     door_y = ST.y - 4 + 16.4 * 1 - 7.3          # second carriage, its door
     bears.place(he, 1, (2000, 0, 0), 0); bears.place(she, 1, (2002, 0, 0), 0)
     bears.place(he, b_, (ST.x - .3, door_y, pz + .1), bears.facing(1, 0))
-    bears.walk(he, b_ + 6, b_ + 30, (ST.x - .3, door_y, pz + .1), (ST.x + 1.2, door_y, pz))
+    bears.walk(he, b_ + 6, b_ + 40, (ST.x - .3, door_y, pz + .1), (ST.x + 1.2, door_y, pz))
     bears.place(she, b_, (ST.x + 1.6, door_y - 7.0, pz), bears.facing(0, 1))
-    bears.turn_head(he, b_ + 34, yaw=0); bears.turn_head(he, b_ + 50, yaw=-70, nod=-2)        # he looks down the platform... there she is
+    bears.turn_head(he, b_ + 42, yaw=0); bears.turn_head(he, b_ + 54, yaw=-70, nod=-2)        # he looks down the platform... there she is
     bears.turn_head(she, b_ + 40, yaw=0, nod=-4); bears.set_eyes(she, 'heart', b_ + 60); bears.set_eyes(he, 'heart', b_ + 66)
     bears.set_eyes(she, 'open', SHOTS['c']); bears.set_eyes(he, 'open', SHOTS['c'])
     # ---- the run into the hug
     c = SHOTS['c']; meet = door_y - 3.6
     bears.place(he, c, (ST.x + 1.2, door_y, pz), bears.facing(0, -1)); bears.place(she, c, (ST.x + 1.6, door_y - 7.0, pz), bears.facing(0, 1))
-    bears.walk(he, c + 2, c + 62, (ST.x + 1.2, door_y, pz), (ST.x + 1.4, meet + .3, pz), cycle=10, stride=38)
-    bears.walk(she, c + 2, c + 62, (ST.x + 1.6, door_y - 7.0, pz), (ST.x + 1.4, meet - .3, pz), cycle=10, stride=38, phase=1)
+    bears.walk(he, c + 2, c + 62, (ST.x + 1.2, door_y, pz), (ST.x + 1.4, meet + .3, pz), cycle=10, stride=44)
+    bears.walk(she, c + 2, c + 62, (ST.x + 1.6, door_y - 7.0, pz), (ST.x + 1.4, meet - .3, pz), cycle=10, stride=44, phase=1)
     hug_he = {'shoulder.L': (75, 0, -30), 'shoulder.R': (75, 0, 30), 'forearm.L': (35, 0, 0), 'forearm.R': (35, 0, 0), 'head': (4, 35, -12), 'spine': (6, 0, 0)}
     hug_she = {'shoulder.L': (80, 0, -32), 'shoulder.R': (80, 0, 32), 'forearm.L': (35, 0, 0), 'forearm.R': (35, 0, 0), 'head': (-6, 35, -14), 'spine': (4, 0, 0)}
     bears.key_pose(he, c + 70, hug_he); bears.key_pose(she, c + 70, hug_she)
     bears.hold(he, c + 64); bears.hold(she, c + 64)
     he.location.y = meet + .24; she.location.y = meet - .24
     bears.hold(he, c + 72); bears.hold(she, c + 72)
-    bears.key_pose(he, SHOTS['end'], hug_he); bears.key_pose(she, SHOTS['end'], hug_she)
+    bears.key_pose(he, c + 84, hug_he); bears.key_pose(she, c + 84, hug_she)
+    bears.hug_sway(he, c + 84, SHOTS['end'], hug_he); bears.hug_sway(she, c + 84, SHOTS['end'], hug_she, phase=.5)
     bears.set_eyes(he, 'closed', c + 80); bears.set_eyes(she, 'closed', c + 76)
     # ---- cameras
     A = film.camera('Cam11a_Fields', [(SHOTS['a'], (FIELD.x + 14, FIELD.y - 30, 2.2), (FIELD.x, FIELD.y + 10, 2.5)),
