@@ -721,7 +721,11 @@ def bring_to_life(f0, f1, seed=0):
             m = fc.modifiers.new('FNGENERATOR'); m.function_type = 'SIN'; m.use_additive = True
             m.amplitude = .013; m.phase_multiplier = 2 * PI / (24 * rng.uniform(3.2, 4.0)); m.phase_offset = rng.uniform(0, 6)
         # head and body drift: gentle noise on the keyed rotations
-        for bn, amp, sc_ in (('head', .05, 70), ('spine', .02, 110)):
+        for bn in ('shoulder.L', 'shoulder.R', 'forearm.L', 'forearm.R'):
+            if fc_for(f'pose.bones["{bn}"].rotation_euler', 0) is None:
+                arm.pose.bones[bn].keyframe_insert('rotation_euler', frame=f0)
+        for bn, amp, sc_ in (('head', .05, 70), ('spine', .02, 110), ('shoulder.L', .035, 90), ('shoulder.R', .035, 95),
+                             ('forearm.L', .04, 80), ('forearm.R', .04, 85), ('pelvis', .012, 140)):
             for idx in range(3):
                 fc = fc_for(f'pose.bones["{bn}"].rotation_euler', idx)
                 if fc is None or any(m.type == 'NOISE' for m in fc.modifiers):

@@ -814,41 +814,128 @@ def _constant_at(ob, frame):
             max(prev, key=lambda k: k.co.x).interpolation = 'CONSTANT'
 
 
-def walk(arm, f0, f1, p0, p1, cycle=18, stride=26, ground=None, hold=None, phase=0):
-    """Walk from p0 to p1 (x, y, z) between frames f0 and f1: legs and arms swing, the body bobs gently."""
+def _ease_progress(t, r):
+    """Fraction of the distance covered at time t (0..1) for a walk that speeds up over the first r and slows down
+    over the last r of the time (trapezoid speed profile)."""
+    v = 1 / (1 - r)
+    if t < r:
+        return v * t * t / (2 * r)
+    if t > 1 - r:
+        u = 1 - t
+        return 1 - v * u * u / (2 * r)
+    return v * (t - r / 2)
+
+
+def _fk_ankle(arm, pose, side):
+    """Armature-space position of a foot (tail of shin.<side>) for a pose {bone: (x, y, z) degrees}, by forward
+    kinematics on the rest skeleton (exact, without touching the scene)."""
+    from mathutils import Euler, Matrix as _M
+    chain = ['root', 'pelvis', 'thigh.' + side, 'shin.' + side]
+    M = _M.Identity(4); parent = None
+    for bn in chain:
+        bone = arm.data.bones[bn]
+        rel = bone.matrix_local if parent is None else parent.matrix_local.inverted() @ bone.matrix_local
+        r = pose.get(bn, (0, 0, 0))
+        M = M @ rel @ Euler([math.radians(v) for v in r], 'XYZ').to_matrix().to_4x4()
+        parent = bone
+    return M @ Vector((0, arm.data.bones[chain[-1]].length, 0))
+
+
+def walk(arm, f0, f1, p0, p1, cycle=None, stride=30, ground=None, hold=None, phase=0):
+    """A plush-bear walk from p0 to p1 between frames f0 and f1, with planted feet.
+    The number of steps follows the distance. While a foot is on the ground, its leg angle is solved exactly (forward
+    kinematics on the skeleton) so the foot stays where it landed as the body moves over it, and the body height is
+    set so that foot stays on the ground (the bob comes from the legs). The other leg swings through with its knee
+    lifted. The body waddles a little toward the supporting leg, the hips twist and the spine counters, the arms swing
+    opposite to the legs, and the walk eases in and out.
+    stride = how far the legs reach (degrees; 36+ reads as a run). hold = a pose kept on top (e.g. a held paw).
+    phase odd = start with the right foot."""
     p0, p1 = Vector(p0), Vector(p1)
     d = p1 - p0
-    rz = facing(d.x, d.y)
+    dist = d.length
+    dirv = d.normalized() if dist > 1e-4 else Vector((0, 0, 0))
+    rz = facing(d.x, d.y) if dist > 1e-4 else arm.rotation_euler.z
+    sc = arm.scale[0]
+    run = stride >= 34
+    rest_z = _fk_ankle(arm, {}, 'L').z                 # ankle height when standing
+    K = .2118
+    step_len = 2 * K * math.sin(math.radians(stride)) * .95 * sc
+    n = max(2, int(round(dist / max(step_len, 1e-3))) + 1)
+    if (f1 - f0) / n < 5:
+        n = max(2, int((f1 - f0) // 5))
+    ramp = min(.25, 1.2 / n)
+    left = Vector((math.cos(rz), math.sin(rz), 0))
+    prog = [_ease_progress(k / n, ramp) * dist for k in range(n + 1)]
+    D = [prog[k + 1] - prog[k] for k in range(n)]
+
+    def ang(fwd):                                       # first guess (armature units)
+        x = max(-.95, min(.95, (fwd / sc + .0079) / K))
+        return math.degrees(math.asin(x))
+
+    def solve(pose, side, fwd_target):
+        """Thigh angle that puts this foot fwd_target (armature units, toward the bear's front = -Y) ahead of the root."""
+        bn = 'thigh.' + side
+        a0 = ang(fwd_target * sc); r = pose[bn]
+        def err(a):
+            pose[bn] = (a, r[1], r[2]); return -_fk_ankle(arm, pose, side).y - fwd_target
+        a1 = a0 + 3; e0, e1 = err(a0), err(a1)
+        for _ in range(6):
+            if abs(e1 - e0) < 1e-7:
+                break
+            a0, a1, e0 = a1, a1 - e1 * (a1 - a0) / (e1 - e0), e1
+            a1 = max(-70, min(70, a1)); e1 = err(a1)
+        pose[bn] = (a1, r[1], r[2])
+        return a1
+
     arm.rotation_euler = (0, 0, rz); arm.location = p0
     arm.keyframe_insert('location', frame=f0); arm.keyframe_insert('rotation_euler', frame=f0)
-    q = cycle / 4
-    f = f0; k = 0
-    while f <= f1 + .01:
-        t = (f - f0) / max(f1 - f0, 1)
-        ph = ((k + phase) % 4) * PI / 2
-        s = math.sin(ph)
-        pos = p0 + d * t
-        bob = .012 * abs(math.cos(ph)) * arm.scale[0]
-        arm.location = (pos.x, pos.y, pos.z + bob)
-        arm.keyframe_insert('location', frame=f)
-        key_pose(arm, f, {'thigh.L': (stride * s, 0, 0), 'thigh.R': (-stride * s, 0, 0),
-                          'shin.L': (-max(0, -s) * 30, 0, 0), 'shin.R': (-max(0, s) * 30, 0, 0),
-                          'shoulder.L': (-14 * s, 0, 6), 'shoulder.R': (14 * s, 0, -6),
-                          'forearm.L': (8, 0, 0), 'forearm.R': (8, 0, 0),
-                          'spine': (4, 0, 3 * s), 'pelvis': (0, 0, -2 * s)})
-        if hold:
-            key_pose(arm, f, hold)
-        f += q; k += 1
-    arm.location = p1; arm.keyframe_insert('location', frame=f1)
-    key_pose(arm, f1, {'thigh.L': (0, 0, 0), 'thigh.R': (0, 0, 0), 'shin.L': (0, 0, 0), 'shin.R': (0, 0, 0),
-                       'shoulder.L': (0, 0, 0), 'shoulder.R': (0, 0, 0), 'spine': (0, 0, 0), 'pelvis': (0, 0, 0)})
+    foot = {'L': 0.0, 'R': 0.0}
+    SUB = 4
+    for k in range(n):
+        st = 'L' if (k + phase) % 2 == 0 else 'R'
+        sw = 'R' if st == 'L' else 'L'
+        land = prog[k + 1] + (D[k + 1] / 2 if k + 1 < n else 0.0)
+        sw_from = foot[sw]
+        for j in range(SUB + (1 if k == n - 1 else 0)):
+            sfrac = j / SUB
+            t = (k + sfrac) / n
+            f = f0 + t * (f1 - f0)
+            body = _ease_progress(t, ramp) * dist
+            moving = min(1.0, D[k] / max(step_len * .5, 1e-4))
+            lift = math.sin(math.pi * sfrac) * moving
+            side = 1 if st == 'L' else -1
+            sw_pos = sw_from + (land - sw_from) * (3 * sfrac ** 2 - 2 * sfrac ** 3)
+            pose = {'thigh.L': (0, 0, -2), 'thigh.R': (0, 0, 2), 'shin.' + st: (-4 * moving, 0, 0),
+                    'shin.' + sw: (-50 * lift - 4 * moving, 0, 0)}
+            pose['shin.' + sw] = (-4 * moving, 0, 0)
+            th_sw = solve(pose, sw, (sw_pos - body) / sc)            # where the swinging foot is along the ground...
+            pose['thigh.' + sw] = (th_sw + 22 * lift, 0, pose['thigh.' + sw][2])     # ...then lift the knee
+            pose['shin.' + sw] = (-62 * lift - 4 * moving, 0, 0)
+            pose['pelvis'] = (0, 0, -3 * side * lift)
+            th_st = solve(pose, st, (foot[st] - body) / sc)
+            # the body sits so the stance foot is on the ground
+            z_off = (rest_z - _fk_ankle(arm, pose, st).z) * sc
+            thL, thR = pose['thigh.L'][0], pose['thigh.R'][0]
+            twist = .12 * (thL - thR) * moving
+            pose.update({'shoulder.L': (-.8 * thL * moving, 0, 7), 'shoulder.R': (-.8 * thR * moving, 0, -7),
+                         'forearm.L': (14 + max(0, -thL) * .25, 0, 0), 'forearm.R': (14 + max(0, -thR) * .25, 0, 0),
+                         'spine': ((5 + (7 if run else 0)) * moving, -twist * .8, 2 * side * lift),
+                         'head': (-3 * moving, twist * .3, -1 * side * lift)})
+            key_pose(arm, f, pose)
+            if hold:
+                key_pose(arm, f, hold)
+            sway = .011 * sc * side * moving * (.5 + .5 * lift)
+            pos = p0 + dirv * body + left * sway
+            arm.location = (pos.x, pos.y, pos.z + z_off + .004 * sc * lift * (2 if run else 1))
+            arm.keyframe_insert('location', frame=f)
+        foot[sw] = land
     if hold:
         key_pose(arm, f1, hold)
     for fc in _fcurves(arm):
-        if fc.data_path == 'location':
-            for kp in fc.keyframe_points:
-                if f0 - .5 <= kp.co.x <= f1 + .5:
-                    kp.interpolation = 'LINEAR'
+        for kp in fc.keyframe_points:
+            if f0 - .5 <= kp.co.x <= f1 + .5 and (fc.data_path == 'location' or fc.data_path.startswith('pose.bones')):
+                kp.interpolation = 'BEZIER'; kp.handle_left_type = kp.handle_right_type = 'AUTO_CLAMPED'
+        fc.update()
 
 
 def turn_head(arm, frame, yaw=0, nod=0, tilt=0):
