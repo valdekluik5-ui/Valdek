@@ -59,8 +59,8 @@ def args():
         k = a[i].lstrip('-')
         if k == 'gpu':
             o['gpu'] = True; i += 1; continue
-        if k == 'nosave':
-            o['nosave'] = True; i += 1; continue
+        if k in ('nosave', 'preview'):
+            o[k] = True; i += 1; continue
         o[k] = a[i + 1]; i += 2
     return o
 
@@ -923,6 +923,8 @@ if __name__ == '__main__':
     bears.polish_all()                  # natural timing for every gesture
     film.bring_to_life(*FRAMES, seed=4)  # breathing, blinks, idle drift
     setup_render(o['engine'], o['percent'], o['samples'], o['gpu'])
+    if o.get('preview'):
+        film.preview_mode(int(o['samples'] or 8))       # lighter fur and fewer samples for quick previews
     sc = bpy.context.scene
     if o['camera'] == 'edit':
         # a little cut: establishing -> wide -> faces (timeline markers switch the camera)
